@@ -1,0 +1,239 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum BusinessStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum RoleName {
+  SYSTEM_OWNER
+  BUSINESS_OWNER
+  BRANCH_MANAGER
+  CUSTOMER
+}
+
+model User {
+  id                   String     @id @default(uuid())
+  email                String     @unique
+  passwordHash         String     @map("password_hash")
+  firstName            String?    @map("first_name")
+  lastName             String?    @map("last_name")
+  profilePicture       String?    @map("profile_picture")
+  gender               String?
+  country              String?
+  phone                String?
+  status               UserStatus @default(ACTIVE)
+  isVerified           Boolean    @default(false) @map("is_verified")
+  forgotPasswordStatus Boolean    @default(false) @map("forgot_password_status")
+  lastLoginAt          DateTime?  @map("last_login_at")
+  createdAt            DateTime   @default(now()) @map("created_at")
+  updatedAt            DateTime   @updatedAt @map("updated_at")
+  deletedAt            DateTime?  @map("deleted_at")
+
+  roles            UserRole[]
+  businesses       Business[]       @relation("BusinessOwner")
+  branches         Branch[]         @relation("BranchManager")
+  systemBusinesses SystemBusiness[] @relation("SystemBusinessCreator")
+  activityLogs     ActivityLog[]    @relation("ActivityLogCreator")
+  systemOwnerPlans SystemOwnerPlan[] @relation("SystemOwnerPlanCreator")
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        RoleName @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model Business {
+  id        String         @id @default(uuid())
+  ownerId   String         @map("owner_id")
+  name      String
+  logo      String?
+  email     String?
+  phone     String?
+  country   String?
+  address   String?
+  status    BusinessStatus @default(ACTIVE)
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  deletedAt DateTime?      @map("deleted_at")
+
+  owner    User     @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  branches Branch[]
+
+  @@map("businesses")
+}
+
+model Branch {
+  id         String    @id @default(uuid())
+  businessId String    @map("business_id")
+  managerId  String?   @map("manager_id")
+  name       String
+  email      String?
+  phone      String?
+  address    String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  manager  User?    @relation("BranchManager", fields: [managerId], references: [id], onDelete: SetNull)
+
+  @@map("branches")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String @id @default(uuid())
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+enum DemoBookingStatus {
+  CALLED
+  PENDING
+}
+
+model DemoBooking {
+  id           String            @id @default(uuid())
+  email        String?           @unique
+  mobileNumber String?           @map("mobile_number")
+  date         DateTime?         @db.Date
+  status       DemoBookingStatus @default(PENDING)
+  credits      Int               @default(0)
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  @@map("demo_booking")
+}
+
+enum BusinessType {
+  Retail
+  Service
+  Manufacturing
+  Tech
+  Other
+}
+
+enum BusinessPlanType {
+  MONTHLY
+  YEARLY
+}
+
+model SystemBusiness {
+  id            String           @id @default(uuid())
+  businessName  String           @map("business_name")
+  businessType  BusinessType     @default(Other) @map("business_type")
+  description   String?
+  ownerName     String?          @map("owner_name")
+  ownerEmail    String?          @map("owner_email")
+  ownerPassword String?          @map("owner_password")
+  ownerPhone    String?          @map("owner_phone")
+  planId        String?          @map("plan_id")
+  planCycle     BusinessPlanType @default(MONTHLY) @map("plan_cycle")
+  status        BusinessStatus   @default(INACTIVE)
+  createdById   String?          @map("created_by_id")
+  credits       Int              @default(0)
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  createdBy User? @relation("SystemBusinessCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@map("system_business")
+}
+
+enum PlanName {
+  NORMAL
+  MEDIUM
+  PREMIUM
+}
+
+enum PlanType {
+  YEARLY
+  MONTHLY
+}
+
+model SystemOwnerPlan {
+  id           String    @id @default(uuid())
+  name         PlanName  @unique
+  price        Decimal
+  billingCycle PlanType  @default(MONTHLY) @map("billing_cycle")
+  planList     String[]  @map("plan_list")
+  createdById  String?   @map("created_by_id")
+  deletedAt    DateTime? @map("deleted_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  createdBy User? @relation("SystemOwnerPlanCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@map("system_owner_plan")
+}
+
+model ActivityLog {
+  id            String    @id @default(uuid())
+  activityName  String?   @map("activity_name")
+  activityTitle String?   @map("activity_title")
+  activityType  String?   @map("activity_type")
+  markAsRead    Boolean   @default(false) @map("mark_as_read")
+  createdById   String?   @map("created_by_id")
+  deletedAt     DateTime? @map("deleted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  createdBy User? @relation("ActivityLogCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@map("activity_log")
+}
