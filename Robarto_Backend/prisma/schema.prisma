@@ -46,10 +46,10 @@ model User {
   deletedAt            DateTime?  @map("deleted_at")
 
   roles            UserRole[]
-  businesses       Business[]       @relation("BusinessOwner")
-  branches         Branch[]         @relation("BranchManager")
-  systemBusinesses SystemBusiness[] @relation("SystemBusinessCreator")
-  activityLogs     ActivityLog[]    @relation("ActivityLogCreator")
+  businesses       Business[]        @relation("BusinessOwner")
+  branches         Branch[]          @relation("BranchManager")
+  systemBusinesses SystemBusiness[]  @relation("SystemBusinessCreator")
+  activityLogs     ActivityLog[]     @relation("ActivityLogCreator")
   systemOwnerPlans SystemOwnerPlan[] @relation("SystemOwnerPlanCreator")
 
   @@map("users")
@@ -79,44 +79,6 @@ model UserRole {
 
   @@unique([userId, roleId])
   @@map("user_roles")
-}
-
-model Business {
-  id        String         @id @default(uuid())
-  ownerId   String         @map("owner_id")
-  name      String
-  logo      String?
-  email     String?
-  phone     String?
-  country   String?
-  address   String?
-  status    BusinessStatus @default(ACTIVE)
-  createdAt DateTime       @default(now()) @map("created_at")
-  updatedAt DateTime       @updatedAt @map("updated_at")
-  deletedAt DateTime?      @map("deleted_at")
-
-  owner    User     @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  branches Branch[]
-
-  @@map("businesses")
-}
-
-model Branch {
-  id         String    @id @default(uuid())
-  businessId String    @map("business_id")
-  managerId  String?   @map("manager_id")
-  name       String
-  email      String?
-  phone      String?
-  address    String?
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  deletedAt  DateTime? @map("deleted_at")
-
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  manager  User?    @relation("BranchManager", fields: [managerId], references: [id], onDelete: SetNull)
-
-  @@map("branches")
 }
 
 model Permission {
@@ -160,40 +122,8 @@ model DemoBooking {
   @@map("demo_booking")
 }
 
-enum BusinessType {
-  Retail
-  Service
-  Manufacturing
-  Tech
-  Other
-}
+// System Owner Starts---------------------------
 
-enum BusinessPlanType {
-  MONTHLY
-  YEARLY
-}
-
-model SystemBusiness {
-  id            String           @id @default(uuid())
-  businessName  String           @map("business_name")
-  businessType  BusinessType     @default(Other) @map("business_type")
-  description   String?
-  ownerName     String?          @map("owner_name")
-  ownerEmail    String?          @map("owner_email")
-  ownerPassword String?          @map("owner_password")
-  ownerPhone    String?          @map("owner_phone")
-  planId        String?          @map("plan_id")
-  planCycle     BusinessPlanType @default(MONTHLY) @map("plan_cycle")
-  status        BusinessStatus   @default(INACTIVE)
-  createdById   String?          @map("created_by_id")
-  credits       Int              @default(0)
-  createdAt     DateTime         @default(now()) @map("created_at")
-  updatedAt     DateTime         @updatedAt @map("updated_at")
-
-  createdBy User? @relation("SystemBusinessCreator", fields: [createdById], references: [id], onDelete: SetNull)
-
-  @@map("system_business")
-}
 
 enum PlanName {
   NORMAL
@@ -222,6 +152,44 @@ model SystemOwnerPlan {
   @@map("system_owner_plan")
 }
 
+enum BusinessType {
+  Retail
+  Service
+  Manufacturing
+  Tech
+  Other
+}
+
+enum BusinessPlanType {
+  MONTHLY
+  YEARLY
+}
+
+model SystemBusiness {
+  id             String           @id @default(uuid())
+  businessName   String           @map("business_name")
+  businessType   BusinessType     @default(Other) @map("business_type")
+  description    String?
+  ownerName      String?          @map("owner_name")
+  ownerEmail     String?          @map("owner_email")
+  ownerPassword  String?          @map("owner_password")
+  ownerPhone     String?          @map("owner_phone")
+  selectedBranch String?          @map("selected_branch")
+  planId         String?          @map("plan_id")
+  planCycle      BusinessPlanType @default(MONTHLY) @map("plan_cycle")
+  status         BusinessStatus   @default(INACTIVE)
+  createdById    String?          @map("created_by_id")
+  credits        Int              @default(0)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  createdBy User? @relation("SystemBusinessCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@map("system_business")
+}
+
+
+
 model ActivityLog {
   id            String    @id @default(uuid())
   activityName  String?   @map("activity_name")
@@ -237,3 +205,49 @@ model ActivityLog {
 
   @@map("activity_log")
 }
+
+// System Owner ends---------------------------
+
+
+// Business Owner --------------------------
+
+
+model Business {
+  id        String         @id @default(uuid())
+  ownerId   String         @map("owner_id")
+  name      String
+  logo      String?
+  email     String?
+  phone     String?
+  country   String?
+  address   String?
+  status    BusinessStatus @default(ACTIVE)
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  deletedAt DateTime?      @map("deleted_at")
+
+  owner    User     @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  branches Branch[]
+
+  @@map("businesses")
+}
+
+model Branch {
+  id         String    @id @default(uuid())
+  businessId String    @map("business_id")
+  managerId  String?   @map("manager_id")
+  name       String
+  email      String?
+  phone      String?
+  address    String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  manager  User?    @relation("BranchManager", fields: [managerId], references: [id], onDelete: SetNull)
+
+  @@map("branches")
+}
+
+// Business Owner ends --------------------------

@@ -2,11 +2,7 @@ import { Router } from "express";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
 import { UserRoutes } from "../modules/user/user.route.js";
-
-
-
-
-
+import { BusinessRoutes } from "../modules/systemOwner/businessManagement/businessManagement.route.js";
 
 export const router = Router();
 const moduleRoutes = [
@@ -21,8 +17,11 @@ const moduleRoutes = [
   {
     path: "/otp",
     route: OtpRouter,
+  },
+  {
+    path: "/system-owner/businesses",
+    route: BusinessRoutes,
   }
-
 ];
 
 moduleRoutes.forEach((route) => {
