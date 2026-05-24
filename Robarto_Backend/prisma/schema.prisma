@@ -51,6 +51,7 @@ model User {
   systemBusinesses SystemBusiness[]  @relation("SystemBusinessCreator")
   activityLogs     ActivityLog[]     @relation("ActivityLogCreator")
   systemOwnerPlans SystemOwnerPlan[] @relation("SystemOwnerPlanCreator")
+  subscriptionPlans SubscriptionPlan[] @relation("SubscriptionPlanCreator")
 
   @@map("users")
 }
@@ -189,7 +190,6 @@ model SystemBusiness {
 }
 
 
-
 model ActivityLog {
   id            String    @id @default(uuid())
   activityName  String?   @map("activity_name")
@@ -205,6 +205,47 @@ model ActivityLog {
 
   @@map("activity_log")
 }
+
+model SubscriptionPlan {
+  id              String   @id @default(cuid())
+
+  name            String   // CONNECT / CONVERT / CONTROL
+
+  slug            String   @unique
+
+  description     String?
+
+  monthlyPrice    Float
+  yearlyPrice     Float?
+
+  currency        String   @default("USD")
+
+  isActive        Boolean  @default(true)
+
+  sortOrder       Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  createdById     String?
+  createdBy       User?    @relation("SubscriptionPlanCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  features        SubscriptionFeature[]
+
+}
+
+model SubscriptionFeature {
+  id          String   @id @default(cuid())
+
+  planId      String
+  plan        SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  key         String
+  value       String
+
+  createdAt   DateTime @default(now())
+}
+
 
 // System Owner ends---------------------------
 

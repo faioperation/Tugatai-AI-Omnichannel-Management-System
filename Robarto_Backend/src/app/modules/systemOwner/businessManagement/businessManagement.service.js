@@ -5,9 +5,23 @@ import { StatusCodes } from "http-status-codes";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
 
 const createBusinessService = async (payload) => {
-    const result = await prisma.systemBusiness.create({
-        data: payload,
+    const result = await prisma.$transaction(async (transactionClient) => {
+        const business = await transactionClient.systemBusiness.create({
+            data: payload,
+        });
+
+        await transactionClient.activityLog.create({
+            data: {
+                activityName: "System Business Created",
+                activityTitle: `A new business named "${business.businessName}" has been created.`,
+                activityType: "CREATE",
+                createdById: payload.createdById || null,
+            }
+        });
+
+        return business;
     });
+
     return result;
 };
 
