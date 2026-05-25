@@ -5,6 +5,10 @@ import { UserRoutes } from "../modules/user/user.route.js";
 import { BusinessRoutes } from "../modules/systemOwner/businessManagement/businessManagement.route.js";
 import { SubscriptionPlanRoutes } from "../modules/systemOwner/subscriptionPlan/subscriptionPlan.route.js";
 import { ActivityLogRoutes } from "../modules/systemOwner/activityLog/activityLog.route.js";
+import { BranchManagerRoutes } from "../modules/businessOwner/branchManager/branchManager.route.js";
+import { BranchRoutes } from "../modules/businessOwner/branch/branch.route.js";
+import { OrderBookingRoutes } from "../modules/businessOwner/orderBooking/orderBooking.route.js";
+import { PricingRoutes } from "../modules/businessOwner/pricing/pricing.route.js";
 
 export const router = Router();
 const moduleRoutes = [
@@ -31,6 +35,22 @@ const moduleRoutes = [
   {
     path: "/system-owner/activity-logs",
     route: ActivityLogRoutes,
+  },
+  {
+    path: "/business-owner/branch-managers",
+    route: BranchManagerRoutes,
+  },
+  {
+    path: "/business-owner/branches",
+    route: BranchRoutes,
+  },
+  {
+    path: "/business-owner/order-bookings",
+    route: OrderBookingRoutes,
+  },
+  {
+    path: "/business-owner/pricings",
+    route: PricingRoutes,
   }
 ];
 

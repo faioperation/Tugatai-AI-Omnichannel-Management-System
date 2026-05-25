@@ -1,11 +1,64 @@
 import prisma from "../../../prisma/client.js";
 import DevBuildError from "../../../lib/DevBuildError.js";
 import { StatusCodes } from "http-status-codes";
+import bcrypt from "bcrypt";
+import { envVars } from "../../../config/env.js";
 
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
 
 const createBusinessService = async (payload) => {
     const result = await prisma.$transaction(async (transactionClient) => {
+        let user = null;
+
+        if (payload.ownerEmail && payload.ownerPassword) {
+            // Check if user already exists
+            const existingUser = await transactionClient.user.findUnique({
+                where: { email: payload.ownerEmail }
+            });
+
+            if (existingUser) {
+                throw new DevBuildError("User with this owner email already exists", StatusCodes.BAD_REQUEST);
+            }
+
+            // Hash the owner password for the user
+            const hashedPassword = await bcrypt.hash(
+                payload.ownerPassword,
+                Number(envVars.BCRYPT_SALT_ROUND || 10)
+            );
+
+            // Create the user
+            user = await transactionClient.user.create({
+                data: {
+                    firstName: payload.ownerName || null,
+                    email: payload.ownerEmail,
+                    passwordHash: hashedPassword,
+                    phone: payload.ownerPhone || null,
+                    isVerified: true,
+                    roles: {
+                        create: {
+                            role: {
+                                connect: { name: "BUSINESS_OWNER" }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 1. Save the business owner id in the SystemBusiness payload
+            payload.businessOwnerId = user.id;
+
+            // 2. Data entry in the Business Owner model (businesses table)
+            await transactionClient.business.create({
+                data: {
+                    ownerId: user.id,
+                    name: payload.businessName,
+                    email: payload.ownerEmail,
+                    phone: payload.ownerPhone,
+                    status: "ACTIVE"
+                }
+            });
+        }
+
         const business = await transactionClient.systemBusiness.create({
             data: payload,
         });
