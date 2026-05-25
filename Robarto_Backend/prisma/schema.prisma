@@ -20,6 +20,8 @@ enum BusinessStatus {
   PENDING
 }
 
+
+
 enum RoleName {
   SYSTEM_OWNER
   BUSINESS_OWNER
@@ -46,11 +48,16 @@ model User {
   deletedAt            DateTime?  @map("deleted_at")
 
   roles            UserRole[]
-  businesses       Business[]       @relation("BusinessOwner")
-  branches         Branch[]         @relation("BranchManager")
-  systemBusinesses SystemBusiness[] @relation("SystemBusinessCreator")
-  activityLogs     ActivityLog[]    @relation("ActivityLogCreator")
+  businesses       Business[]        @relation("BusinessOwner")
+  systemBusinesses SystemBusiness[]  @relation("SystemBusinessCreator")
+  ownedSystemBusinesses SystemBusiness[] @relation("SystemBusinessOwner")
+  activityLogs     ActivityLog[]     @relation("ActivityLogCreator")
   systemOwnerPlans SystemOwnerPlan[] @relation("SystemOwnerPlanCreator")
+  subscriptionPlans SubscriptionPlan[] @relation("SubscriptionPlanCreator")
+  createdBranchManagers BranchManager[] @relation("BranchManagerCreator")
+  createdBranches   Branch[]         @relation("BranchCreator")
+  createdOrderBookings OrderBooking[] @relation("OrderBookingCreator")
+  createdPricings   Pricing[]        @relation("PricingCreator")
 
   @@map("users")
 }
@@ -79,44 +86,6 @@ model UserRole {
 
   @@unique([userId, roleId])
   @@map("user_roles")
-}
-
-model Business {
-  id        String         @id @default(uuid())
-  ownerId   String         @map("owner_id")
-  name      String
-  logo      String?
-  email     String?
-  phone     String?
-  country   String?
-  address   String?
-  status    BusinessStatus @default(ACTIVE)
-  createdAt DateTime       @default(now()) @map("created_at")
-  updatedAt DateTime       @updatedAt @map("updated_at")
-  deletedAt DateTime?      @map("deleted_at")
-
-  owner    User     @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  branches Branch[]
-
-  @@map("businesses")
-}
-
-model Branch {
-  id         String    @id @default(uuid())
-  businessId String    @map("business_id")
-  managerId  String?   @map("manager_id")
-  name       String
-  email      String?
-  phone      String?
-  address    String?
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  deletedAt  DateTime? @map("deleted_at")
-
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  manager  User?    @relation("BranchManager", fields: [managerId], references: [id], onDelete: SetNull)
-
-  @@map("branches")
 }
 
 model Permission {
@@ -160,40 +129,8 @@ model DemoBooking {
   @@map("demo_booking")
 }
 
-enum BusinessType {
-  Retail
-  Service
-  Manufacturing
-  Tech
-  Other
-}
+// System Owner Starts---------------------------
 
-enum BusinessPlanType {
-  MONTHLY
-  YEARLY
-}
-
-model SystemBusiness {
-  id            String           @id @default(uuid())
-  businessName  String           @map("business_name")
-  businessType  BusinessType     @default(Other) @map("business_type")
-  description   String?
-  ownerName     String?          @map("owner_name")
-  ownerEmail    String?          @map("owner_email")
-  ownerPassword String?          @map("owner_password")
-  ownerPhone    String?          @map("owner_phone")
-  planId        String?          @map("plan_id")
-  planCycle     BusinessPlanType @default(MONTHLY) @map("plan_cycle")
-  status        BusinessStatus   @default(INACTIVE)
-  createdById   String?          @map("created_by_id")
-  credits       Int              @default(0)
-  createdAt     DateTime         @default(now()) @map("created_at")
-  updatedAt     DateTime         @updatedAt @map("updated_at")
-
-  createdBy User? @relation("SystemBusinessCreator", fields: [createdById], references: [id], onDelete: SetNull)
-
-  @@map("system_business")
-}
 
 enum PlanName {
   NORMAL
@@ -222,6 +159,45 @@ model SystemOwnerPlan {
   @@map("system_owner_plan")
 }
 
+enum BusinessType {
+  Retail
+  Service
+  Manufacturing
+  Tech
+  Other
+}
+
+enum BusinessPlanType {
+  MONTHLY
+  YEARLY
+}
+
+model SystemBusiness {
+  id             String           @id @default(uuid())
+  businessName   String           @map("business_name")
+  businessType   BusinessType     @default(Other) @map("business_type")
+  description    String?
+  ownerName      String?          @map("owner_name")
+  ownerEmail     String?          @map("owner_email")
+  ownerPassword  String?          @map("owner_password")
+  ownerPhone     String?          @map("owner_phone")
+  selectedBranch String?          @map("selected_branch")
+  planId         String?          @map("plan_id")
+  planCycle      BusinessPlanType @default(MONTHLY) @map("plan_cycle")
+  status         BusinessStatus   @default(INACTIVE)
+  createdById    String?          @map("created_by_id")
+  businessOwnerId String?         @map("business_owner_id")
+  credits        Int              @default(0)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  createdBy User? @relation("SystemBusinessCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  businessOwner User? @relation("SystemBusinessOwner", fields: [businessOwnerId], references: [id], onDelete: SetNull)
+
+  @@map("system_business")
+}
+
+
 model ActivityLog {
   id            String    @id @default(uuid())
   activityName  String?   @map("activity_name")
@@ -237,3 +213,195 @@ model ActivityLog {
 
   @@map("activity_log")
 }
+
+model SubscriptionPlan {
+  id              String   @id @default(cuid())
+
+  name            String   // CONNECT / CONVERT / CONTROL
+
+  slug            String   @unique
+
+  description     String?
+
+  monthlyPrice    Float
+  yearlyPrice     Float?
+
+  currency        String   @default("USD")
+
+  isActive        Boolean  @default(true)
+
+  sortOrder       Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  createdById     String?
+  createdBy       User?    @relation("SubscriptionPlanCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  features        SubscriptionFeature[]
+
+}
+
+model SubscriptionFeature {
+  id          String   @id @default(cuid())
+
+  planId      String
+  plan        SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  key         String
+  value       String
+
+  createdAt   DateTime @default(now())
+}
+
+
+// System Owner ends---------------------------
+
+
+// Business Owner --------------------------
+enum BranchManagerStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model Business {
+  id        String         @id @default(uuid())
+  ownerId   String         @map("owner_id")
+  name      String
+  logo      String?
+  email     String?
+  phone     String?
+  country   String?
+  address   String?
+  status    BusinessStatus @default(ACTIVE)
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  deletedAt DateTime?      @map("deleted_at")
+
+  owner    User     @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  branches Branch[]
+  branchManagers BranchManager[] @relation("BusinessBranchManagers")
+  orderBookings OrderBooking[] @relation("BusinessOrderBookings")
+  pricings Pricing[] @relation("BusinessPricings")
+
+  @@map("businesses")
+}
+
+model Branch {
+  id         String    @id @default(uuid())
+  businessId String    @map("business_id")
+  managerId  String?   @map("manager_id")
+  name       String
+  email      String?
+  phone      String?
+  address    String?
+  createdById String?   @map("created_by")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  manager  BranchManager? @relation(fields: [managerId], references: [id], onDelete: SetNull)
+  createdBy User?   @relation("BranchCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  orderBookings OrderBooking[] @relation("BranchOrderBookings")
+
+  @@map("branches")
+}
+model BranchManager {
+  id          String              @id @default(uuid())
+  name        String
+  email       String              @unique
+  password    String
+  status      BranchManagerStatus @default(ACTIVE)
+  createdById String?             @map("created_by")
+  businessId  String              @map("business_id")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+  deletedAt   DateTime?           @map("deleted_at")
+
+  business Business @relation("BusinessBranchManagers", fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy User?   @relation("BranchManagerCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  branches  Branch[]
+
+  @@map("branch_managers")
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  ONLINE_PAYMENT
+  BANK_TRANSFER
+}
+
+model OrderBooking {
+  id                  String         @id @default(uuid())
+  businessId          String         @map("business_id")
+  branchId            String?        @map("branch_id")
+  createdById         String?        @map("created_by")
+
+  customerName        String         @map("customer_name")
+  customerNumber      String         @map("customer_number")
+  email               String?
+  address             String
+  deliveryFromAddress String         @map("delivery_from_address")
+  productName         String         @map("product_name")
+  quantity            String
+  size                String
+  price               String
+
+  orderStatus         OrderStatus    @default(PENDING) @map("order_status")
+  paymentStatus       PaymentStatus  @default(PENDING) @map("payment_status")
+  shippingCharge      String         @map("shipping_charge")
+  deliveryTime        DateTime       @map("delivery_time")
+  orderNote           String?        @map("order_note")
+  paymentMethod       PaymentMethod? @map("payment_method")
+
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+  deletedAt           DateTime?      @map("deleted_at")
+
+  business            Business       @relation("BusinessOrderBookings", fields: [businessId], references: [id], onDelete: Cascade)
+  branch              Branch?        @relation("BranchOrderBookings", fields: [branchId], references: [id], onDelete: SetNull)
+  createdBy           User?          @relation("OrderBookingCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@map("order_bookings")
+}
+
+model Pricing {
+  id            String    @id @default(uuid())
+  businessId    String    @map("business_id")
+  createdById   String?   @map("created_by")
+
+  ruleName      String    @map("rule_name")
+  type          String?
+  configuration String?
+  status        Boolean   @default(true)
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  business      Business  @relation("BusinessPricings", fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy     User?     @relation("PricingCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@map("pricings")
+}
+
+// Business Owner ends --------------------------
+
+

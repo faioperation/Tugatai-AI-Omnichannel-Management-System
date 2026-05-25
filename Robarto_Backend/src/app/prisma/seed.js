@@ -14,6 +14,7 @@ export const seedDatabase = async () => {
     if (existingOwner) {
       console.log("Primary seed data already exists, checking for new seed updates...");
     }
+    console.log("--- Starting seed process ---");
 
     // Seed Permissions
     const permissionsData = [
