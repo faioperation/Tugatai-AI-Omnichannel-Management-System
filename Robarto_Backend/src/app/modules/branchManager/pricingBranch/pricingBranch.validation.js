@@ -1,26 +1,24 @@
 import { z } from "zod";
 
-const createPricingSchema = z.object({
+const createPricingBranchSchema = z.object({
     body: z.object({
         ruleName: z.string({ required_error: "Rule name is required" }),
         type: z.string().optional(),
         configuration: z.string().optional(),
         status: z.boolean().optional(),
-        branchId: z.string().uuid("Invalid branch ID format").optional(),
     }),
 });
 
-const updatePricingSchema = z.object({
+const updatePricingBranchSchema = z.object({
     body: z.object({
         ruleName: z.string().optional(),
         type: z.string().optional(),
         configuration: z.string().optional(),
         status: z.boolean().optional(),
-        branchId: z.string().uuid("Invalid branch ID format").optional(),
     }),
 });
 
-export const PricingValidation = {
-    createPricingSchema,
-    updatePricingSchema,
+export const PricingBranchValidation = {
+    createPricingBranchSchema,
+    updatePricingBranchSchema,
 };

@@ -10,7 +10,7 @@ const createPricingService = async (payload) => {
     return result;
 };
 
-const getAllPricingsService = async (query = {}) => {
+const getAllPricingsService = async (query = {}, filter = {}) => {
     const queryBuilder = new QueryBuilder(query)
         .search(["ruleName", "type"])
         .filter()
@@ -19,6 +19,7 @@ const getAllPricingsService = async (query = {}) => {
         .fields();
 
     const queryParams = queryBuilder.build();
+    queryParams.where = { ...queryParams.where, ...filter };
 
     if (!queryParams.select) {
         queryParams.include = {
@@ -40,7 +41,7 @@ const getAllPricingsService = async (query = {}) => {
     }
 
     const result = await prisma.pricing.findMany(queryParams);
-    const total = await prisma.pricing.count({ where: queryBuilder.where });
+    const total = await prisma.pricing.count({ where: queryParams.where });
 
     return {
         meta: queryBuilder.getMeta(total),
@@ -48,12 +49,12 @@ const getAllPricingsService = async (query = {}) => {
     };
 };
 
-const getPricingByIdService = async (id, query = {}) => {
+const getPricingByIdService = async (id, filter = {}, query = {}) => {
     const queryBuilder = new QueryBuilder(query).fields();
     const queryParams = queryBuilder.build();
 
     const findArgs = {
-        where: { id },
+        where: { id, ...filter },
     };
 
     if (queryParams.select) {
@@ -86,13 +87,13 @@ const getPricingByIdService = async (id, query = {}) => {
     return result;
 };
 
-const updatePricingService = async (id, payload) => {
+const updatePricingService = async (id, filter, payload) => {
     const isExist = await prisma.pricing.findUnique({
-        where: { id },
+        where: { id, ...filter },
     });
 
     if (!isExist) {
-        throw new DevBuildError("Pricing not found", StatusCodes.NOT_FOUND);
+        throw new DevBuildError("Pricing not found or you don't have access", StatusCodes.NOT_FOUND);
     }
 
     const result = await prisma.pricing.update({
@@ -103,13 +104,13 @@ const updatePricingService = async (id, payload) => {
     return result;
 };
 
-const deletePricingService = async (id) => {
+const deletePricingService = async (id, filter) => {
     const isExist = await prisma.pricing.findUnique({
-        where: { id },
+        where: { id, ...filter },
     });
 
     if (!isExist) {
-        throw new DevBuildError("Pricing not found", StatusCodes.NOT_FOUND);
+        throw new DevBuildError("Pricing not found or you don't have access", StatusCodes.NOT_FOUND);
     }
 
     const result = await prisma.pricing.delete({
@@ -119,7 +120,7 @@ const deletePricingService = async (id) => {
     return result;
 };
 
-export const PricingService = {
+export const PricingBranchService = {
     createPricingService,
     getAllPricingsService,
     getPricingByIdService,
