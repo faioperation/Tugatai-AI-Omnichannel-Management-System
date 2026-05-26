@@ -1,11 +1,12 @@
 {
   "version": 2,
   "outputDirectory": "build/web",
-  "framework": null,
+  "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!api/|static/|favicon.ico|manifest.json|flutter_bootstrap.js|flutter_service_worker.js|version.json|assets/|canvaskit/|icons/).*)",
       "destination": "/index.html"
     }
   ]
 }
+
