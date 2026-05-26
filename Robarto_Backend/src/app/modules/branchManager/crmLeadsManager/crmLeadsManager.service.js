@@ -3,22 +3,23 @@ import DevBuildError from "../../../lib/DevBuildError.js";
 import { StatusCodes } from "http-status-codes";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
 
-const createPricingService = async (payload) => {
-    const result = await prisma.pricing.create({
+const createCrmLeadService = async (payload) => {
+    const result = await prisma.crmLead.create({
         data: payload,
     });
     return result;
 };
 
-const getAllPricingsService = async (query = {}) => {
+const getAllCrmLeadsService = async (query = {}, filter = {}) => {
     const queryBuilder = new QueryBuilder(query)
-        .search(["ruleName", "type"])
+        .search(["name", "email", "phone"])
         .filter()
         .sort()
         .paginate()
         .fields();
 
     const queryParams = queryBuilder.build();
+    queryParams.where = { ...queryParams.where, ...filter };
 
     if (!queryParams.select) {
         queryParams.include = {
@@ -39,8 +40,8 @@ const getAllPricingsService = async (query = {}) => {
         };
     }
 
-    const result = await prisma.pricing.findMany(queryParams);
-    const total = await prisma.pricing.count({ where: queryBuilder.where });
+    const result = await prisma.crmLead.findMany(queryParams);
+    const total = await prisma.crmLead.count({ where: queryParams.where });
 
     return {
         meta: queryBuilder.getMeta(total),
@@ -48,12 +49,12 @@ const getAllPricingsService = async (query = {}) => {
     };
 };
 
-const getPricingByIdService = async (id, query = {}) => {
+const getCrmLeadByIdService = async (id, filter = {}, query = {}) => {
     const queryBuilder = new QueryBuilder(query).fields();
     const queryParams = queryBuilder.build();
 
     const findArgs = {
-        where: { id },
+        where: { id, ...filter },
     };
 
     if (queryParams.select) {
@@ -77,25 +78,25 @@ const getPricingByIdService = async (id, query = {}) => {
         };
     }
 
-    const result = await prisma.pricing.findUnique(findArgs);
+    const result = await prisma.crmLead.findUnique(findArgs);
     
     if (!result) {
-        throw new DevBuildError("Pricing not found", StatusCodes.NOT_FOUND);
+        throw new DevBuildError("CRM Lead not found", StatusCodes.NOT_FOUND);
     }
 
     return result;
 };
 
-const updatePricingService = async (id, payload) => {
-    const isExist = await prisma.pricing.findUnique({
-        where: { id },
+const updateCrmLeadService = async (id, filter, payload) => {
+    const isExist = await prisma.crmLead.findUnique({
+        where: { id, ...filter },
     });
 
     if (!isExist) {
-        throw new DevBuildError("Pricing not found", StatusCodes.NOT_FOUND);
+        throw new DevBuildError("CRM Lead not found or you don't have access", StatusCodes.NOT_FOUND);
     }
 
-    const result = await prisma.pricing.update({
+    const result = await prisma.crmLead.update({
         where: { id },
         data: payload,
     });
@@ -103,26 +104,26 @@ const updatePricingService = async (id, payload) => {
     return result;
 };
 
-const deletePricingService = async (id) => {
-    const isExist = await prisma.pricing.findUnique({
-        where: { id },
+const deleteCrmLeadService = async (id, filter) => {
+    const isExist = await prisma.crmLead.findUnique({
+        where: { id, ...filter },
     });
 
     if (!isExist) {
-        throw new DevBuildError("Pricing not found", StatusCodes.NOT_FOUND);
+        throw new DevBuildError("CRM Lead not found or you don't have access", StatusCodes.NOT_FOUND);
     }
 
-    const result = await prisma.pricing.delete({
+    const result = await prisma.crmLead.delete({
         where: { id },
     });
     
     return result;
 };
 
-export const PricingService = {
-    createPricingService,
-    getAllPricingsService,
-    getPricingByIdService,
-    updatePricingService,
-    deletePricingService,
+export const CrmLeadsManagerService = {
+    createCrmLeadService,
+    getAllCrmLeadsService,
+    getCrmLeadByIdService,
+    updateCrmLeadService,
+    deleteCrmLeadService,
 };

@@ -9,6 +9,10 @@ import { BranchManagerRoutes } from "../modules/businessOwner/branchManager/bran
 import { BranchRoutes } from "../modules/businessOwner/branch/branch.route.js";
 import { OrderBookingRoutes } from "../modules/businessOwner/orderBooking/orderBooking.route.js";
 import { PricingRoutes } from "../modules/businessOwner/pricing/pricing.route.js";
+import { CrmLeadRoutes } from "../modules/businessOwner/crmLead/crmLead.route.js";
+import { PricingBranchRoutes } from "../modules/branchManager/pricingBranch/pricingBranch.route.js";
+import { CrmLeadsManagerRoutes } from "../modules/branchManager/crmLeadsManager/crmLeadsManager.route.js";
+import { OrderBookingBranchRoutes } from "../modules/branchManager/orderBookingBranch/orderBookingBranch.route.js";
 
 export const router = Router();
 const moduleRoutes = [
@@ -51,8 +55,25 @@ const moduleRoutes = [
   {
     path: "/business-owner/pricings",
     route: PricingRoutes,
+  },
+  {
+    path: "/business-owner/crm-leads",
+    route: CrmLeadRoutes,
+  },
+  {
+    path: "/branch-manager/pricing",
+    route: PricingBranchRoutes,
+  },
+  {
+    path: "/branch-manager/crm-leads",
+    route: CrmLeadsManagerRoutes,
+  },
+  {
+    path: "/branch-manager/order-bookings",
+    route: OrderBookingBranchRoutes,
   }
 ];
+
 
 moduleRoutes.forEach((route) => {
   router.use(route.path, route.route);

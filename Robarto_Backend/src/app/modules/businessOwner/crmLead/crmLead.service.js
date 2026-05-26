@@ -3,16 +3,16 @@ import DevBuildError from "../../../lib/DevBuildError.js";
 import { StatusCodes } from "http-status-codes";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
 
-const createPricingService = async (payload) => {
-    const result = await prisma.pricing.create({
+const createCrmLeadService = async (payload) => {
+    const result = await prisma.crmLead.create({
         data: payload,
     });
     return result;
 };
 
-const getAllPricingsService = async (query = {}) => {
+const getAllCrmLeadsService = async (query = {}) => {
     const queryBuilder = new QueryBuilder(query)
-        .search(["ruleName", "type"])
+        .search(["name", "email", "phone"])
         .filter()
         .sort()
         .paginate()
@@ -39,8 +39,8 @@ const getAllPricingsService = async (query = {}) => {
         };
     }
 
-    const result = await prisma.pricing.findMany(queryParams);
-    const total = await prisma.pricing.count({ where: queryBuilder.where });
+    const result = await prisma.crmLead.findMany(queryParams);
+    const total = await prisma.crmLead.count({ where: queryBuilder.where });
 
     return {
         meta: queryBuilder.getMeta(total),
@@ -48,7 +48,7 @@ const getAllPricingsService = async (query = {}) => {
     };
 };
 
-const getPricingByIdService = async (id, query = {}) => {
+const getCrmLeadByIdService = async (id, query = {}) => {
     const queryBuilder = new QueryBuilder(query).fields();
     const queryParams = queryBuilder.build();
 
@@ -77,25 +77,25 @@ const getPricingByIdService = async (id, query = {}) => {
         };
     }
 
-    const result = await prisma.pricing.findUnique(findArgs);
+    const result = await prisma.crmLead.findUnique(findArgs);
     
     if (!result) {
-        throw new DevBuildError("Pricing not found", StatusCodes.NOT_FOUND);
+        throw new DevBuildError("CRM Lead not found", StatusCodes.NOT_FOUND);
     }
 
     return result;
 };
 
-const updatePricingService = async (id, payload) => {
-    const isExist = await prisma.pricing.findUnique({
+const updateCrmLeadService = async (id, payload) => {
+    const isExist = await prisma.crmLead.findUnique({
         where: { id },
     });
 
     if (!isExist) {
-        throw new DevBuildError("Pricing not found", StatusCodes.NOT_FOUND);
+        throw new DevBuildError("CRM Lead not found", StatusCodes.NOT_FOUND);
     }
 
-    const result = await prisma.pricing.update({
+    const result = await prisma.crmLead.update({
         where: { id },
         data: payload,
     });
@@ -103,26 +103,26 @@ const updatePricingService = async (id, payload) => {
     return result;
 };
 
-const deletePricingService = async (id) => {
-    const isExist = await prisma.pricing.findUnique({
+const deleteCrmLeadService = async (id) => {
+    const isExist = await prisma.crmLead.findUnique({
         where: { id },
     });
 
     if (!isExist) {
-        throw new DevBuildError("Pricing not found", StatusCodes.NOT_FOUND);
+        throw new DevBuildError("CRM Lead not found", StatusCodes.NOT_FOUND);
     }
 
-    const result = await prisma.pricing.delete({
+    const result = await prisma.crmLead.delete({
         where: { id },
     });
     
     return result;
 };
 
-export const PricingService = {
-    createPricingService,
-    getAllPricingsService,
-    getPricingByIdService,
-    updatePricingService,
-    deletePricingService,
+export const CrmLeadService = {
+    createCrmLeadService,
+    getAllCrmLeadsService,
+    getCrmLeadByIdService,
+    updateCrmLeadService,
+    deleteCrmLeadService,
 };
