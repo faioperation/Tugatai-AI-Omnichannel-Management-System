@@ -14,6 +14,10 @@ const loadEnvVars = () => {
     "DATABASE_URL",
     "BACKEND_URL",
     "REDIS_URL",
+    "META_APP_ID",
+    "META_APP_SECRET",
+    "FACEBOOK_REDIRECT_URI",
+    "FACEBOOK_VERIFY_TOKEN",
   ];
 
   requiredVars.forEach((key) => {
@@ -54,6 +58,13 @@ const loadEnvVars = () => {
     GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL,
     // Frontend
     FRONT_END_URL: process.env.FRONT_END_URL,
+    
+    // Facebook & Messenger Integration
+    META_APP_ID: process.env.META_APP_ID,
+    META_APP_SECRET: process.env.META_APP_SECRET,
+    META_GRAPH_VERSION: process.env.META_GRAPH_VERSION || "v23.0",
+    FACEBOOK_REDIRECT_URI: process.env.FACEBOOK_REDIRECT_URI,
+    FACEBOOK_VERIFY_TOKEN: process.env.FACEBOOK_VERIFY_TOKEN,
   };
 };
 
