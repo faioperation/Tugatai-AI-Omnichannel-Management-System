@@ -8,12 +8,13 @@ import { sendResponse } from "../../utils/sendResponse.js";
 import { AppError } from "../../errorHelper/appError.js";
 
 // --- OAuth ---
-export const authFacebook = (req, res, next) => {
+export const authFacebook = async (req, res, next) => {
   try {
-    const businessId = req.query.businessId;
-    if (!businessId) {
-      throw new AppError(400, "Business ID is required");
+    const business = await prisma.business.findFirst({ where: { ownerId: req.user.id } });
+    if (!business) {
+      throw new AppError(404, "Business not found for this user");
     }
+    const businessId = business.id;
 
     const redirectUri = envVars.FACEBOOK_REDIRECT_URI;
     const appId = envVars.META_APP_ID;
@@ -140,6 +141,7 @@ export const verifyWebhook = (req, res, next) => {
 export const handleWebhookEvent = async (req, res, next) => {
   try {
     const body = req.body;
+    console.log("📥 Received Facebook Webhook:", JSON.stringify(body, null, 2));
 
     // Returns a '200 OK' response to all requests (required by Facebook)
     res.status(200).send("EVENT_RECEIVED");
@@ -155,10 +157,14 @@ export const handleWebhookEvent = async (req, res, next) => {
 // --- Messaging API ---
 export const sendMessengerMessage = async (req, res, next) => {
   try {
-    const { businessId, recipientId, message } = req.body;
+    const business = await prisma.business.findFirst({ where: { ownerId: req.user.id } });
+    if (!business) throw new AppError(404, "Business not found for this user");
+    
+    const businessId = business.id;
+    const { recipientId, message } = req.body;
 
-    if (!businessId || !recipientId || !message) {
-      throw new AppError(400, "businessId, recipientId, and message are required.");
+    if (!recipientId || !message) {
+      throw new AppError(400, "recipientId, and message are required.");
     }
 
     const responseData = await sendMessageToUser(businessId, recipientId, message);
@@ -176,10 +182,10 @@ export const sendMessengerMessage = async (req, res, next) => {
 
 export const getConversations = async (req, res, next) => {
   try {
-    const { businessId } = req.params;
-    if (!businessId) {
-      throw new AppError(400, "businessId is required.");
-    }
+    const business = await prisma.business.findFirst({ where: { ownerId: req.user.id } });
+    if (!business) throw new AppError(404, "Business not found for this user");
+    
+    const businessId = business.id;
     
     const conversations = await getConversationsService(businessId);
     
@@ -209,6 +215,27 @@ export const getMessages = async (req, res, next) => {
       message: "Messages retrieved successfully",
       data: messages,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const checkConnectionStatus = async (req, res, next) => {
+  try {
+    const business = await prisma.business.findFirst({ where: { ownerId: req.user.id } });
+    if (!business) throw new AppError(404, "Business not found for this user");
+
+    const connections = await prisma.socialConnection.findMany({
+      where: { businessId: business.id, provider: "facebook", isActive: true },
+    });
+
+    if (connections.length > 0) {
+      // Omit accessToken from the response for security
+      const safeConnections = connections.map(({ accessToken, ...safe }) => safe);
+      res.json({ success: true, connected: true, data: safeConnections });
+    } else {
+      res.json({ success: true, connected: false });
+    }
   } catch (error) {
     next(error);
   }

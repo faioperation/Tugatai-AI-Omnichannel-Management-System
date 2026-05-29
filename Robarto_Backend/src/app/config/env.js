@@ -18,6 +18,7 @@ const loadEnvVars = () => {
     "META_APP_SECRET",
     "FACEBOOK_REDIRECT_URI",
     "FACEBOOK_VERIFY_TOKEN",
+    "WHATSAPP_VERIFY_TOKEN",
   ];
 
   requiredVars.forEach((key) => {
@@ -65,6 +66,8 @@ const loadEnvVars = () => {
     META_GRAPH_VERSION: process.env.META_GRAPH_VERSION || "v23.0",
     FACEBOOK_REDIRECT_URI: process.env.FACEBOOK_REDIRECT_URI,
     FACEBOOK_VERIFY_TOKEN: process.env.FACEBOOK_VERIFY_TOKEN,
+    // WhatsApp Integration
+    WHATSAPP_VERIFY_TOKEN: process.env.WHATSAPP_VERIFY_TOKEN,
   };
 };
 
