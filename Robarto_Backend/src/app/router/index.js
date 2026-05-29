@@ -13,6 +13,8 @@ import { CrmLeadRoutes } from "../modules/businessOwner/crmLead/crmLead.route.js
 import { PricingBranchRoutes } from "../modules/branchManager/pricingBranch/pricingBranch.route.js";
 import { CrmLeadsManagerRoutes } from "../modules/branchManager/crmLeadsManager/crmLeadsManager.route.js";
 import { OrderBookingBranchRoutes } from "../modules/branchManager/orderBookingBranch/orderBookingBranch.route.js";
+import { MessengerRoutes } from "../modules/messenger/messenger.route.js";
+import { WhatsappRoutes } from "../modules/whatsapp/whatsapp.routes.js";
 
 export const router = Router();
 const moduleRoutes = [
@@ -71,6 +73,14 @@ const moduleRoutes = [
   {
     path: "/branch-manager/order-bookings",
     route: OrderBookingBranchRoutes,
+  },
+  {
+    path: "/v1",
+    route: MessengerRoutes,
+  },
+  {
+    path: "/v1",
+    route: WhatsappRoutes,
   }
 ];
 

@@ -279,6 +279,13 @@ model Business {
   orderBookings  OrderBooking[]  @relation("BusinessOrderBookings")
   pricings       Pricing[]       @relation("BusinessPricings")
   crmLeads       CrmLead[]       @relation("BusinessCrmLeads")
+  socialConnections SocialConnection[] @relation("BusinessSocialConnections")
+  conversations     Conversation[]     @relation("BusinessConversations")
+
+  whatsappAccounts      WhatsappAccount[]      @relation("BusinessWhatsappAccounts")
+  whatsappContacts      WhatsappContact[]      @relation("BusinessWhatsappContacts")
+  whatsappConversations WhatsappConversation[] @relation("BusinessWhatsappConversations")
+  whatsappMessages      WhatsappMessage[]      @relation("BusinessWhatsappMessages")
 
   @@map("businesses")
 }
@@ -302,6 +309,8 @@ model Branch {
   orderBookings OrderBooking[] @relation("BranchOrderBookings")
   crmLeads      CrmLead[]      @relation("BranchCrmLeads")
   pricings      Pricing[]      @relation("BranchPricings")
+  socialConnections SocialConnection[] @relation("BranchSocialConnections")
+  conversations     Conversation[]     @relation("BranchConversations")
 
   @@map("branches")
 }
@@ -444,4 +453,166 @@ model CrmLead {
   @@map("crm_leads")
 }
 
+// Facebook Messenger Integration ----------------
+
+model SocialConnection {
+  id            String    @id @default(uuid())
+  businessId    String    @map("business_id")
+  branchId      String?   @map("branch_id")
+  provider      String    // e.g. 'facebook'
+  pageId        String    @map("page_id")
+  pageName      String    @map("page_name")
+  accessToken   String    @map("access_token")
+  tokenExpiry   DateTime? @map("token_expiry")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  business Business @relation("BusinessSocialConnections", fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch?  @relation("BranchSocialConnections", fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@map("social_connections")
+}
+
+model Conversation {
+  id            String    @id @default(uuid())
+  businessId    String    @map("business_id")
+  branchId      String?   @map("branch_id")
+  platform      String    // e.g. 'messenger'
+  customerId    String    @map("customer_id")
+  customerName  String?   @map("customer_name")
+  lastMessage   String?   @map("last_message")
+  lastMessageAt DateTime? @map("last_message_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  business Business  @relation("BusinessConversations", fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch?   @relation("BranchConversations", fields: [branchId], references: [id], onDelete: SetNull)
+  messages Message[] @relation("ConversationMessages")
+
+  @@unique([businessId, platform, customerId])
+  @@map("conversations")
+}
+
+model Message {
+  id               String   @id @default(uuid())
+  conversationId   String   @map("conversation_id")
+  senderType       String   // 'business' or 'customer'
+  senderId         String   @map("sender_id")
+  messageText      String?  @map("message_text")
+  platformMessageId String? @unique @map("platform_message_id")
+  rawPayload       Json?    @map("raw_payload")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  conversation Conversation @relation("ConversationMessages", fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
 // Business Owner ends --------------------------
+
+// WhatsApp Cloud API Integration ----------------
+
+enum WhatsappAccountStatus {
+  ACTIVE
+  INACTIVE
+  DISCONNECTED
+}
+
+model WhatsappAccount {
+  id              String                @id @default(uuid())
+  businessId      String                @map("business_id")
+  wabaId          String                @map("waba_id")
+  phoneNumberId   String                @map("phone_number_id")
+  phoneNumber     String                @map("phone_number")
+  accessToken     String                @map("access_token")
+  status          WhatsappAccountStatus @default(ACTIVE)
+  metadata        Json?
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  business        Business               @relation("BusinessWhatsappAccounts", fields: [businessId], references: [id], onDelete: Cascade)
+  contacts        WhatsappContact[]      @relation("AccountWhatsappContacts")
+  conversations   WhatsappConversation[] @relation("AccountWhatsappConversations")
+  messages        WhatsappMessage[]      @relation("AccountWhatsappMessages")
+
+  @@unique([businessId, phoneNumberId])
+  @@map("whatsapp_accounts")
+}
+
+model WhatsappContact {
+  id                String   @id @default(uuid())
+  businessId        String   @map("business_id")
+  whatsappAccountId String   @map("whatsapp_account_id")
+  waUserId          String   @map("wa_user_id")
+  name              String?
+  phoneNumber       String   @map("phone_number")
+  profilePicture    String?  @map("profile_picture")
+  lastMessageAt     DateTime? @map("last_message_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  business        Business               @relation("BusinessWhatsappContacts", fields: [businessId], references: [id], onDelete: Cascade)
+  whatsappAccount WhatsappAccount        @relation("AccountWhatsappContacts", fields: [whatsappAccountId], references: [id], onDelete: Cascade)
+  conversations   WhatsappConversation[] @relation("ContactWhatsappConversations")
+  messages        WhatsappMessage[]      @relation("ContactWhatsappMessages")
+
+  @@unique([businessId, waUserId])
+  @@map("whatsapp_contacts")
+}
+
+model WhatsappConversation {
+  id                String   @id @default(uuid())
+  businessId        String   @map("business_id")
+  whatsappAccountId String   @map("whatsapp_account_id")
+  contactId         String   @map("contact_id")
+  lastMessageId     String?  @map("last_message_id")
+  unreadCount       Int      @default(0) @map("unread_count")
+  lastMessageAt     DateTime? @map("last_message_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  business        Business          @relation("BusinessWhatsappConversations", fields: [businessId], references: [id], onDelete: Cascade)
+  whatsappAccount WhatsappAccount   @relation("AccountWhatsappConversations", fields: [whatsappAccountId], references: [id], onDelete: Cascade)
+  contact         WhatsappContact   @relation("ContactWhatsappConversations", fields: [contactId], references: [id], onDelete: Cascade)
+  messages        WhatsappMessage[] @relation("ConversationWhatsappMessages")
+
+  @@unique([businessId, contactId])
+  @@map("whatsapp_conversations")
+}
+
+enum WhatsappMessageDirection {
+  INCOMING
+  OUTGOING
+}
+
+enum WhatsappMessageStatus {
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+model WhatsappMessage {
+  id                String                   @id @default(uuid())
+  businessId        String                   @map("business_id")
+  whatsappAccountId String                   @map("whatsapp_account_id")
+  conversationId    String                   @map("conversation_id")
+  contactId         String                   @map("contact_id")
+  metaMessageId     String?                  @unique @map("meta_message_id")
+  direction         WhatsappMessageDirection
+  type              String                   // text, image, video, audio, document, sticker, template
+  text              String?
+  mediaUrl          String?                  @map("media_url")
+  status            WhatsappMessageStatus?
+  rawPayload        Json?                    @map("raw_payload")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+
+  business        Business             @relation("BusinessWhatsappMessages", fields: [businessId], references: [id], onDelete: Cascade)
+  whatsappAccount WhatsappAccount      @relation("AccountWhatsappMessages", fields: [whatsappAccountId], references: [id], onDelete: Cascade)
+  conversation    WhatsappConversation @relation("ConversationWhatsappMessages", fields: [conversationId], references: [id], onDelete: Cascade)
+  contact         WhatsappContact      @relation("ContactWhatsappMessages", fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@map("whatsapp_messages")
+}
