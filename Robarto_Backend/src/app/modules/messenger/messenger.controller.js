@@ -3,7 +3,7 @@ import prisma from "../../prisma/client.js";
 import { envVars } from "../../config/env.js";
 import { getLongLivedToken, getPageTokens, subscribeAppToPage } from "./facebook.service.js";
 import { processWebhookEvent } from "./webhook.service.js";
-import { sendMessageToUser, getConversations as getConversationsService, getMessages as getMessagesService } from "./messenger.service.js";
+import { sendMessageToUser, sendMediaMessageToUser, getConversations as getConversationsService, getMessages as getMessagesService } from "./messenger.service.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { AppError } from "../../errorHelper/appError.js";
 
@@ -173,6 +173,45 @@ export const sendMessengerMessage = async (req, res, next) => {
       statusCode: 200,
       success: true,
       message: "Message sent successfully",
+      data: responseData,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const sendMediaMessage = async (req, res, next) => {
+  try {
+    const business = await prisma.business.findFirst({ where: { ownerId: req.user.id } });
+    if (!business) throw new AppError(404, "Business not found for this user");
+    
+    const businessId = business.id;
+    const { recipientId, type } = req.body;
+    let finalUrl = req.body.url;
+
+    if (!recipientId || !type) {
+      throw new AppError(400, "recipientId and type (image/video/audio/document) are required.");
+    }
+
+    let filePath = null;
+
+    if (req.file) {
+      // Use BACKEND_URL from envVars
+      finalUrl = `${envVars.BACKEND_URL}/uploads/messenger/${req.file.filename}`;
+      // Save the actual relative path from the server
+      filePath = `uploads/messenger/${req.file.filename}`;
+    }
+
+    if (!finalUrl) {
+      throw new AppError(400, "Either a file must be uploaded or a media url must be provided.");
+    }
+
+    const responseData = await sendMediaMessageToUser(businessId, recipientId, type, finalUrl, filePath);
+
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "Media sent successfully",
       data: responseData,
     });
   } catch (error) {

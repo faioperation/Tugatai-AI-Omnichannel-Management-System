@@ -8,8 +8,10 @@ import {
   getConversations,
   getMessages,
   checkConnectionStatus,
+  sendMediaMessage,
 } from "./messenger.controller.js";
 import { checkAuthMiddleware } from "../../middleware/checkAuthMiddleware.js";
+import { messengerUpload } from "./messengerUpload.js";
 
 export const MessengerRoutes = Router();
 
@@ -35,6 +37,11 @@ ProtectedMessengerRoutes.get("/messenger/status", checkConnectionStatus);
 
 // Send Message
 ProtectedMessengerRoutes.post("/messenger/messages/send", sendMessengerMessage);
+ProtectedMessengerRoutes.post(
+  "/messenger/messages/media",
+  messengerUpload.single("file"),
+  sendMediaMessage
+);
 
 // Get Data
 ProtectedMessengerRoutes.get("/messenger/conversations", getConversations);

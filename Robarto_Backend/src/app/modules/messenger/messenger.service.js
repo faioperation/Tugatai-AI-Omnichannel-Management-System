@@ -123,6 +123,80 @@ export const sendMessageToUser = async (businessId, recipientId, messageText) =>
   }
 };
 
+export const sendMediaMessageToUser = async (businessId, recipientId, type, mediaUrl, filePath) => {
+  const connection = await prisma.socialConnection.findFirst({
+    where: { businessId, provider: "facebook", isActive: true },
+  });
+
+  if (!connection) {
+    throw new AppError(404, "No active Facebook page connection found for this business.");
+  }
+
+  // Messenger API type needs to be one of: image, video, audio, file
+  let attachmentType = type;
+  if (type === "document") attachmentType = "file";
+
+  const payload = {
+    recipient: { id: recipientId },
+    message: {
+      attachment: {
+        type: attachmentType,
+        payload: {
+          url: mediaUrl,
+          is_reusable: true
+        }
+      }
+    }
+  };
+
+  try {
+    const response = await axios.post(
+      `${getGraphUrl()}/me/messages`,
+      payload,
+      { params: { access_token: connection.accessToken } }
+    );
+
+    const conversation = await prisma.conversation.findUnique({
+      where: {
+        businessId_platform_customerId: {
+          businessId,
+          platform: "messenger",
+          customerId: recipientId,
+        },
+      },
+    });
+
+    if (conversation) {
+      await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          senderType: "business",
+          senderId: connection.pageId,
+          type: type,
+          messageText: `[Media: ${attachmentType}]`,
+          mediaUrl: mediaUrl,
+          filePath: filePath,
+          platformMessageId: response.data.message_id,
+          rawPayload: response.data,
+        },
+      });
+
+      await prisma.conversation.update({
+        where: { id: conversation.id },
+        data: {
+          lastMessage: `[Media: ${attachmentType}]`,
+          lastMessageAt: new Date(),
+        },
+      });
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error("Error sending media via Messenger API:", error.response?.data || error.message);
+    throw new AppError(500, "Failed to send media via Facebook Messenger API.");
+  }
+};
+
 export const getConversations = async (businessId) => {
   const conversations = await prisma.conversation.findMany({
     where: { businessId },
