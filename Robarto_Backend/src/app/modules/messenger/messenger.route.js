@@ -8,8 +8,10 @@ import {
   getConversations,
   getMessages,
   checkConnectionStatus,
+  sendMediaMessage,
 } from "./messenger.controller.js";
 import { checkAuthMiddleware } from "../../middleware/checkAuthMiddleware.js";
+import { messengerUpload } from "./messengerUpload.js";
 
 export const MessengerRoutes = Router();
 
@@ -24,20 +26,22 @@ MessengerRoutes.post("/webhook/facebook", handleWebhookEvent);
 
 
 // --- Protected API Routes ---
-const ProtectedMessengerRoutes = Router();
-ProtectedMessengerRoutes.use(checkAuthMiddleware());
+MessengerRoutes.use("/messenger", checkAuthMiddleware());
 
 // OAuth Initialization
-ProtectedMessengerRoutes.get("/messenger/auth/facebook", authFacebook);
+MessengerRoutes.get("/messenger/auth/facebook", authFacebook);
 
 // Status
-ProtectedMessengerRoutes.get("/messenger/status", checkConnectionStatus);
+MessengerRoutes.get("/messenger/status", checkConnectionStatus);
 
 // Send Message
-ProtectedMessengerRoutes.post("/messenger/messages/send", sendMessengerMessage);
+MessengerRoutes.post("/messenger/messages/send", sendMessengerMessage);
+MessengerRoutes.post(
+  "/messenger/messages/media",
+  messengerUpload.single("file"),
+  sendMediaMessage
+);
 
 // Get Data
-ProtectedMessengerRoutes.get("/messenger/conversations", getConversations);
-ProtectedMessengerRoutes.get("/messenger/messages/:conversationId", getMessages);
-
-MessengerRoutes.use(ProtectedMessengerRoutes);
+MessengerRoutes.get("/messenger/conversations", getConversations);
+MessengerRoutes.get("/messenger/messages/:conversationId", getMessages);

@@ -499,7 +499,10 @@ model Message {
   conversationId   String   @map("conversation_id")
   senderType       String   // 'business' or 'customer'
   senderId         String   @map("sender_id")
+  type             String?  @default("text") // 'text', 'image', 'video', 'audio', 'file'
   messageText      String?  @map("message_text")
+  mediaUrl         String?  @map("media_url")
+  filePath         String?  @map("file_path")
   platformMessageId String? @unique @map("platform_message_id")
   rawPayload       Json?    @map("raw_payload")
   createdAt        DateTime @default(now()) @map("created_at")

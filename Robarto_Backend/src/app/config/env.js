@@ -19,6 +19,8 @@ const loadEnvVars = () => {
     "FACEBOOK_REDIRECT_URI",
     "FACEBOOK_VERIFY_TOKEN",
     "WHATSAPP_VERIFY_TOKEN",
+    "INSTAGRAM_REDIRECT_URI",
+    "INSTAGRAM_VERIFY_TOKEN",
   ];
 
   requiredVars.forEach((key) => {
@@ -68,6 +70,11 @@ const loadEnvVars = () => {
     FACEBOOK_VERIFY_TOKEN: process.env.FACEBOOK_VERIFY_TOKEN,
     // WhatsApp Integration
     WHATSAPP_VERIFY_TOKEN: process.env.WHATSAPP_VERIFY_TOKEN,
+
+    // Instagram Integration
+    INSTAGRAM_REDIRECT_URI: process.env.INSTAGRAM_REDIRECT_URI,
+    INSTAGRAM_VERIFY_TOKEN: process.env.INSTAGRAM_VERIFY_TOKEN,
+    PUBLIC_API_TOKEN: process.env.PUBLIC_API_TOKEN,
   };
 };
 

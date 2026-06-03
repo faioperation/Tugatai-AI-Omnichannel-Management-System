@@ -3,7 +3,7 @@ import prisma from "../../prisma/client.js";
 import { envVars } from "../../config/env.js";
 import { getLongLivedToken, getPageTokens, subscribeAppToPage } from "./facebook.service.js";
 import { processWebhookEvent } from "./webhook.service.js";
-import { sendMessageToUser, sendMediaMessageToUser, getConversations as getConversationsService, getMessages as getMessagesService } from "./messenger.service.js";
+import { sendMessageToUser, sendMediaMessageToUser, getConversations as getConversationsService, getMessages as getMessagesService } from "./instagram.service.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { AppError } from "../../errorHelper/appError.js";
 
@@ -16,9 +16,10 @@ export const authFacebook = async (req, res, next) => {
     }
     const businessId = business.id;
 
-    const redirectUri = envVars.FACEBOOK_REDIRECT_URI;
+    const redirectUri = envVars.INSTAGRAM_REDIRECT_URI;
     const appId = envVars.META_APP_ID;
-    const permissions = "pages_show_list,pages_manage_metadata,pages_messaging,business_management";
+    // Scopes needed for Instagram Messaging
+    const permissions = "instagram_basic,instagram_manage_messages,pages_show_list,pages_manage_metadata,business_management";
     
     // Using state to pass businessId to callback
     const state = JSON.stringify({ businessId });
@@ -29,7 +30,7 @@ export const authFacebook = async (req, res, next) => {
     sendResponse(res, {
       statusCode: 200,
       success: true,
-      message: "Facebook OAuth URL generated successfully.",
+      message: "Instagram OAuth URL generated successfully.",
       data: { url: authUrl },
     });
   } catch (error) {
@@ -42,16 +43,16 @@ export const authFacebookCallback = async (req, res, next) => {
     const { code, state, error, error_description } = req.query;
 
     if (error) {
-      throw new AppError(400, `Facebook OAuth Error: ${error_description}`);
+      throw new AppError(400, `Instagram OAuth Error: ${error_description}`);
     }
 
     if (!code || !state) {
-      throw new AppError(400, "Missing code or state from Facebook OAuth");
+      throw new AppError(400, "Missing code or state from Instagram OAuth");
     }
 
     const parsedState = JSON.parse(state);
     const businessId = parsedState.businessId;
-    const redirectUri = envVars.FACEBOOK_REDIRECT_URI;
+    const redirectUri = envVars.INSTAGRAM_REDIRECT_URI;
     const graphVersion = envVars.META_GRAPH_VERSION || "v23.0";
 
     // 1. Exchange authorization code for short-lived access token
@@ -69,48 +70,56 @@ export const authFacebookCallback = async (req, res, next) => {
     // 2. Exchange for long-lived token
     const longLivedToken = await getLongLivedToken(shortLivedToken);
 
-    // 3. Fetch pages
+    // 3. Fetch pages and their linked instagram accounts
     const pages = await getPageTokens(longLivedToken);
+    
+    const connectedInstagramAccounts = [];
 
-    // 4. Save pages in database and subscribe to webhooks
+    // 4. Save Instagram accounts in database and subscribe to webhooks
     for (const page of pages) {
-      // Check if connection exists
-      const connection = await prisma.socialConnection.findFirst({
-        where: { businessId, pageId: page.id, provider: "facebook" },
-      });
+      if (page.instagram_business_account) {
+        const igAccountId = page.instagram_business_account.id;
+        
+        // Check if connection exists
+        const connection = await prisma.socialConnection.findFirst({
+          where: { businessId, pageId: igAccountId, provider: "instagram" },
+        });
 
-      if (connection) {
-        // Update existing connection
-        await prisma.socialConnection.update({
-          where: { id: connection.id },
-          data: {
-            accessToken: page.access_token,
-            pageName: page.name,
-            isActive: true,
-          },
-        });
-      } else {
-        // Create new connection
-        await prisma.socialConnection.create({
-          data: {
-            businessId,
-            provider: "facebook",
-            pageId: page.id,
-            pageName: page.name,
-            accessToken: page.access_token,
-          },
-        });
+        if (connection) {
+          // Update existing connection
+          await prisma.socialConnection.update({
+            where: { id: connection.id },
+            data: {
+              accessToken: page.access_token, // We use the Facebook Page Token to interact with IG Graph API
+              pageName: page.name + " (Instagram)",
+              isActive: true,
+            },
+          });
+        } else {
+          // Create new connection
+          await prisma.socialConnection.create({
+            data: {
+              businessId,
+              provider: "instagram",
+              pageId: igAccountId,
+              pageName: page.name + " (Instagram)",
+              accessToken: page.access_token,
+            },
+          });
+        }
+        
+        connectedInstagramAccounts.push({ id: igAccountId, name: page.name + " (Instagram)" });
+
+        // Automatically subscribe app to page webhook (which handles IG webhooks)
+        await subscribeAppToPage(page.id, page.access_token);
       }
-
-      // Automatically subscribe app to page webhook
-      await subscribeAppToPage(page.id, page.access_token);
     }
 
     sendResponse(res, {
       statusCode: 200,
       success: true,
-      message: "Facebook pages connected successfully.",
-      data: { pages: pages.map((p) => ({ id: p.id, name: p.name })) },
+      message: "Instagram accounts connected successfully.",
+      data: { accounts: connectedInstagramAccounts },
     });
   } catch (error) {
     next(error);
@@ -125,8 +134,10 @@ export const verifyWebhook = (req, res, next) => {
     const challenge = req.query["hub.challenge"];
 
     if (mode && token) {
-      if (mode === "subscribe" && token === envVars.FACEBOOK_VERIFY_TOKEN) {
-        console.log("FACEBOOK_WEBHOOK_VERIFIED");
+      // Use INSTAGRAM_VERIFY_TOKEN if set, otherwise fallback to FACEBOOK_VERIFY_TOKEN
+      const verifyToken = envVars.INSTAGRAM_VERIFY_TOKEN || envVars.FACEBOOK_VERIFY_TOKEN;
+      if (mode === "subscribe" && token === verifyToken) {
+        console.log("INSTAGRAM_WEBHOOK_VERIFIED");
         return res.status(200).send(challenge);
       } else {
         return res.sendStatus(403);
@@ -141,16 +152,15 @@ export const verifyWebhook = (req, res, next) => {
 export const handleWebhookEvent = async (req, res, next) => {
   try {
     const body = req.body;
-    console.log("📥 Received Facebook Webhook:", JSON.stringify(body, null, 2));
+    console.log("📥 Received Instagram Webhook:", JSON.stringify(body, null, 2));
 
-    // Returns a '200 OK' response to all requests (required by Facebook)
+    // Returns a '200 OK' response to all requests (required by Facebook/Instagram)
     res.status(200).send("EVENT_RECEIVED");
 
     // Process event asynchronously
     await processWebhookEvent(body);
   } catch (error) {
-    console.error("Error processing webhook:", error);
-    // Don't call next(error) here to avoid sending 500 back to Facebook
+    console.error("Error processing instagram webhook:", error);
   }
 };
 
@@ -196,10 +206,8 @@ export const sendMediaMessage = async (req, res, next) => {
     let filePath = null;
 
     if (req.file) {
-      // Use BACKEND_URL from envVars
-      finalUrl = `${envVars.BACKEND_URL}/uploads/messenger/${req.file.filename}`;
-      // Save the actual relative path from the server
-      filePath = `uploads/messenger/${req.file.filename}`;
+      finalUrl = `${envVars.BACKEND_URL}/uploads/instagram/${req.file.filename}`;
+      filePath = `uploads/instagram/${req.file.filename}`;
     }
 
     if (!finalUrl) {
@@ -265,11 +273,10 @@ export const checkConnectionStatus = async (req, res, next) => {
     if (!business) throw new AppError(404, "Business not found for this user");
 
     const connections = await prisma.socialConnection.findMany({
-      where: { businessId: business.id, provider: "facebook", isActive: true },
+      where: { businessId: business.id, provider: "instagram", isActive: true },
     });
 
     if (connections.length > 0) {
-      // Omit accessToken from the response for security
       const safeConnections = connections.map(({ accessToken, ...safe }) => safe);
       res.json({ success: true, connected: true, data: safeConnections });
     } else {
