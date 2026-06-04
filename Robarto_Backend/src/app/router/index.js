@@ -5,6 +5,7 @@ import { UserRoutes } from "../modules/user/user.route.js";
 import { BusinessRoutes } from "../modules/systemOwner/businessManagement/businessManagement.route.js";
 import { SubscriptionPlanRoutes } from "../modules/systemOwner/subscriptionPlan/subscriptionPlan.route.js";
 import { ActivityLogRoutes } from "../modules/systemOwner/activityLog/activityLog.route.js";
+import { AgentTrainingRoutes } from "../modules/systemOwner/agentTraining/agentTraining.route.js";
 import { BranchManagerRoutes } from "../modules/businessOwner/branchManager/branchManager.route.js";
 import { BranchRoutes } from "../modules/businessOwner/branch/branch.route.js";
 import { OrderBookingRoutes } from "../modules/businessOwner/orderBooking/orderBooking.route.js";
@@ -45,6 +46,10 @@ const moduleRoutes = [
   {
     path: "/system-owner/activity-logs",
     route: ActivityLogRoutes,
+  },
+  {
+    path: "/system-owner/agent-trainings",
+    route: AgentTrainingRoutes,
   },
   {
     path: "/business-owner/branch-managers",

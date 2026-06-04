@@ -465,6 +465,7 @@ model SocialConnection {
   accessToken   String    @map("access_token")
   tokenExpiry   DateTime? @map("token_expiry")
   isActive      Boolean   @default(true) @map("is_active")
+  aiReply       Boolean   @default(true) @map("ai_reply")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
@@ -483,6 +484,7 @@ model Conversation {
   customerName  String?   @map("customer_name")
   lastMessage   String?   @map("last_message")
   lastMessageAt DateTime? @map("last_message_at")
+  aiReply       Boolean   @default(true) @map("ai_reply")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
@@ -530,6 +532,7 @@ model WhatsappAccount {
   phoneNumber     String                @map("phone_number")
   accessToken     String                @map("access_token")
   status          WhatsappAccountStatus @default(ACTIVE)
+  aiReply         Boolean               @default(true) @map("ai_reply")
   metadata        Json?
   createdAt       DateTime              @default(now()) @map("created_at")
   updatedAt       DateTime              @updatedAt @map("updated_at")
@@ -572,6 +575,7 @@ model WhatsappConversation {
   lastMessageId     String?  @map("last_message_id")
   unreadCount       Int      @default(0) @map("unread_count")
   lastMessageAt     DateTime? @map("last_message_at")
+  aiReply           Boolean   @default(true) @map("ai_reply")
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
@@ -618,4 +622,19 @@ model WhatsappMessage {
   contact         WhatsappContact      @relation("ContactWhatsappMessages", fields: [contactId], references: [id], onDelete: Cascade)
 
   @@map("whatsapp_messages")
+}
+
+model AgentTraining {
+  id                  String    @id @default(uuid())
+  systemPrompt        String?   @map("system_prompt")
+  businessInformation String?   @map("business_information")
+  productInformation  Json?     @map("product_information")
+  policiesGuidelines  Json?     @map("policies_guidelines")
+  faq                 Json?
+  businessId          String    @map("business_id")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+
+  @@map("agent_training")
 }
