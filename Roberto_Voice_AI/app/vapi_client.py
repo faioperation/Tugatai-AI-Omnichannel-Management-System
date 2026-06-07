@@ -330,3 +330,146 @@ async def list_assistants_from_vapi() -> list[dict]:
         raise RuntimeError(f"VAPI list assistants failed ({resp.status_code}): {resp.text}")
 
     return resp.json()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Telephony & Transfer Helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def import_twilio_number(
+    twilio_sid: str,
+    twilio_auth_token: str,
+    twilio_number: str,
+    assistant_id: str
+) -> dict:
+    """
+    Imports a Twilio number into Vapi and binds it to an assistant.
+    If it already exists, it finds it and patches it.
+    """
+    payload = {
+        "provider": "twilio",
+        "number": twilio_number,
+        "twilioAccountSid": twilio_sid,
+        "twilioAuthToken": twilio_auth_token,
+        "assistantId": assistant_id
+    }
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(f"{VAPI_BASE}/phone-number", json=payload, headers=vapi_headers())
+
+        if resp.status_code == 400 and "Existing Phone Number" in resp.text:
+            logger.info(f"[VAPI] Twilio number {twilio_number} already exists. Fetching to update...")
+            get_resp = await client.get(f"{VAPI_BASE}/phone-number", headers=vapi_headers())
+            if get_resp.status_code == 200:
+                phone_numbers = get_resp.json()
+                existing_id = None
+                for phone in phone_numbers:
+                    if phone.get("number") == twilio_number:
+                        existing_id = phone.get("id")
+                        break
+                
+                if existing_id:
+                    logger.info(f"[VAPI] Found existing phone ID {existing_id}. Patching with new assistant...")
+                    patch_payload = {"assistantId": assistant_id}
+                    patch_resp = await client.patch(f"{VAPI_BASE}/phone-number/{existing_id}", json=patch_payload, headers=vapi_headers())
+                    if patch_resp.status_code in (200, 201, 204):
+                        return patch_resp.json()
+                    else:
+                        raise RuntimeError(f"Failed to patch existing Twilio number ({patch_resp.status_code}): {patch_resp.text}")
+                else:
+                    raise RuntimeError(f"Twilio number {twilio_number} reported existing but couldn't be found.")
+            else:
+                raise RuntimeError(f"Failed to fetch existing phone numbers ({get_resp.status_code}): {get_resp.text}")
+
+        if resp.status_code not in (200, 201):
+            raise RuntimeError(f"Failed to import Twilio number ({resp.status_code}): {resp.text}")
+
+        result = resp.json()
+        logger.info(f"[VAPI] Imported Twilio number {twilio_number} -> {result.get('id')} for assistant {assistant_id}")
+        return result
+
+#async def attach_transfer_tool(assistant_id: str, transfer_number: str) -> str:
+async def attach_transfer_tool(assistant_id: str, transfer_number: str, twilio_number: str = None) -> str:
+    """
+    Creates a native Vapi transferCall tool pointing to the transfer_number
+    and attaches it to the given assistant.
+    """
+    # 1. Create the transferCall tool
+#    payload = {
+#        "type": "transferCall",
+#        "destinations": [
+#            {
+    destination_config = {
+        "type": "number",
+        "number": transfer_number,
+        "message": "Transferring your call now. Please hold."
+    }
+    
+    # By explicitly setting the callerId to the Twilio number, we prevent 
+    # international telecom carriers from rejecting the call as 'Caller ID Spoofing'
+    # when Vapi defaults to passing the customer's phone number as the From number.
+    if twilio_number:
+        destination_config["callerId"] = twilio_number
+
+    payload = {
+        "type": "transferCall",
+        "destinations": [destination_config],
+        "function": {
+            "name": "escalate_to_human",
+            "description": "Transfer the call to a human specialist, agent, manager, or supervisor.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reason": {"type": "string", "description": "Reason for escalation."}
+                },
+                "required": ["reason"]
+            }
+        }
+    }
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.post(f"{VAPI_BASE}/tool", json=payload, headers=vapi_headers())
+
+    if resp.status_code not in (200, 201):
+        raise RuntimeError(f"Failed to create transfer tool ({resp.status_code}): {resp.text}")
+
+    tool_id = resp.json().get("id")
+    logger.info(f"[VAPI] Created transferCall tool -> {tool_id} targeting {transfer_number}")
+
+    # 2. Fetch all tools to find old transfer tools
+    async with httpx.AsyncClient(timeout=20) as client:
+        tools_resp = await client.get(f"{VAPI_BASE}/tool", headers=vapi_headers())
+        all_tools = tools_resp.json() if tools_resp.status_code == 200 else []
+    
+    # We want to remove any tools of type 'transferCall' or named 'escalate_to_human'
+    tools_to_remove = set()
+    for t in all_tools:
+        if t.get("type") == "transferCall" or t.get("function", {}).get("name") == "escalate_to_human":
+            tools_to_remove.add(t.get("id"))
+
+    # 3. Attach the new tool to the assistant and remove old ones (prevent duplicates)
+    assistant = await get_assistant_from_vapi(assistant_id)
+    if not assistant:
+        raise RuntimeError(f"Assistant {assistant_id} not found.")
+
+    current_model = assistant.get("model", {})
+    current_tool_ids = current_model.get("toolIds", [])
+    
+    # Remove old tools
+    new_tool_ids = [tid for tid in current_tool_ids if tid not in tools_to_remove]
+    
+    # Add our newly created tool
+    new_tool_ids.append(tool_id)
+    current_model["toolIds"] = new_tool_ids
+    
+    # 4. Patch the assistant with the cleaned up list
+    async with httpx.AsyncClient(timeout=15) as client:
+        patch_resp = await client.patch(
+            f"{VAPI_BASE}/assistant/{assistant_id}", 
+            json={"model": current_model}, 
+            headers=vapi_headers()
+        )
+        if patch_resp.status_code not in (200, 201):
+            raise RuntimeError(f"Failed to update assistant tools ({patch_resp.status_code}): {patch_resp.text}")
+
+    return tool_id

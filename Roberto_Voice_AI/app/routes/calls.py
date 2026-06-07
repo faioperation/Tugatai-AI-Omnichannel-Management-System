@@ -294,6 +294,11 @@ async def handle_vapi_webhook(request: Request):
             logger.info(f"[VAPI_WEBHOOK] Status update for {call_id}: {status}")
             return {"status": "noted"}
 
+        elif event_type == "assistant-request":
+            logger.info(f"[VAPI_WEBHOOK] Handling assistant-request for {call_id}")
+            # Vapi expects a valid assistant configuration or empty object for overrides
+            return {"assistant": {}}
+
         else:
             return {"status": "ignored"}
 
