@@ -4,11 +4,13 @@ import 'package:roberto/app/app_color.dart';
 import 'package:roberto/common/user_role.dart';
 import 'package:roberto/features/Overview/widget/analytics_charts.dart';
 import 'package:roberto/features/Overview/widget/ai_analytics.dart';
+import 'package:roberto/features/Overview/data/models/system_overview_model.dart';
 
 class RoleReports extends StatelessWidget {
   final UserRole role;
+  final SystemOverviewModel? overviewData;
 
-  const RoleReports({super.key, required this.role});
+  const RoleReports({super.key, required this.role, this.overviewData});
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +25,31 @@ class RoleReports extends StatelessWidget {
   }
 
   Widget _buildSystemOwnerReports() {
+    // Build dynamic sections for Business Distribution
+    final List<PieChartSectionData> businessSections = overviewData?.businessDistribution.map((e) {
+      // Assign random or pre-defined colors based on category index, for simplicity we map directly or use a generated color list
+      return PieChartSectionData(
+        color: AppColor.primary.withOpacity((e.percentage / 100).clamp(0.2, 1.0)),
+        value: e.percentage,
+        title: e.category,
+        radius: 50,
+        showTitle: false,
+      );
+    }).toList() ?? [];
+
+    if (businessSections.isEmpty) {
+      businessSections.add(PieChartSectionData(color: Colors.grey, value: 100, title: 'No Data', radius: 50, showTitle: false));
+    }
+
+    // Build dynamic sections for Top Performing Sectors
+    final List<String> sectorLabels = overviewData?.topPerformingSectors.map((e) => e.sector).toList() ?? [];
+    final List<BarChartGroupData> sectorBars = overviewData?.topPerformingSectors.asMap().entries.map((entry) {
+      return BarChartGroupData(
+        x: entry.key,
+        barRods: [BarChartRodData(toY: entry.value.count.toDouble(), color: AppColor.primary, width: 16)],
+      );
+    }).toList() ?? [];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -43,25 +70,16 @@ class RoleReports extends StatelessWidget {
             Expanded(
               child: OrderDistributionPieChart(
                 title: "Business Distribution",
-                sections: [
-                  PieChartSectionData(color: AppColor.mini, value: 40, title: 'Retail', radius: 50, showTitle: false),
-                  PieChartSectionData(color: AppColor.primary, value: 30, title: 'F&B', radius: 50, showTitle: false),
-                  PieChartSectionData(color: const Color(0xFFFF9800), value: 20, title: 'Services', radius: 50, showTitle: false),
-                  PieChartSectionData(color: Colors.grey, value: 10, title: 'Other', radius: 50, showTitle: false),
-                ],
+                sections: businessSections,
               ),
             ),
             const SizedBox(width: 24),
             Expanded(
               child: PerformanceBarChart(
                 title: "Top Performing Sectors",
-                labels: ['Retail', 'F&B', 'IT', 'Agri', 'Med'],
-                barGroups: [
-                  BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 1500, color: AppColor.primary, width: 16)]),
-                  BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 1800, color: AppColor.primary, width: 16)]),
-                  BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 1200, color: AppColor.primary, width: 16)]),
-                  BarChartGroupData(x: 3, barRods: [BarChartRodData(toY: 900, color: AppColor.primary, width: 16)]),
-                  BarChartGroupData(x: 4, barRods: [BarChartRodData(toY: 1100, color: AppColor.primary, width: 16)]),
+                labels: sectorLabels.isNotEmpty ? sectorLabels : ['No Data'],
+                barGroups: sectorBars.isNotEmpty ? sectorBars : [
+                  BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 16)])
                 ],
               ),
             ),

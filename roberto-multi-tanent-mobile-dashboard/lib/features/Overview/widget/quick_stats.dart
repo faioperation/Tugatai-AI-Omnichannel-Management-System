@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:roberto/features/Overview/data/models/system_overview_model.dart';
 
 class QuickStats extends StatelessWidget {
-  const QuickStats({super.key});
+  final SystemOverviewModel? overviewData;
+
+  const QuickStats({super.key, this.overviewData});
 
   @override
   Widget build(BuildContext context) {
@@ -25,12 +28,19 @@ class QuickStats extends StatelessWidget {
                 ),
               ),
           const SizedBox(height: 24),
-          _buildStatProgress(context, "Response Rate", 0.94, theme.colorScheme.primary, "94%"),
-          const SizedBox(height: 20),
-          _buildStatProgress(context, "Order Fulfillment", 0.87, theme.colorScheme.secondary, "87%"),
-          const SizedBox(height: 20),
-          _buildStatProgress(context, "Customer Satisfaction", 0.92, theme.colorScheme.secondary, "92%"),
-          const SizedBox(height: 40),
+          // Hiding static progress bars for System Owner if dynamic data is passed, or show them if not
+          if (overviewData == null) ...[
+            _buildStatProgress(context, "Response Rate", 0.94, theme.colorScheme.primary, "94%"),
+            const SizedBox(height: 20),
+            _buildStatProgress(context, "Order Fulfillment", 0.87, theme.colorScheme.secondary, "87%"),
+            const SizedBox(height: 20),
+            _buildStatProgress(context, "Customer Satisfaction", 0.92, theme.colorScheme.secondary, "92%"),
+            const SizedBox(height: 40),
+          ] else ...[
+             const SizedBox(height: 10),
+             Text("System activity and overall usage.", style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
+             const SizedBox(height: 40),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -39,7 +49,7 @@ class QuickStats extends StatelessWidget {
                 style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 14),
               ),
               Text(
-                "248",
+                overviewData != null ? "${overviewData!.activeUsers}" : "248",
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,

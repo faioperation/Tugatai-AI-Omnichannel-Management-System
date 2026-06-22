@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:roberto/app/app_routes.dart';
-import 'package:roberto/features/Auth/screen/successful_screen.dart';
-import '../../../app/app_color.dart';
 import '../../../common/custom_button.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../widget/custom_screen.dart';
 import '../widget/custom_textfield.dart';
+import '../bloc/forgot_password_bloc.dart';
+import '../bloc/forgot_password_event.dart';
+import '../bloc/forgot_password_state.dart';
 
 
 class ResetScreen extends StatefulWidget {
@@ -16,16 +18,34 @@ class ResetScreen extends StatefulWidget {
 }
 
 class _ResetScreenState extends State<ResetScreen> {
-  bool _rememberMe = false;
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
 
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: CustomScreen(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+      body: BlocConsumer<ForgotPasswordBloc, ForgotPasswordState>(
+        listener: (context, state) {
+          if (state is ForgotPasswordResetSuccess) {
+            Navigator.pushNamed(context, Routes.success);
+          } else if (state is ForgotPasswordFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            );
+          }
+        },
+        builder: (context, state) {
+          return CustomScreen(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
             Center(
@@ -71,6 +91,7 @@ class _ResetScreenState extends State<ResetScreen> {
             ),
             const SizedBox(height: 8),
             CustomTextfield(
+              controller: _passwordController,
               hintText: "*********",
               isPassword: true,
               textInputAction: TextInputAction.next,
@@ -91,6 +112,7 @@ class _ResetScreenState extends State<ResetScreen> {
             const SizedBox(height: 8),
 
             CustomTextfield(
+              controller: _confirmPasswordController,
               hintText: "*********",
               isPassword: true,
               textInputAction: TextInputAction.done,
@@ -98,20 +120,40 @@ class _ResetScreenState extends State<ResetScreen> {
             ),
 
             const SizedBox(height: 25),
-            CustomButton(
-              text: "Reset Password",
-              onTap: _handleReset,
-            ),
+            state is ForgotPasswordLoading
+                ? const Center(child: CircularProgressIndicator())
+                : CustomButton(
+                    text: "Reset Password",
+                    onTap: _handleReset,
+                  ),
 
             const SizedBox(height: 20),
 
           ],
         ),
+      );
+      },
       ),
     );
   }
 
   void _handleReset() {
-    Navigator.pushNamed(context, Routes.success);
+    final pass = _passwordController.text;
+    final confirm = _confirmPasswordController.text;
+
+    if (pass.isEmpty || confirm.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill both fields"), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (pass != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Passwords do not match"), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    context.read<ForgotPasswordBloc>().add(ResetPasswordRequested(newPassword: pass));
   }
 }

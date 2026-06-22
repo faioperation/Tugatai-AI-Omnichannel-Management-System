@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:roberto/features/Overview/data/models/system_overview_model.dart';
+import 'package:intl/intl.dart';
 
 class ActivityList extends StatelessWidget {
-  const ActivityList({super.key});
+  final SystemOverviewModel? overviewData;
+
+  const ActivityList({super.key, this.overviewData});
 
   @override
   Widget build(BuildContext context) {
@@ -30,36 +34,25 @@ class ActivityList extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          _buildActivityItem(
-            context,
-            "New order #1234 from Sarah Johnson",
-            "5 minutes ago",
-            true,
-          ),
-          _buildActivityItem(
-            context,
-            "Booking confirmed for Michael Chen",
-            "12 minutes ago",
-            false,
-          ),
-          _buildActivityItem(
-            context,
-            "New message from Instagram - Emma Wilson",
-            "23 minutes ago",
-            false,
-          ),
-          _buildActivityItem(
-            context,
-            "Payment received - \$450.00",
-            "1 hour ago",
-            false,
-          ),
-          _buildActivityItem(
-            context,
-            "Support ticket #567 opened",
-            "2 hours ago",
-            false,
-          ),
+          if (overviewData != null && overviewData!.recentActivity.isNotEmpty)
+            ...overviewData!.recentActivity.map((activity) {
+              final timeString = activity.createdAt != null 
+                  ? DateFormat('dd MMM yyyy, hh:mm a').format(activity.createdAt!) 
+                  : 'Just now';
+              return _buildActivityItem(
+                context,
+                activity.activityTitle,
+                timeString,
+                !activity.markAsRead,
+              );
+            }).toList()
+          else
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text("No recent activity"),
+              ),
+            ),
         ],
       ),
     );
