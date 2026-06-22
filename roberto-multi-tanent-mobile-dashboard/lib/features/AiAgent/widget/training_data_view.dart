@@ -1,19 +1,39 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:roberto/app/app_color.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:roberto/features/Auth/widget/custom_textfield.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_training_bloc.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_training_event.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_training_state.dart';
 
 class TrainingDataView extends StatefulWidget {
-  const TrainingDataView({super.key});
+  final String businessId;
+  const TrainingDataView({super.key, required this.businessId});
 
   @override
   State<TrainingDataView> createState() => _TrainingDataViewState();
 }
 
 class _TrainingDataViewState extends State<TrainingDataView> {
-
+  final TextEditingController _businessInfoController = TextEditingController();
   List<String> selectedFiles = [];
+  String? _trainingId;
+
+  @override
+  void initState() {
+    super.initState();
+    final state = context.read<AgentTrainingBloc>().state;
+    if (state is SingleAgentTrainingLoaded) {
+      _businessInfoController.text = state.training.businessInformation ?? '';
+      _trainingId = state.training.id;
+    }
+  }
+
+  @override
+  void dispose() {
+    _businessInfoController.dispose();
+    super.dispose();
+  }
 
   Future<void> pickFile(String type) async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -27,92 +47,135 @@ class _TrainingDataViewState extends State<TrainingDataView> {
     }
   }
 
+  void _saveTrainingData() {
+    final businessInfo = _businessInfoController.text.trim();
+
+    if (_trainingId != null) {
+      context.read<AgentTrainingBloc>().add(
+        UpdateAgentTrainingRequested(
+          id: _trainingId!,
+          data: {'businessInformation': businessInfo}, // File upload not supported in PATCH right now
+        ),
+      );
+    } else {
+      context.read<AgentTrainingBloc>().add(
+        CreateAgentTrainingRequested(
+          businessId: widget.businessId,
+          systemPrompt: '', // This will be set from system prompt tab, but if creating from here, we might need to handle empty.
+          businessInformation: businessInfo,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.dividerTheme.color!, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Texts
-          Text(
-            'Business Training Data',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Provide business-specific information to train your AI agent',
-            style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodyMedium?.color),
-          ),
-          const SizedBox(height: 24),
-
-          // Business Information Textfield
-          Text(
-            'Business Information',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          CustomTextfield(hintText: "Business name, location, hours of operation...",),
-          const SizedBox(height: 20),
-
-          // Product Information Upload
-          _buildUploadSection(
-            label: 'Product Information',
-            iconText: 'upload excel',
-            iconData: Icons.cloud_upload_outlined,
-          ),
-          const SizedBox(height: 20),
-
-          // Policies & Guidelines Upload
-          _buildUploadSection(
-            label: 'Policies & Guidelines',
-            iconText: 'upload pdf',
-            iconData: Icons.cloud_upload_outlined,
-          ),
-          const SizedBox(height: 20),
-
-          // Common FAQs Upload
-          _buildUploadSection(
-            label: 'Common FAQs',
-            iconText: 'upload pdf',
-            iconData: Icons.cloud_upload_outlined,
-          ),
-          const SizedBox(height: 24),
-
-          // Save button (left aligned)
-          ElevatedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.save_outlined, size: 18),
-            label: const Text(
-              'Save Training Data',
-              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+    return BlocListener<AgentTrainingBloc, AgentTrainingState>(
+      listener: (context, state) {
+        if (state is SingleAgentTrainingLoaded) {
+          if (_businessInfoController.text.isEmpty) {
+            _businessInfoController.text = state.training.businessInformation ?? '';
+          }
+          _trainingId = state.training.id;
+        } else if (state is AgentTrainingOperationSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+          );
+        } else if (state is AgentTrainingError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: theme.cardTheme.color,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: theme.dividerTheme.color!, width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Texts
+            Text(
+              'Business Training Data',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
-              elevation: 0,
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              'Provide business-specific information to train your AI agent',
+              style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodyMedium?.color),
+            ),
+            const SizedBox(height: 24),
+
+            // Business Information Textfield
+            Text(
+              'Business Information',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            CustomTextfield(
+              hintText: "Business name, location, hours of operation...",
+              controller: _businessInfoController,
+              maxLines: 4,
+            ),
+            const SizedBox(height: 20),
+
+            // Product Information Upload
+            _buildUploadSection(
+              label: 'Product Information',
+              iconText: 'upload excel',
+              iconData: Icons.cloud_upload_outlined,
+            ),
+            const SizedBox(height: 20),
+
+            // Policies & Guidelines Upload
+            _buildUploadSection(
+              label: 'Policies & Guidelines',
+              iconText: 'upload pdf',
+              iconData: Icons.cloud_upload_outlined,
+            ),
+            const SizedBox(height: 20),
+
+            // Common FAQs Upload
+            _buildUploadSection(
+              label: 'Common FAQs',
+              iconText: 'upload pdf',
+              iconData: Icons.cloud_upload_outlined,
+            ),
+            const SizedBox(height: 24),
+
+            // Save button (left aligned)
+            ElevatedButton.icon(
+              onPressed: _saveTrainingData,
+              icon: const Icon(Icons.save_outlined, size: 18),
+              label: const Text(
+                'Save Training Data',
+                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

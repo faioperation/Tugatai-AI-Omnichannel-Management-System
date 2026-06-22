@@ -26,4 +26,9 @@ class ApiConstants {
   static const String systemOwnerBusinesses = '$baseUrl/system-owner/businesses/all';
   static const String systemOwnerBusinessSingle = '$baseUrl/system-owner/businesses'; // + /:id
   static const String systemOwnerBusinessCreate = '$baseUrl/system-owner/businesses/create';
+
+  // Agent Training endpoints
+  static const String systemOwnerAgentTrainings = '$baseUrl/system-owner/agent-trainings/all';
+  static const String systemOwnerAgentTrainingsCreate = '$baseUrl/system-owner/agent-trainings/create';
+  static const String systemOwnerAgentTrainingsSingle = '$baseUrl/system-owner/agent-trainings'; // + /:id
 }

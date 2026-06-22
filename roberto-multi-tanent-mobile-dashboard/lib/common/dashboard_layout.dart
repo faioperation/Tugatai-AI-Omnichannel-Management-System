@@ -31,12 +31,14 @@ class DashboardShell extends StatefulWidget {
   final UserRole role;
   final Map<String, String>? assignedBranch;
   final String? initialItem;
+  final String? initialBusinessId;
 
   const DashboardShell({
     super.key,
     this.role = UserRole.businessOwner,
     this.assignedBranch,
     this.initialItem,
+    this.initialBusinessId,
   });
 
   @override
@@ -46,6 +48,7 @@ class DashboardShell extends StatefulWidget {
 class _DashboardShellState extends State<DashboardShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String _activeItem = 'Overview';
+  String? _selectedTenantBusinessId;
   
   final List<Map<String, String>> _branches = [
     {"name": "Queens Center", "address": "719/B, Queens, NY"},
@@ -60,6 +63,9 @@ class _DashboardShellState extends State<DashboardShell> {
     _selectedBranch = widget.assignedBranch ?? _branches[0];
     if (widget.initialItem != null) {
       _activeItem = widget.initialItem!;
+    }
+    if (widget.initialBusinessId != null) {
+      _selectedTenantBusinessId = widget.initialBusinessId;
     }
     
     // Fetch initial data
@@ -104,6 +110,7 @@ class _DashboardShellState extends State<DashboardShell> {
         arguments: {
           'role': widget.role,
           'assignedBranch': _selectedBranch,
+          'businessId': _selectedTenantBusinessId,
         },
       );
     } else {
@@ -161,7 +168,12 @@ class _DashboardShellState extends State<DashboardShell> {
       case 'Tenant Management':
       case 'Management':
         return widget.role == UserRole.systemOwner
-            ? const TenantScreen()
+            ? TenantScreen(
+                onNavigateToAiAgent: (String businessId) {
+                  _selectedTenantBusinessId = businessId;
+                  _navigateTo('AI Agent');
+                },
+              )
             : const ManagementScreen();
 
       case 'Subscriptions':
@@ -178,7 +190,7 @@ class _DashboardShellState extends State<DashboardShell> {
         return OrderBookingScreen(onNavigate: _selectItem);
 
       case 'AI Agent':
-        return const AiagentScreen();
+        return AiagentScreen(businessId: _selectedTenantBusinessId);
 
       case 'Pricing':
         return const PricingScreen();
@@ -186,8 +198,7 @@ class _DashboardShellState extends State<DashboardShell> {
       case 'CRM & Leads':
         return CmrScreen(onNavigate: _selectItem);
 
-      case 'Management':
-        return const ManagementScreen();
+
 
       case 'Notifications':
         return const NotificationScreen();
@@ -216,6 +227,7 @@ class _DashboardShellState extends State<DashboardShell> {
     // {'icon': 'assets/inbox.svg', 'label': 'Demo Bookings'},
     {'icon': 'assets/subscription.svg', 'label': 'Tenant Management'},
     {'icon': 'assets/subscription.svg', 'label': 'Subscriptions'},
+    {'icon': 'assets/aiagent.svg', 'label': 'AI Agent'},
     {'icon': 'assets/setting.svg', 'label': 'Settings'},
   ];
 
@@ -223,7 +235,6 @@ class _DashboardShellState extends State<DashboardShell> {
     {'icon': 'assets/overview.svg', 'label': 'Overview'},
     {'icon': 'assets/inbox.svg', 'label': 'Inbox'},
     {'icon': 'assets/order.svg', 'label': 'Order Booking'},
-    {'icon': 'assets/aiagent.svg', 'label': 'AI Agent'},
     {'icon': 'assets/pricing.svg', 'label': 'Pricing'},
     {'icon': Icons.send, 'label': 'Campaigns'},
     {'icon': 'assets/crm.svg', 'label': 'CRM & Leads'},

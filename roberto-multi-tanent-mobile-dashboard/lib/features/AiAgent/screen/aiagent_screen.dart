@@ -5,8 +5,14 @@ import 'package:roberto/features/AiAgent/widget/custom_agent.dart';
 import 'package:roberto/features/AiAgent/widget/system_prompt_view.dart';
 import 'package:roberto/features/AiAgent/widget/training_data_view.dart';
 
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_training_bloc.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_training_event.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_training_state.dart';
+
 class AiagentScreen extends StatefulWidget {
-  const AiagentScreen({super.key});
+  final String? businessId;
+  const AiagentScreen({super.key, this.businessId});
 
   @override
   State<AiagentScreen> createState() => _AiagentScreenState();
@@ -16,7 +22,38 @@ class _AiagentScreenState extends State<AiagentScreen> {
   int _selectedTab = 0; // 0 = System Prompt, 1 = Training Data
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.businessId != null) {
+      context.read<AgentTrainingBloc>().add(
+        FetchAgentTrainingByBusinessRequested(businessId: widget.businessId!),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (widget.businessId == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.warning_amber_rounded, size: 64, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: 16),
+            Text(
+              "Please select a tenant",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Go to Tenant Management and select a tenant to configure their AI Agent.",
+              style: TextStyle(fontSize: 16, color: Theme.of(context).textTheme.bodyMedium?.color),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -62,9 +99,20 @@ class _AiagentScreenState extends State<AiagentScreen> {
             opacity: animation,
             child: child,
           ),
-          child: _selectedTab == 0
-              ? const SystemPromptView(key: ValueKey('system'))
-              : const TrainingDataView(key: ValueKey('training')),
+          child: BlocBuilder<AgentTrainingBloc, AgentTrainingState>(
+            builder: (context, state) {
+              if (state is AgentTrainingLoading) {
+                return const Padding(
+                  padding: EdgeInsets.all(40),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              
+              return _selectedTab == 0
+                  ? SystemPromptView(key: const ValueKey('system'), businessId: widget.businessId!)
+                  : TrainingDataView(key: const ValueKey('training'), businessId: widget.businessId!);
+            },
+          ),
         ),
       ],
     );

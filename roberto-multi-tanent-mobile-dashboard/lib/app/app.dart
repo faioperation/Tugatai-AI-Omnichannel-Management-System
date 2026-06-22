@@ -18,6 +18,8 @@ import 'package:roberto/features/notification/data/repositories/notification_rep
 import 'package:roberto/features/notification/bloc/notification_bloc.dart';
 import 'package:roberto/features/Tenant Management /data/repositories/tenant_repository.dart';
 import 'package:roberto/features/Tenant Management /bloc/tenant_bloc.dart';
+import 'package:roberto/features/AiAgent/data/repositories/agent_training_repository.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_training_bloc.dart';
 
 class Roberto extends StatelessWidget {
   const Roberto({super.key});
@@ -80,6 +82,9 @@ class Roberto extends StatelessWidget {
                 networkClient: context.read<NetworkClient>(),
               ),
             ),
+            RepositoryProvider<AgentTrainingRepository>(
+              create: (context) => AgentTrainingRepository(),
+            ),
           ],
           child: MultiBlocProvider(
             providers: [
@@ -116,6 +121,11 @@ class Roberto extends StatelessWidget {
               BlocProvider<TenantBloc>(
                 create: (context) => TenantBloc(
                   tenantRepository: context.read<TenantRepository>(),
+                ),
+              ),
+              BlocProvider<AgentTrainingBloc>(
+                create: (context) => AgentTrainingBloc(
+                  repository: context.read<AgentTrainingRepository>(),
                 ),
               ),
             ],
