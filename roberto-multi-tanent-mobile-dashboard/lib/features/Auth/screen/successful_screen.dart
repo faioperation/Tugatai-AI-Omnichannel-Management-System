@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:roberto/app/app_routes.dart';
-import 'package:roberto/features/Auth/screen/login_screen.dart';
-import '../../../app/app_color.dart';
 import '../../../common/custom_button.dart';
 import '../widget/custom_screen.dart';
-import '../widget/custom_textfield.dart';
 
 
 class SuccessfulScreen extends StatefulWidget {
@@ -16,7 +13,6 @@ class SuccessfulScreen extends StatefulWidget {
 }
 
 class _SuccessfulScreenState extends State<SuccessfulScreen> {
-  bool _rememberMe = false;
 
 
   @override

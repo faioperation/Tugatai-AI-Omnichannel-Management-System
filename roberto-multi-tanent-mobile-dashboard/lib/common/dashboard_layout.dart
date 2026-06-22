@@ -14,16 +14,18 @@ import 'package:roberto/features/notification/screen/notification_screen.dart';
 import 'package:roberto/features/management/screen/management_screen.dart';
 import 'package:roberto/features/businesssetting/screen/businessowner_settings.dart';
 import 'package:roberto/features/businesssubscription/screen/business_subscription.dart';
-import 'package:roberto/features/Auth/screen/login_screen.dart';
 import 'package:roberto/features/Overview/screen/overview_screen.dart';
 import 'package:roberto/features/DemoBooking/screen/demo_booking_screen.dart';
 import 'package:roberto/features/WhatsAppCampaigns/screen/whatsapp_campaigns_screen.dart';
 import 'package:roberto/app/app_routes.dart';
 import 'package:roberto/common/user_role.dart';
-
-
-
-import 'package:roberto/common/user_role.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:roberto/features/Settings/bloc/profile_bloc.dart';
+import 'package:roberto/features/Settings/bloc/profile_event.dart';
+import 'package:roberto/features/Settings/bloc/profile_state.dart';
+import 'package:roberto/features/notification/bloc/notification_bloc.dart';
+import 'package:roberto/features/notification/bloc/notification_event.dart';
+import 'package:roberto/features/notification/bloc/notification_state.dart';
 
 class DashboardShell extends StatefulWidget {
   final UserRole role;
@@ -59,6 +61,10 @@ class _DashboardShellState extends State<DashboardShell> {
     if (widget.initialItem != null) {
       _activeItem = widget.initialItem!;
     }
+    
+    // Fetch initial data
+    context.read<ProfileBloc>().add(FetchProfileRequested());
+    context.read<NotificationBloc>().add(FetchNotificationsRequested());
   }
 
   void _navigateTo(String item) {
@@ -74,7 +80,7 @@ class _DashboardShellState extends State<DashboardShell> {
       case 'Subscriptions': route = Routes.subscriptions; break;
       case 'Management': route = Routes.management; break;
       case 'Settings': route = Routes.settings; break;
-      case 'Demo Bookings': route = Routes.demoBookings; break;
+      // case 'Demo Bookings': route = Routes.demoBookings; break;
       case 'Notifications': route = Routes.notifications; break;
       case 'Edit Profile': route = Routes.settings; break;
       case 'Tenant Management': route = Routes.management; break; // Map to management or dedicated route
@@ -186,8 +192,8 @@ class _DashboardShellState extends State<DashboardShell> {
       case 'Notifications':
         return const NotificationScreen();
 
-      case 'Demo Bookings':
-        return const DemoBookingScreen();
+      // case 'Demo Bookings':
+      //   return const DemoBookingScreen();
 
       case 'Edit Profile':
         return const SettingScreen();
@@ -207,7 +213,7 @@ class _DashboardShellState extends State<DashboardShell> {
   
   static const List<Map<String, dynamic>> _systemOwnerItems = [
     {'icon': 'assets/overview.svg', 'label': 'Overview'},
-    {'icon': 'assets/inbox.svg', 'label': 'Demo Bookings'},
+    // {'icon': 'assets/inbox.svg', 'label': 'Demo Bookings'},
     {'icon': 'assets/subscription.svg', 'label': 'Tenant Management'},
     {'icon': 'assets/subscription.svg', 'label': 'Subscriptions'},
     {'icon': 'assets/setting.svg', 'label': 'Settings'},
@@ -404,111 +410,129 @@ class _DashboardShellState extends State<DashboardShell> {
   }
 
   Widget _buildNotificationIcon() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.notifications_none_outlined,
-              color: AppColor.grey),
-          onPressed: () {
-            _selectItem('Notifications');
-          },
-        ),
-        Positioned(
-          right: 6,
-          top: 6,
-          child: IgnorePointer(
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: AppColor.primary,
-                shape: BoxShape.circle,
-              ),
-              child: const Text(
-                "3",
-                style: TextStyle(
-                  color: AppColor.white,
-                  fontSize: 8,
-                  fontWeight: FontWeight.bold,
+    return BlocBuilder<NotificationBloc, NotificationState>(
+      builder: (context, state) {
+        int count = state.unreadCount;
+        
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_none_outlined, color: AppColor.grey),
+              onPressed: () {
+                _selectItem('Notifications');
+              },
+            ),
+            if (count > 0)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: IgnorePointer(
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: AppColor.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      count > 99 ? '99+' : count.toString(),
+                      style: const TextStyle(
+                        color: AppColor.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
   Widget _buildUserProfile(BuildContext context, bool isMobile) {
-    return PopupMenuButton<String>(
-      color: Theme.of(context).cardTheme.color,
-      padding: EdgeInsets.zero,
-      offset: const Offset(0, 45),
-      onSelected: (value) {
-        if (value == 'logout') {
-          Navigator.pushReplacementNamed(context, Routes.login);
-        } else if (value == 'profile') {
-          _selectItem('Edit Profile');
+    return BlocBuilder<ProfileBloc, ProfileState>(
+      builder: (context, state) {
+        String name = "Loading...";
+        String? avatarUrl;
+
+        if (state is ProfileLoaded || state is ProfileUpdating || state is ProfileUpdateSuccess) {
+          final user = (state is ProfileLoaded)
+              ? state.user
+              : (state is ProfileUpdating)
+                  ? state.currentUser
+                  : (state as ProfileUpdateSuccess).user;
+          name = "${user.firstName} ${user.lastName ?? ''}".trim();
+          if (name.isEmpty) name = "User";
+          avatarUrl = user.profilePicture;
         }
-      },
-      itemBuilder: (BuildContext context) =>
-          <PopupMenuEntry<String>>[
-        if (widget.role != UserRole.systemOwner)
-          const PopupMenuItem<String>(
-            value: 'profile',
+
+        return PopupMenuButton<String>(
+          color: Theme.of(context).cardTheme.color,
+          padding: EdgeInsets.zero,
+          offset: const Offset(0, 45),
+          onSelected: (value) {
+            if (value == 'logout') {
+              Navigator.pushReplacementNamed(context, Routes.login);
+            } else if (value == 'profile') {
+              _selectItem('Edit Profile');
+            }
+          },
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+            if (widget.role != UserRole.systemOwner)
+              const PopupMenuItem<String>(
+                value: 'profile',
+                child: Row(
+                  children: [
+                    Icon(Icons.person_outline, size: 18),
+                    SizedBox(width: 8),
+                    Text('Edit Profile', style: TextStyle(fontSize: 14)),
+                  ],
+                ),
+              ),
+            const PopupMenuItem<String>(
+              value: 'logout',
+              child: Row(
+                children: [
+                  Icon(Icons.logout, size: 18, color: AppColor.primary),
+                  SizedBox(width: 8),
+                  Text('Logout', style: TextStyle(color: AppColor.primary, fontSize: 14)),
+                ],
+              ),
+            ),
+          ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.person_outline, size: 18),
-                SizedBox(width: 8),
-                Text('Edit Profile', style: TextStyle(fontSize: 14)),
+                CircleAvatar(
+                  radius: 17.5,
+                  backgroundColor: AppColor.mini,
+                  backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
+                  child: (avatarUrl == null || avatarUrl.isEmpty)
+                      ? const Icon(Icons.person, color: AppColor.white, size: 18)
+                      : null,
+                ),
+                if (!isMobile) ...[
+                  const SizedBox(width: 10),
+                  Text(
+                    name,
+                    style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                  ),
+                ],
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.keyboard_arrow_down,
+                  size: 20,
+                  color: AppColor.grey,
+                ),
               ],
             ),
           ),
-        const PopupMenuItem<String>(
-          value: 'logout',
-          child: Row(
-            children: [
-              Icon(Icons.logout, size: 18, color:  AppColor.primary),
-              SizedBox(width: 8),
-              Text('Logout',
-                  style:
-                      TextStyle(color: AppColor.primary, fontSize: 14)),
-            ],
-          ),
-        ),
-      ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 35,
-              height: 35,
-              decoration: const BoxDecoration(
-                color: AppColor.mini,
-                shape: BoxShape.circle,
-              ),
-              child: const Center(
-                child: Icon(Icons.person, color: AppColor.white, size: 18),
-              ),
-            ),
-            if (!isMobile) ...[
-              const SizedBox(width: 10),
-              const Text(
-                "John Doe",
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-              ),
-            ],
-            const SizedBox(width: 4),
-            const Icon(
-              Icons.keyboard_arrow_down,
-              size: 20,
-              color: AppColor.grey,
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 

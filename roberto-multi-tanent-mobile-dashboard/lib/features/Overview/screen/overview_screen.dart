@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/common/user_role.dart';
+import 'package:roberto/features/Overview/bloc/overview_bloc.dart';
+import 'package:roberto/features/Overview/bloc/overview_event.dart';
+import 'package:roberto/features/Overview/bloc/overview_state.dart';
+import 'package:roberto/features/Overview/data/models/system_overview_model.dart';
 import 'package:roberto/features/Overview/widget/activity_list.dart';
 import 'package:roberto/features/Overview/widget/quick_stats.dart';
 import 'package:roberto/features/Overview/widget/stat_card.dart';
@@ -18,6 +23,14 @@ class OverviewScreen extends StatefulWidget {
 }
 
 class _OverviewScreenState extends State<OverviewScreen> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.role == UserRole.systemOwner) {
+      context.read<OverviewBloc>().add(FetchSystemOverviewRequested());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isDesktop = MediaQuery.of(context).size.width > 900;
@@ -47,82 +60,110 @@ class _OverviewScreenState extends State<OverviewScreen> {
           ),
           const SizedBox(height: 32),
   
-          // STAT CARDS
-          isDesktop 
-            ? Row(
-                children: _buildStatCards(context),
-              )
-            : Column(
-                children: _buildStatCards(context).map((card) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: card,
-                )).toList(),
-              ),
-              
-          const SizedBox(height: 32),
-  
-          // ANALYTICS & REPORTS
-          RoleReports(role: widget.role),
-  
-          const SizedBox(height: 32),
-  
-          // RECENT ACTIVITY & QUICK STATS
-          isDesktop 
-            ? const Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: ActivityList(),
-                  ),
-                  SizedBox(width: 24),
-                  Expanded(
-                    flex: 1,
-                    child: QuickStats(),
-                  ),
-                ],
-              )
-            : Column(
-                children: [
-                  const ActivityList(),
-                  const SizedBox(height: 24),
-                  const QuickStats(),
-                ],
-              ),
+          // STAT CARDS & ANALYTICS & QUICK STATS
+          BlocBuilder<OverviewBloc, OverviewState>(
+            builder: (context, state) {
+              if (isSystemOwner) {
+                if (state is OverviewLoading) {
+                  return const Center(child: Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: CircularProgressIndicator(),
+                  ));
+                } else if (state is OverviewError) {
+                  return Center(child: Text('Error: ${state.message}', style: const TextStyle(color: Colors.red)));
+                } else if (state is SystemOverviewLoaded) {
+                  final data = state.overviewData;
+                  return _buildDashboardContent(context, isDesktop, data);
+                }
+                return const SizedBox.shrink(); // Initial state
+              } else {
+                // For other roles, use static/existing content for now
+                return _buildDashboardContent(context, isDesktop, null);
+              }
+            },
+          ),
         ],
       ),
     );
   }
 
-  List<Widget> _buildStatCards(BuildContext context) {
+  Widget _buildDashboardContent(BuildContext context, bool isDesktop, SystemOverviewModel? data) {
+    return Column(
+      children: [
+        isDesktop 
+          ? Row(
+              children: _buildStatCards(context, data),
+            )
+          : Column(
+              children: _buildStatCards(context, data).map((card) => Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: card,
+              )).toList(),
+            ),
+            
+        const SizedBox(height: 32),
+
+        // ANALYTICS & REPORTS
+        RoleReports(role: widget.role, overviewData: data),
+
+        const SizedBox(height: 32),
+
+        // RECENT ACTIVITY & QUICK STATS
+        isDesktop 
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: ActivityList(overviewData: data),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  flex: 1,
+                  child: QuickStats(overviewData: data),
+                ),
+              ],
+            )
+          : Column(
+              children: [
+                ActivityList(overviewData: data),
+                const SizedBox(height: 24),
+                QuickStats(overviewData: data),
+              ],
+            ),
+      ],
+    );
+  }
+
+  List<Widget> _buildStatCards(BuildContext context, SystemOverviewModel? data) {
     final isSystemOwner = widget.role == UserRole.systemOwner;
     final isBranchManager = widget.role == UserRole.branchManager;
 
     if (isSystemOwner) {
       return [
-        const Expanded(
+        Expanded(
           child: StatCard(
             title: "Total Businesses",
-            value: "1,248",
-            trend: "+5.2%",
+            value: data != null ? "${data.totalBusinesses}" : "0",
+            trend: "", // Removed static trend
             icon: Icons.business,
           ),
         ),
         const SizedBox(width: 24),
-        const Expanded(
+        Expanded(
           child: StatCard(
             title: "Active Subscriptions",
-            value: "1,120",
-            trend: "+3.8%",
+            value: data != null ? "${data.activeSubscriptions}" : "0",
+            trend: "", // Removed static trend
             icon: Icons.subscriptions_outlined,
           ),
         ),
         const SizedBox(width: 24),
-        const Expanded(
+        Expanded(
           child: StatCard(
             title: "Monthly Revenue",
-            value: "\$124,560",
-            trend: "+12.1%",
+            value: data != null ? "\$${data.monthlyRevenue.toStringAsFixed(2)}" : "\$0.00",
+            trend: "", // Removed static trend
             icon: Icons.payments_outlined,
           ),
         ),

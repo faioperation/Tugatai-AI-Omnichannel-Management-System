@@ -77,9 +77,10 @@ class Routes {
           builder: (_) => const ForgotScreen(),
         );
       case verifyOtp:
+        final email = settings.arguments as String? ?? '';
         return MaterialPageRoute(
           settings: settings,
-          builder: (_) => const VerifyScreen(),
+          builder: (_) => VerifyScreen(email: email),
         );
       case resetPassword:
         return MaterialPageRoute(

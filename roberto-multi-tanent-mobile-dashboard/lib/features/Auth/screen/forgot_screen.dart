@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:roberto/app/app_routes.dart';
-import 'package:roberto/features/Auth/screen/verify_screen.dart';
-import '../../../app/app_color.dart';
 import '../../../common/custom_button.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../widget/custom_screen.dart';
 import '../widget/custom_textfield.dart';
+import '../bloc/forgot_password_bloc.dart';
+import '../bloc/forgot_password_event.dart';
+import '../bloc/forgot_password_state.dart';
 
 
 class ForgotScreen extends StatefulWidget {
@@ -16,15 +18,35 @@ class ForgotScreen extends StatefulWidget {
 }
 
 class _ForgotScreenState extends State<ForgotScreen> {
-  bool _rememberMe = false;
+  final TextEditingController _emailController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
 
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: CustomScreen(
-        child: Column(
+      body: BlocConsumer<ForgotPasswordBloc, ForgotPasswordState>(
+        listener: (context, state) {
+          if (state is ForgotPasswordOtpSent) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+            );
+            Navigator.pushNamed(context, Routes.verifyOtp, arguments: _emailController.text.trim());
+          } else if (state is ForgotPasswordFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            );
+          }
+        },
+        builder: (context, state) {
+          return CustomScreen(
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -71,25 +93,37 @@ class _ForgotScreenState extends State<ForgotScreen> {
             ),
             const SizedBox(height: 8),
             CustomTextfield(
+              controller: _emailController,
               hintText: "owner@platform.com",
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _handleSend(),
             ),
 
             const SizedBox(height: 25),
-            CustomButton(
-              text: "Send",
-              onTap: _handleSend,
-            ),
+            state is ForgotPasswordLoading
+                ? const Center(child: CircularProgressIndicator())
+                : CustomButton(
+                    text: "Send",
+                    onTap: _handleSend,
+                  ),
             const SizedBox(height: 20),
 
           ],
         ),
+      );
+      },
       ),
     );
   }
 
   void _handleSend() {
-    Navigator.pushNamed(context, Routes.verifyOtp);
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter your email"), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    context.read<ForgotPasswordBloc>().add(ForgotPasswordRequested(email: email));
   }
 }

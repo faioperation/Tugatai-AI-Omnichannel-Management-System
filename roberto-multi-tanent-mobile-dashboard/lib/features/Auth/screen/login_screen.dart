@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:roberto/features/Auth/screen/forgot_screen.dart';
 import 'package:roberto/app/app_routes.dart';
-import 'package:roberto/common/dashboard_layout.dart';
 import 'package:roberto/common/user_role.dart';
-import '../../../app/app_color.dart';
 import '../../../common/custom_button.dart';
 import '../widget/custom_screen.dart';
 import '../widget/custom_textfield.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:roberto/features/Auth/bloc/auth_bloc.dart';
+import 'package:roberto/features/Auth/bloc/auth_event.dart';
+import 'package:roberto/features/Auth/bloc/auth_state.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,8 +32,47 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: CustomScreen(
-        child: Column(
+      body: BlocConsumer<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is AuthSuccess) {
+            final role = state.user.primaryRole;
+            String routePath = '';
+            if (role == UserRole.systemOwner) {
+              routePath = '/system-owner';
+            } else if (role == UserRole.businessOwner) {
+              routePath = '/business-owner';
+            } else if (role == UserRole.branchManager) {
+              routePath = '/branch-manager';
+            }
+
+            if (routePath.isNotEmpty) {
+              Navigator.pushReplacementNamed(
+                context,
+                '$routePath${Routes.overview}',
+                arguments: {
+                  'role': role,
+                },
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Unknown user role"),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          } else if (state is AuthFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+        builder: (context, state) {
+          return CustomScreen(
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -56,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 5),
             Center(
               child: Text(
-                "Secure access to farm management platform",
+                "Secure access to Matrix Ai platform",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -126,13 +166,17 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
 
             const SizedBox(height: 20),
-            CustomButton(
-              text: "Login",
-              onTap: _handleLogin,
-            ),
+            state is AuthLoading 
+                ? const Center(child: CircularProgressIndicator())
+                : CustomButton(
+                    text: "Login",
+                    onTap: _handleLogin,
+                  ),
             const SizedBox(height: 20),
           ],
         ),
+      );
+      },
       ),
     );
   }
@@ -141,41 +185,16 @@ class _LoginScreenState extends State<LoginScreen> {
     String email = _emailController.text.trim();
     String password = _passwordController.text.trim();
 
-    UserRole? role;
-    Map<String, String>? assignedBranch;
-
-    String routePath = '';
-    if (email == "salman@gmail.com" && password == "11") {
-      role = UserRole.systemOwner;
-      routePath = '/system-owner';
-    } else if (email == "sadia@gmail.com" && password == "11") {
-      role = UserRole.businessOwner;
-      routePath = '/business-owner';
-    } else if (email == "manager@gmail.com" && password == "11") {
-      role = UserRole.branchManager;
-      routePath = '/branch-manager';
-      assignedBranch = {
-        "name": "Brooklyn Hub",
-        "address": "123, Brooklyn, NY"
-      };
-    }
-
-    if (role != null) {
-      Navigator.pushReplacementNamed(
-        context,
-        '$routePath${Routes.overview}',
-        arguments: {
-          'role': role,
-          'assignedBranch': assignedBranch,
-        },
-      );
-    } else {
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Invalid email or password"),
+          content: Text("Please enter email and password"),
           backgroundColor: Colors.red,
         ),
       );
+      return;
     }
+
+    context.read<AuthBloc>().add(LoginRequested(email: email, password: password));
   }
 }

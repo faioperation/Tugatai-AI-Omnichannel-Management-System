@@ -1,42 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:roberto/app/app_color.dart';
+import 'package:roberto/features/Subscription/data/models/subscription_model.dart';
+import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CustomBilling extends StatelessWidget {
-  const CustomBilling({super.key});
+  final List<BillingHistoryModel>? billingHistory;
+
+  const CustomBilling({super.key, this.billingHistory});
+
+  Future<void> _downloadInvoice(String url) async {
+    if (url.isNotEmpty) {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final data = [
-      {
-        "date": "Apr 1, 2026",
-        "desc": "Pro Plan - Monthly",
-        "client": "Fashion Boutique",
-        "amount": "\$199.00",
-        "status": "Paid"
-      },
-      {
-        "date": "Apr 1, 2026",
-        "desc": "Enterprise Plan - Monthly",
-        "client": "TechGear Store",
-        "amount": "\$499.00",
-        "status": "Paid"
-      },
-      {
-        "date": "Apr 1, 2026",
-        "desc": "Basic Plan - Monthly",
-        "client": "Local Grocery",
-        "amount": "\$49.00",
-        "status": "Paid"
-      },
-      {
-        "date": "Mar 28, 2026",
-        "desc": "Pro Plan - Monthly",
-        "client": "Home Decor Hub",
-        "amount": "\$199.00",
-        "status": "Unpaid"
-      },
-    ];
+
+    final items = billingHistory ?? [];
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -140,48 +126,67 @@ class CustomBilling extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             // 🔹 Table Rows
-            Column(
-              children: data.map((item) {
-                return Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE)),
+            if (items.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(24.0),
+                child: Center(child: Text("No billing history found.")),
+              )
+            else
+              Column(
+                children: items.map((item) {
+                  final dateStr = item.date != null ? DateFormat('MMM d, yyyy').format(item.date!) : "N/A";
+                  return Container(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE)),
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(flex: 2, child: Text(item["date"]!)),
-                      Expanded(flex: 3, child: Text(item["desc"]!)),
-                      Expanded(flex: 3, child: Text(item["client"]!)),
-                      Expanded(flex: 2, child: Text(item["amount"]!)),
-                      Expanded(
-                        flex: 2,
-                        child: _StatusBadge(status: item["status"]!),
-                      ),
-                      const Expanded(
-                        flex: 1,
-                        child: Icon(Icons.download, size: 18),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
+                    child: Row(
+                      children: [
+                        Expanded(flex: 2, child: Text(dateStr)),
+                        Expanded(flex: 3, child: Text(item.description)),
+                        Expanded(flex: 3, child: Text(item.client)),
+                        Expanded(flex: 2, child: Text("\$${item.amount.toStringAsFixed(2)}")),
+                        Expanded(
+                          flex: 2,
+                          child: _StatusBadge(status: item.status),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: IconButton(
+                            icon: const Icon(Icons.download, size: 18),
+                            onPressed: () => _downloadInvoice(item.invoiceUrl),
+                            padding: EdgeInsets.zero,
+                            alignment: Alignment.centerLeft,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
           ] else ...[
             const SizedBox(height: 24),
             // 🔹 Mobile Cards
-            Column(
-              children: data.map((item) => _buildMobileCard(context, item as Map<String, String>)).toList(),
-            ),
+            if (items.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(24.0),
+                child: Center(child: Text("No billing history found.")),
+              )
+            else
+              Column(
+                children: items.map((item) => _buildMobileCard(context, item)).toList(),
+              ),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildMobileCard(BuildContext context, Map<String, String> item) {
+  Widget _buildMobileCard(BuildContext context, BillingHistoryModel item) {
+    final dateStr = item.date != null ? DateFormat('MMM d, yyyy').format(item.date!) : "N/A";
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -197,20 +202,20 @@ class CustomBilling extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                item["date"]!,
+                dateStr,
                 style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
               ),
-              _StatusBadge(status: item["status"]!),
+              _StatusBadge(status: item.status),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            item["desc"]!,
+            item.description,
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
-            "Client: ${item["client"]}",
+            "Client: ${item.client}",
             style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodySmall?.color),
           ),
           const SizedBox(height: 12),
@@ -218,7 +223,7 @@ class CustomBilling extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                item["amount"]!,
+                "\$${item.amount.toStringAsFixed(2)}",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -226,7 +231,7 @@ class CustomBilling extends StatelessWidget {
                 ),
               ),
               IconButton(
-                onPressed: () {},
+                onPressed: () => _downloadInvoice(item.invoiceUrl),
                 icon: const Icon(Icons.download, size: 20),
               ),
             ],

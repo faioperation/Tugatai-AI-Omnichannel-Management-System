@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:roberto/app/app_color.dart';
 
 class StatCard extends StatelessWidget {
   final String title;
