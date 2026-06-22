@@ -58,7 +58,7 @@ class QuickStats extends StatelessWidget {
                 style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 14),
               ),
               Text(
-                overviewData != null ? "${overviewData!.activeUsers}" : businessData != null ? "${businessData!.activeUsers.total}" : "248",
+                overviewData != null ? "${overviewData!.activeUsers}" : businessData != null ? "${businessData!.activeUsers.total}" : "0",
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,

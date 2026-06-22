@@ -179,8 +179,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
         const Expanded(
           child: StatCard(
             title: "Today's Orders",
-            value: "42",
-            trend: "+15%",
+            value: "0",
+            trend: "",
             icon: Icons.shopping_bag_outlined,
           ),
         ),
@@ -188,7 +188,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
         const Expanded(
           child: StatCard(
             title: "Pending Deliveries",
-            value: "12",
+            value: "0",
             trend: "",
             icon: Icons.delivery_dining_outlined,
           ),
@@ -197,8 +197,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
         const Expanded(
           child: StatCard(
             title: "Today's Sales",
-            value: "\$5,420",
-            trend: "+8.5%",
+            value: "\$0.00",
+            trend: "",
             icon: Icons.attach_money,
           ),
         ),

@@ -174,50 +174,32 @@ class AiPerformanceSection extends StatelessWidget {
     return [
       const AiAnalyticsCard(
         title: "Active Chats",
-        value: "142",
-        subtitle: "+12%",
+        value: "0",
+        subtitle: "",
         icon: Icons.chat_bubble_outline_rounded,
         color: Color(0xFF6366F1), // Indigo
         sparklineSpots: [
-          FlSpot(0, 80),
-          FlSpot(1, 95),
-          FlSpot(2, 110),
-          FlSpot(3, 105),
-          FlSpot(4, 120),
-          FlSpot(5, 135),
-          FlSpot(6, 142),
+          FlSpot(0, 0),
         ],
       ),
       const AiAnalyticsCard(
         title: "Success",
-        value: "84%",
-        subtitle: "+5%",
+        value: "0%",
+        subtitle: "",
         icon: Icons.auto_awesome_rounded,
         color: Color(0xFF10B981), // Emerald
         sparklineSpots: [
-          FlSpot(0, 70),
-          FlSpot(1, 75),
-          FlSpot(2, 72),
-          FlSpot(3, 80),
-          FlSpot(4, 78),
-          FlSpot(5, 82),
-          FlSpot(6, 84),
+          FlSpot(0, 0),
         ],
       ),
       const AiAnalyticsCard(
         title: "CSAT",
-        value: "4.8",
-        subtitle: "Stable",
+        value: "0.0",
+        subtitle: "",
         icon: Icons.stars_rounded,
         color: Color(0xFFF59E0B), // Amber
         sparklineSpots: [
-          FlSpot(0, 4.5),
-          FlSpot(1, 4.6),
-          FlSpot(2, 4.7),
-          FlSpot(3, 4.6),
-          FlSpot(4, 4.8),
-          FlSpot(5, 4.8),
-          FlSpot(6, 4.8),
+          FlSpot(0, 0),
         ],
       ),
     ];

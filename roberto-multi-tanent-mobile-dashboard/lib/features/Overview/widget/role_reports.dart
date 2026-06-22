@@ -58,12 +58,7 @@ class RoleReports extends StatelessWidget {
         const RevenueLineChart(
           title: "Platform Revenue Trends",
           spots: [
-            FlSpot(0, 5000),
-            FlSpot(2, 7000),
-            FlSpot(4, 12000),
-            FlSpot(6, 15000),
-            FlSpot(8, 18000),
-            FlSpot(10, 25000),
+            FlSpot(0, 0),
           ],
         ),
         const SizedBox(height: 24),
@@ -150,15 +145,15 @@ class RoleReports extends StatelessWidget {
       children: [
         PerformanceBarChart(
           title: "Branch Sales (Weekly)",
-          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          labels: const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
           barGroups: [
-            BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 800, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 1000, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 900, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 3, barRods: [BarChartRodData(toY: 1200, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 4, barRods: [BarChartRodData(toY: 1500, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 5, barRods: [BarChartRodData(toY: 1800, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 6, barRods: [BarChartRodData(toY: 1600, color: AppColor.primary, width: 12)]),
+            BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
+            BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
+            BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
+            BarChartGroupData(x: 3, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
+            BarChartGroupData(x: 4, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
+            BarChartGroupData(x: 5, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
+            BarChartGroupData(x: 6, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
           ],
         ),
         const SizedBox(height: 24),
