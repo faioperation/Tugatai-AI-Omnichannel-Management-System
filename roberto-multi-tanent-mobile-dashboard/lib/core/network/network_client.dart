@@ -102,7 +102,9 @@ class NetworkClient {
       if (fileBytes != null) {
         for (var entry in fileBytes.entries) {
           final filename = fileNames?[entry.key] ?? 'upload.jpg';
-          request.files.add(MultipartFile.fromBytes(entry.key, entry.value, filename: filename));
+          final mimeType = lookupMimeType(filename);
+          final contentType = mimeType != null ? MediaType.parse(mimeType) : null;
+          request.files.add(MultipartFile.fromBytes(entry.key, entry.value, filename: filename, contentType: contentType));
         }
       }
 
