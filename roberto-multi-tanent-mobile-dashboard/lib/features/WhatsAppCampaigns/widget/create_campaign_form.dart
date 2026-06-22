@@ -127,11 +127,12 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
+                      String aud = _selectedAudience?.toUpperCase() ?? 'COLD';
                       widget.onCreate({
-                        'name': _titleController.text,
-                        'audience': _selectedAudience ?? '',
-                        'inbox': _selectedInbox ?? '',
-                        'endDate': _scheduledTime ?? DateTime.now(),
+                        'title': _titleController.text,
+                        'audience': aud,
+                        'inboxId': '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d',
+                        'selectedPeople': <String>[],
                       });
                     },
                     style: ElevatedButton.styleFrom(

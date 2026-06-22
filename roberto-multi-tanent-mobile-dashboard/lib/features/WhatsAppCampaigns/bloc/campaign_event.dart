@@ -3,32 +3,32 @@ abstract class CampaignEvent {}
 class FetchCampaigns extends CampaignEvent {}
 
 class CreateCampaign extends CampaignEvent {
-  final String name;
-  final String branchId;
-  final String message;
-  final DateTime endDate;
+  final String title;
+  final String audience;
+  final String inboxId;
+  final List<String> selectedPeople;
 
   CreateCampaign({
-    required this.name,
-    required this.branchId,
-    required this.message,
-    required this.endDate,
+    required this.title,
+    required this.audience,
+    required this.inboxId,
+    required this.selectedPeople,
   });
 }
 
 class UpdateCampaign extends CampaignEvent {
   final String id;
-  final String? name;
-  final String? branchId;
-  final String? message;
-  final DateTime? endDate;
+  final String? title;
+  final String? audience;
+  final String? inboxId;
+  final List<String>? selectedPeople;
 
   UpdateCampaign({
     required this.id,
-    this.name,
-    this.branchId,
-    this.message,
-    this.endDate,
+    this.title,
+    this.audience,
+    this.inboxId,
+    this.selectedPeople,
   });
 }
 

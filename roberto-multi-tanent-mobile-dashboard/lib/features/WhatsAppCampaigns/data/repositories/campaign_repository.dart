@@ -23,19 +23,19 @@ class CampaignRepository {
   }
 
   Future<CampaignModel> createCampaign({
-    required String name,
-    required String branchId,
-    required String message,
-    required DateTime endDate,
+    required String title,
+    required String audience,
+    required String inboxId,
+    required List<String> selectedPeople,
   }) async {
     try {
       final response = await _networkClient.postRequest(
         ApiConstants.businessOwnerCampaignCreate,
         body: {
-          'name': name,
-          'branchId': branchId,
-          'message': message,
-          'endDate': endDate.toIso8601String(),
+          'title': title,
+          'audience': audience,
+          'inboxId': inboxId,
+          'selectedPeople': selectedPeople,
         },
       );
       if (response.isSuccess) {
@@ -50,17 +50,17 @@ class CampaignRepository {
 
   Future<CampaignModel> updateCampaign({
     required String id,
-    String? name,
-    String? branchId,
-    String? message,
-    DateTime? endDate,
+    String? title,
+    String? audience,
+    String? inboxId,
+    List<String>? selectedPeople,
   }) async {
     try {
       final Map<String, dynamic> body = {};
-      if (name != null) body['name'] = name;
-      if (branchId != null) body['branchId'] = branchId;
-      if (message != null) body['message'] = message;
-      if (endDate != null) body['endDate'] = endDate.toIso8601String();
+      if (title != null) body['title'] = title;
+      if (audience != null) body['audience'] = audience;
+      if (inboxId != null) body['inboxId'] = inboxId;
+      if (selectedPeople != null) body['selectedPeople'] = selectedPeople;
 
       final response = await _networkClient.patchRequest(
         '${ApiConstants.businessOwnerCampaignUpdate}/$id',

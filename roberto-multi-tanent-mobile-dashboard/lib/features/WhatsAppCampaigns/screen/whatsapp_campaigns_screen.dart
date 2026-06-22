@@ -37,17 +37,19 @@ class _WhatsAppCampaignsScreenState extends State<WhatsAppCampaignsScreen> {
               context.read<CampaignBloc>().add(
                 UpdateCampaign(
                   id: initialData.id,
-                  name: data['name'],
-                  endDate: data['endDate'],
+                  title: data['title'],
+                  audience: data['audience'],
+                  inboxId: data['inboxId'],
+                  selectedPeople: data['selectedPeople'],
                 ),
               );
             } else {
               context.read<CampaignBloc>().add(
                 CreateCampaign(
-                  name: data['name'],
-                  branchId: 'cmqoiy10j000604l6b1iif72l', // Using a dummy ID or requires selection
-                  message: 'Generated campaign for ${data['audience']}',
-                  endDate: data['endDate'],
+                  title: data['title'],
+                  audience: data['audience'],
+                  inboxId: data['inboxId'],
+                  selectedPeople: data['selectedPeople'],
                 ),
               );
             }
@@ -138,10 +140,10 @@ class _WhatsAppCampaignsScreenState extends State<WhatsAppCampaignsScreen> {
                       itemBuilder: (context, index) {
                         final campaign = campaigns[index];
                         return CampaignCard(
-                          title: campaign.name,
+                          title: campaign.title,
                           status: campaign.status,
                           date: DateFormat('MMM dd, yyyy').format(campaign.createdAt),
-                          description: campaign.message,
+                          description: campaign.description ?? '',
                           onView: () => _showCampaignDialog(isReadOnly: true, initialData: campaign),
                           onEdit: () => _showCampaignDialog(isReadOnly: false, initialData: campaign),
                           onDelete: () {
