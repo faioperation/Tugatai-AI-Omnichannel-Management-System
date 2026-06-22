@@ -174,7 +174,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 backgroundImage: _selectedImagePath != null
                     ? (kIsWeb ? NetworkImage(_selectedImagePath!) : FileImage(File(_selectedImagePath!))) as ImageProvider
                     : (user.profilePicture != null && user.profilePicture!.isNotEmpty)
-                        ? NetworkImage(user.profilePicture!)
+                        ? NetworkImage(user.profilePicture!.replaceFirst('http://', 'https://'), headers: const {'ngrok-skip-browser-warning': 'true'})
                         : null,
                 child: (_selectedImagePath == null && (user.profilePicture == null || user.profilePicture!.isEmpty))
                     ? const Icon(Icons.person, color: Colors.grey, size: 36)

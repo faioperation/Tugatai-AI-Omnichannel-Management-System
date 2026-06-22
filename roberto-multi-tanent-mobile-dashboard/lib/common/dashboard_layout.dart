@@ -522,7 +522,7 @@ class _DashboardShellState extends State<DashboardShell> {
                 CircleAvatar(
                   radius: 17.5,
                   backgroundColor: AppColor.mini,
-                  backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
+                  backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl.replaceFirst('http://', 'https://'), headers: const {'ngrok-skip-browser-warning': 'true'}) : null,
                   child: (avatarUrl == null || avatarUrl.isEmpty)
                       ? const Icon(Icons.person, color: AppColor.white, size: 18)
                       : null,
