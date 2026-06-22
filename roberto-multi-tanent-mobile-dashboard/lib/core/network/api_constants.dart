@@ -10,6 +10,7 @@ class ApiConstants {
 
   // Overview endpoints
   static const String systemOwnerOverview = '$baseUrl/system-owner/dashboard/overview';
+  static const String businessOwnerOverview = '$baseUrl/business-owner/dashboard/overview';
 
   // Subscription endpoints
   static const String systemOwnerSubscriptions = '$baseUrl/system-owner/subscription-plans/all';

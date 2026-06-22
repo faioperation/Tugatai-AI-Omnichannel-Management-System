@@ -9,6 +9,7 @@ class OverviewBloc extends Bloc<OverviewEvent, OverviewState> {
 
   OverviewBloc({required this.overviewRepository}) : super(OverviewInitial()) {
     on<FetchSystemOverviewRequested>(_onFetchSystemOverviewRequested);
+    on<FetchBusinessOverviewRequested>(_onFetchBusinessOverviewRequested);
   }
 
   Future<void> _onFetchSystemOverviewRequested(
@@ -19,6 +20,19 @@ class OverviewBloc extends Bloc<OverviewEvent, OverviewState> {
     try {
       final overviewData = await overviewRepository.getSystemOwnerOverview();
       emit(SystemOverviewLoaded(overviewData: overviewData));
+    } catch (e) {
+      emit(OverviewError(message: e.toString().replaceAll('Exception: ', '')));
+    }
+  }
+
+  Future<void> _onFetchBusinessOverviewRequested(
+    FetchBusinessOverviewRequested event,
+    Emitter<OverviewState> emit,
+  ) async {
+    emit(OverviewLoading());
+    try {
+      final businessData = await overviewRepository.getBusinessOwnerOverview();
+      emit(BusinessOverviewLoaded(businessData: businessData));
     } catch (e) {
       emit(OverviewError(message: e.toString().replaceAll('Exception: ', '')));
     }

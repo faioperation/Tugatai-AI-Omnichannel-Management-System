@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:roberto/features/Overview/data/models/system_overview_model.dart';
+import 'package:roberto/features/Overview/data/models/business_overview_model.dart';
 
 class QuickStats extends StatelessWidget {
   final SystemOverviewModel? overviewData;
+  final BusinessOverviewModel? businessData;
 
-  const QuickStats({super.key, this.overviewData});
+  const QuickStats({super.key, this.overviewData, this.businessData});
 
   @override
   Widget build(BuildContext context) {
@@ -29,27 +31,34 @@ class QuickStats extends StatelessWidget {
               ),
           const SizedBox(height: 24),
           // Hiding static progress bars for System Owner if dynamic data is passed, or show them if not
-          if (overviewData == null) ...[
+          if (overviewData == null && businessData == null) ...[
             _buildStatProgress(context, "Response Rate", 0.94, theme.colorScheme.primary, "94%"),
             const SizedBox(height: 20),
             _buildStatProgress(context, "Order Fulfillment", 0.87, theme.colorScheme.secondary, "87%"),
             const SizedBox(height: 20),
             _buildStatProgress(context, "Customer Satisfaction", 0.92, theme.colorScheme.secondary, "92%"),
             const SizedBox(height: 40),
-          ] else ...[
+          ] else if (overviewData != null) ...[
              const SizedBox(height: 10),
              Text("System activity and overall usage.", style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
+             const SizedBox(height: 40),
+          ] else if (businessData != null) ...[
+             _buildStatProgress(context, "WhatsApp Active", businessData!.activeUsers.total > 0 ? businessData!.activeUsers.whatsapp / businessData!.activeUsers.total : 0, theme.colorScheme.primary, "${businessData!.activeUsers.whatsapp}"),
+             const SizedBox(height: 20),
+             _buildStatProgress(context, "Messenger Active", businessData!.activeUsers.total > 0 ? businessData!.activeUsers.messenger / businessData!.activeUsers.total : 0, theme.colorScheme.secondary, "${businessData!.activeUsers.messenger}"),
+             const SizedBox(height: 20),
+             _buildStatProgress(context, "Instagram Active", businessData!.activeUsers.total > 0 ? businessData!.activeUsers.instagram / businessData!.activeUsers.total : 0, const Color(0xFFFF9800), "${businessData!.activeUsers.instagram}"),
              const SizedBox(height: 40),
           ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Active Users",
+                "Total Active Users",
                 style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 14),
               ),
               Text(
-                overviewData != null ? "${overviewData!.activeUsers}" : "248",
+                overviewData != null ? "${overviewData!.activeUsers}" : businessData != null ? "${businessData!.activeUsers.total}" : "248",
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,

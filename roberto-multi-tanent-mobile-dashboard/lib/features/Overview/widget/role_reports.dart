@@ -5,12 +5,14 @@ import 'package:roberto/common/user_role.dart';
 import 'package:roberto/features/Overview/widget/analytics_charts.dart';
 import 'package:roberto/features/Overview/widget/ai_analytics.dart';
 import 'package:roberto/features/Overview/data/models/system_overview_model.dart';
+import 'package:roberto/features/Overview/data/models/business_overview_model.dart';
 
 class RoleReports extends StatelessWidget {
   final UserRole role;
   final SystemOverviewModel? overviewData;
+  final BusinessOverviewModel? businessData;
 
-  const RoleReports({super.key, required this.role, this.overviewData});
+  const RoleReports({super.key, required this.role, this.overviewData, this.businessData});
 
   @override
   Widget build(BuildContext context) {
@@ -90,19 +92,22 @@ class RoleReports extends StatelessWidget {
   }
 
   Widget _buildBusinessOwnerReports() {
+    final List<FlSpot> weeklySpots = [];
+    if (businessData != null && businessData!.weeklySales.isNotEmpty) {
+      for (int i = 0; i < businessData!.weeklySales.length; i++) {
+        weeklySpots.add(FlSpot(i.toDouble(), businessData!.weeklySales[i].sales));
+      }
+    } else {
+      // Fallback empty spot if no data
+      weeklySpots.add(const FlSpot(0, 0));
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const RevenueLineChart(
-          title: "Business Growth (Last 12 Months)",
-          spots: [
-            FlSpot(0, 2000),
-            FlSpot(2, 3500),
-            FlSpot(4, 3000),
-            FlSpot(6, 4500),
-            FlSpot(8, 6000),
-            FlSpot(10, 8500),
-          ],
+        RevenueLineChart(
+          title: "Weekly Sales",
+          spots: weeklySpots,
         ),
         const SizedBox(height: 24),
         const AiPerformanceSection(),

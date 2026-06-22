@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:roberto/features/Overview/data/models/system_overview_model.dart';
+import 'package:roberto/features/Overview/data/models/business_overview_model.dart';
 
 abstract class OverviewState extends Equatable {
   const OverviewState();
@@ -19,6 +20,15 @@ class SystemOverviewLoaded extends OverviewState {
 
   @override
   List<Object?> get props => [overviewData];
+}
+
+class BusinessOverviewLoaded extends OverviewState {
+  final BusinessOverviewModel businessData;
+
+  const BusinessOverviewLoaded({required this.businessData});
+
+  @override
+  List<Object?> get props => [businessData];
 }
 
 class OverviewError extends OverviewState {

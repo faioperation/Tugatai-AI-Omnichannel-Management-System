@@ -5,6 +5,7 @@ import 'package:roberto/features/Overview/bloc/overview_bloc.dart';
 import 'package:roberto/features/Overview/bloc/overview_event.dart';
 import 'package:roberto/features/Overview/bloc/overview_state.dart';
 import 'package:roberto/features/Overview/data/models/system_overview_model.dart';
+import 'package:roberto/features/Overview/data/models/business_overview_model.dart';
 import 'package:roberto/features/Overview/widget/activity_list.dart';
 import 'package:roberto/features/Overview/widget/quick_stats.dart';
 import 'package:roberto/features/Overview/widget/stat_card.dart';
@@ -28,6 +29,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
     super.initState();
     if (widget.role == UserRole.systemOwner) {
       context.read<OverviewBloc>().add(FetchSystemOverviewRequested());
+    } else if (widget.role == UserRole.businessOwner) {
+      context.read<OverviewBloc>().add(FetchBusinessOverviewRequested());
     }
   }
 
@@ -63,7 +66,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
           // STAT CARDS & ANALYTICS & QUICK STATS
           BlocBuilder<OverviewBloc, OverviewState>(
             builder: (context, state) {
-              if (isSystemOwner) {
+              if (isSystemOwner || widget.role == UserRole.businessOwner) {
                 if (state is OverviewLoading) {
                   return const Center(child: Padding(
                     padding: EdgeInsets.all(32.0),
@@ -73,12 +76,15 @@ class _OverviewScreenState extends State<OverviewScreen> {
                   return Center(child: Text('Error: ${state.message}', style: const TextStyle(color: Colors.red)));
                 } else if (state is SystemOverviewLoaded) {
                   final data = state.overviewData;
-                  return _buildDashboardContent(context, isDesktop, data);
+                  return _buildDashboardContent(context, isDesktop, systemData: data);
+                } else if (state is BusinessOverviewLoaded) {
+                  final data = state.businessData;
+                  return _buildDashboardContent(context, isDesktop, businessData: data);
                 }
                 return const SizedBox.shrink(); // Initial state
               } else {
                 // For other roles, use static/existing content for now
-                return _buildDashboardContent(context, isDesktop, null);
+                return _buildDashboardContent(context, isDesktop);
               }
             },
           ),
@@ -87,15 +93,15 @@ class _OverviewScreenState extends State<OverviewScreen> {
     );
   }
 
-  Widget _buildDashboardContent(BuildContext context, bool isDesktop, SystemOverviewModel? data) {
+  Widget _buildDashboardContent(BuildContext context, bool isDesktop, {SystemOverviewModel? systemData, BusinessOverviewModel? businessData}) {
     return Column(
       children: [
         isDesktop 
           ? Row(
-              children: _buildStatCards(context, data),
+              children: _buildStatCards(context, systemData: systemData, businessData: businessData),
             )
           : Column(
-              children: _buildStatCards(context, data).map((card) => Padding(
+              children: _buildStatCards(context, systemData: systemData, businessData: businessData).map((card) => Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: card,
               )).toList(),
@@ -104,7 +110,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
         const SizedBox(height: 32),
 
         // ANALYTICS & REPORTS
-        RoleReports(role: widget.role, overviewData: data),
+        RoleReports(role: widget.role, overviewData: systemData, businessData: businessData),
 
         const SizedBox(height: 32),
 
@@ -115,27 +121,27 @@ class _OverviewScreenState extends State<OverviewScreen> {
               children: [
                 Expanded(
                   flex: 2,
-                  child: ActivityList(overviewData: data),
+                  child: ActivityList(overviewData: systemData, businessData: businessData),
                 ),
                 const SizedBox(width: 24),
                 Expanded(
                   flex: 1,
-                  child: QuickStats(overviewData: data),
+                  child: QuickStats(overviewData: systemData, businessData: businessData),
                 ),
               ],
             )
           : Column(
               children: [
-                ActivityList(overviewData: data),
+                ActivityList(overviewData: systemData, businessData: businessData),
                 const SizedBox(height: 24),
-                QuickStats(overviewData: data),
+                QuickStats(overviewData: systemData, businessData: businessData),
               ],
             ),
       ],
     );
   }
 
-  List<Widget> _buildStatCards(BuildContext context, SystemOverviewModel? data) {
+  List<Widget> _buildStatCards(BuildContext context, {SystemOverviewModel? systemData, BusinessOverviewModel? businessData}) {
     final isSystemOwner = widget.role == UserRole.systemOwner;
     final isBranchManager = widget.role == UserRole.branchManager;
 
@@ -144,7 +150,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
         Expanded(
           child: StatCard(
             title: "Total Businesses",
-            value: data != null ? "${data.totalBusinesses}" : "0",
+            value: systemData != null ? "${systemData.totalBusinesses}" : "0",
             trend: "", // Removed static trend
             icon: Icons.business,
           ),
@@ -153,7 +159,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
         Expanded(
           child: StatCard(
             title: "Active Subscriptions",
-            value: data != null ? "${data.activeSubscriptions}" : "0",
+            value: systemData != null ? "${systemData.activeSubscriptions}" : "0",
             trend: "", // Removed static trend
             icon: Icons.subscriptions_outlined,
           ),
@@ -162,7 +168,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
         Expanded(
           child: StatCard(
             title: "Monthly Revenue",
-            value: data != null ? "\$${data.monthlyRevenue.toStringAsFixed(2)}" : "\$0.00",
+            value: systemData != null ? "\$${systemData.monthlyRevenue.toStringAsFixed(2)}" : "\$0.00",
             trend: "", // Removed static trend
             icon: Icons.payments_outlined,
           ),
@@ -200,30 +206,30 @@ class _OverviewScreenState extends State<OverviewScreen> {
     } else {
       // Business Owner
       return [
-        const Expanded(
+        Expanded(
           child: StatCard(
-            title: "Total Orders",
-            value: "856",
-            trend: "+8.2%",
+            title: "Today's Orders",
+            value: businessData != null ? "${businessData.todayOrders}" : "0",
+            trend: "",
             icon: Icons.shopping_cart_outlined,
           ),
         ),
         const SizedBox(width: 24),
         Expanded(
           child: StatCard(
-            title: "Total Messages",
-            value: "1,234",
-            trend: "+12.5%",
-            icon: Icons.chat_bubble_outline,
+            title: "Pending Deliveries",
+            value: businessData != null ? "${businessData.pendingDeliveries}" : "0",
+            trend: "",
+            icon: Icons.delivery_dining_outlined,
             iconColor: Theme.of(context).colorScheme.primary,
           ),
         ),
         const SizedBox(width: 24),
-        const Expanded(
+        Expanded(
           child: StatCard(
-            title: "Total Revenue",
-            value: "\$45,678",
-            trend: "+18.7%",
+            title: "Today's Sales",
+            value: businessData != null ? "\$${businessData.todaysSales.toStringAsFixed(2)}" : "\$0.00",
+            trend: "",
             icon: Icons.attach_money,
           ),
         ),
