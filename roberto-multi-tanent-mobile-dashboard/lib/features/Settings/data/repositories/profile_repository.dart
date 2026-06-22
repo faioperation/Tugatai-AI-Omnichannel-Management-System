@@ -26,9 +26,10 @@ class ProfileRepository {
     }
   }
 
-  Future<UserModel> updateProfile({required String name, String? avatarPath, List<int>? avatarBytes, String? avatarName}) async {
+  Future<UserModel> updateProfile({required String firstName, required String lastName, String? avatarPath, List<int>? avatarBytes, String? avatarName}) async {
     final body = {
-      'name': name,
+      'firstName': firstName,
+      'lastName': lastName,
     };
     
     final files = <String, String>{};
