@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/Auth/widget/custom_textfield.dart';
+import 'package:roberto/features/management/bloc/management_bloc.dart';
+import 'package:roberto/features/management/bloc/management_event.dart';
 
 class CustomAdduser extends StatefulWidget {
   final bool isEdit;
@@ -26,9 +29,16 @@ class _CustomAdduserState extends State<CustomAdduser> {
   bool _obscurePassword = true;
   String _selectedStatus = "Active";
 
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
+    if (widget.username != null) _nameController.text = widget.username!;
+    if (widget.mail != null) _emailController.text = widget.mail!;
+
     if (widget.status != null) {
       // Normalize to match dropdown items ["Active", "Inactive"]
       final status = widget.status!.toLowerCase();
@@ -38,6 +48,14 @@ class _CustomAdduserState extends State<CustomAdduser> {
         _selectedStatus = "Inactive";
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -71,14 +89,14 @@ class _CustomAdduserState extends State<CustomAdduser> {
               _buildFieldLabel(context, "User Name"),
               CustomTextfield(
                 hintText: "John Smith",
-                initialValue: widget.username,
+                controller: _nameController,
               ),
               const SizedBox(height: 16),
 
               _buildFieldLabel(context, "User Mail"),
               CustomTextfield(
                 hintText: "john12@gmail.com",
-                initialValue: widget.mail,
+                controller: _emailController,
               ),
               const SizedBox(height: 16),
 
@@ -91,6 +109,7 @@ class _CustomAdduserState extends State<CustomAdduser> {
 
               _buildFieldLabel(context, "Password"),
               TextField(
+                controller: _passwordController,
                 obscureText: _obscurePassword,
                 style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface),
                 decoration: InputDecoration(
@@ -240,7 +259,16 @@ class _CustomAdduserState extends State<CustomAdduser> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 0,
       ),
-      onPressed: () => Navigator.pop(context),
+      onPressed: () {
+        if (!widget.isEdit) {
+          context.read<ManagementBloc>().add(CreateBranchManagerRequested(
+            name: _nameController.text,
+            email: _emailController.text,
+            password: _passwordController.text,
+          ));
+        }
+        Navigator.pop(context);
+      },
       child: Center(
         child: Text(
           widget.isEdit ? "Update User" : "Create User",
