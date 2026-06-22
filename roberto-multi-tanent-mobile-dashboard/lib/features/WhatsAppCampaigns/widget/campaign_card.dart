@@ -9,7 +9,7 @@ class CampaignCard extends StatelessWidget {
   final String description;
   final VoidCallback? onView;
   final VoidCallback? onEdit;
-  final VoidCallback? onReport;
+  final VoidCallback? onDelete;
 
   const CampaignCard({
     super.key,
@@ -19,7 +19,7 @@ class CampaignCard extends StatelessWidget {
     required this.description,
     this.onView,
     this.onEdit,
-    this.onReport,
+    this.onDelete,
   });
 
   @override
@@ -121,16 +121,16 @@ class CampaignCard extends StatelessWidget {
                   color: Theme.of(context).textTheme.bodySmall?.color ?? AppColor.grey,
                 ),
               ),
-              // const SizedBox(width: 12),
-              // Expanded(
-              //   child: _buildActionButton(
-              //     context,
-              //     icon: Icons.bar_chart_outlined,
-              //     label: "Report",
-              //     onPressed: onReport ?? () {},
-              //     color: AppColor.grey,
-              //   ),
-              // ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionButton(
+                  context,
+                  icon: Icons.delete_outline,
+                  label: "Delete",
+                  onPressed: onDelete ?? () {},
+                  color: Colors.red,
+                ),
+              ),
             ],
           ),
         ],

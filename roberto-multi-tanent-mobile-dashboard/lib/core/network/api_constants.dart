@@ -38,4 +38,9 @@ class ApiConstants {
   static const String businessOwnerBranchManagers = '$baseUrl/business-owner/branch-managers/all';
   static const String businessOwnerBranchManagersCreate = '$baseUrl/business-owner/branch-managers/create';
   static const String businessOwnerBranchManagersDelete = '$baseUrl/business-owner/branch-managers'; // + /:id
+  // Campaign endpoints
+  static const String businessOwnerCampaigns = '$baseUrl/business-owner/campaigns/all';
+  static const String businessOwnerCampaignCreate = '$baseUrl/business-owner/campaigns/create';
+  static const String businessOwnerCampaignUpdate = '$baseUrl/business-owner/campaigns'; // + /:id
+  static const String businessOwnerCampaignDelete = '$baseUrl/business-owner/campaigns'; // + /:id
 }

@@ -3,9 +3,9 @@ import 'package:roberto/app/app_color.dart';
 
 class CreateCampaignForm extends StatefulWidget {
   final VoidCallback onCancel;
-  final VoidCallback onCreate;
+  final void Function(Map<String, dynamic> data) onCreate;
   final bool isReadOnly;
-  final Map<String, dynamic>? initialData;
+  final dynamic initialData;
 
   const CreateCampaignForm({
     super.key,
@@ -30,14 +30,8 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
   void initState() {
     super.initState();
     if (widget.initialData != null) {
-      _titleController.text = widget.initialData!['title'] ?? '';
-      final initialAudience = widget.initialData!['audience'];
-      if (["Cold", "Warm", "Hot", "Booked", "Completed"].contains(initialAudience)) {
-        _selectedAudience = initialAudience;
-      }
-      _selectedInbox = widget.initialData!['inbox'];
-      _selectedTemplate = widget.initialData!['template'];
-      // Handle date if present
+      _titleController.text = widget.initialData!.name;
+      // Handle other fields mapping if needed
     }
   }
 
@@ -132,7 +126,14 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: widget.onCreate,
+                    onPressed: () {
+                      widget.onCreate({
+                        'name': _titleController.text,
+                        'audience': _selectedAudience ?? '',
+                        'inbox': _selectedInbox ?? '',
+                        'endDate': _scheduledTime ?? DateTime.now(),
+                      });
+                    },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
