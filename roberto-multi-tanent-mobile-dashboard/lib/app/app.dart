@@ -5,10 +5,12 @@ import 'app_routes.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/core/network/network_client.dart';
 import 'package:roberto/core/services/local_storage_service.dart';
-import 'package:roberto/features/WhatsAppCampaigns/data/repositories/campaign_repository.dart';
+// import 'package:roberto/features/WhatsAppCampaigns/data/repositories/campaign_repository.dart';
 import 'package:roberto/features/WhatsAppCampaigns/bloc/campaign_bloc.dart';
 import 'package:roberto/features/management/data/repositories/management_repository.dart';
 import 'package:roberto/features/management/bloc/management_bloc.dart';
+import 'package:roberto/features/businesssubscription/data/repositories/business_subscription_repository.dart';
+import 'package:roberto/features/businesssubscription/bloc/business_subscription_bloc.dart';
 import 'package:roberto/features/Auth/data/repositories/auth_repository.dart';
 import 'package:roberto/features/Auth/bloc/auth_bloc.dart';
 import 'package:roberto/features/Auth/bloc/forgot_password_bloc.dart';
@@ -61,11 +63,17 @@ class Roberto extends StatelessWidget {
                 networkClient: context.read<NetworkClient>(),
               ),
             ),
+            // RepositoryProvider<CampaignRepository>(
+            //   create: (context) => CampaignRepository(networkClient: context.read<NetworkClient>()),
+            // ),
             RepositoryProvider<CampaignRepository>(
               create: (context) => CampaignRepository(networkClient: context.read<NetworkClient>()),
             ),
             RepositoryProvider<ManagementRepository>(
               create: (context) => ManagementRepository(networkClient: context.read<NetworkClient>()),
+            ),
+            RepositoryProvider<BusinessSubscriptionRepository>(
+              create: (context) => BusinessSubscriptionRepository(networkClient: context.read<NetworkClient>()),
             ),
             RepositoryProvider<OverviewRepository>(
               create: (context) => OverviewRepository(
@@ -116,6 +124,11 @@ class Roberto extends StatelessWidget {
               BlocProvider<ManagementBloc>(
                 create: (context) => ManagementBloc(
                   repository: context.read<ManagementRepository>(),
+                ),
+              ),
+              BlocProvider<BusinessSubscriptionBloc>(
+                create: (context) => BusinessSubscriptionBloc(
+                  repository: context.read<BusinessSubscriptionRepository>(),
                 ),
               ),
               BlocProvider<OverviewBloc>(

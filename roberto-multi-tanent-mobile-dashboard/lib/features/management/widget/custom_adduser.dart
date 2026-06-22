@@ -88,14 +88,14 @@ class _CustomAdduserState extends State<CustomAdduser> {
               // Form Fields
               _buildFieldLabel(context, "User Name"),
               CustomTextfield(
-                hintText: "John Smith",
+                hintText: "Enter Full Name",
                 controller: _nameController,
               ),
               const SizedBox(height: 16),
 
               _buildFieldLabel(context, "User Mail"),
               CustomTextfield(
-                hintText: "john12@gmail.com",
+                hintText: "example@example.com",
                 controller: _emailController,
               ),
               const SizedBox(height: 16),

@@ -14,6 +14,7 @@ class ApiConstants {
 
   // Subscription endpoints
   static const String systemOwnerSubscriptions = '$baseUrl/system-owner/subscription-plans/all';
+  static const String businessOwnerMySubscription = '$baseUrl/payment/my-subscription';
 
   // Profile endpoints
   static const String getProfile = '$baseUrl/user/profile/me';
