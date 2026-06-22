@@ -4,12 +4,16 @@ class CustomProfile extends StatelessWidget {
   final String label;
   final String hint;
   final IconData? icon;
+  final TextEditingController? controller;
+  final bool readOnly;
 
   const CustomProfile({
     super.key,
     required this.label,
     required this.hint,
     this.icon,
+    this.controller,
+    this.readOnly = false,
   });
 
   @override
@@ -25,6 +29,8 @@ class CustomProfile extends StatelessWidget {
         const SizedBox(height: 6),
 
         TextField(
+          controller: controller,
+          readOnly: readOnly,
           cursorColor: theme.colorScheme.primary,
           style: TextStyle(color: theme.colorScheme.onSurface),
           decoration: InputDecoration(

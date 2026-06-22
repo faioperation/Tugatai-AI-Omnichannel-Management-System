@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
-import 'package:roberto/features/Tenant%20Management%20/widget/Custom_Minitextfield.dart';
-import 'package:roberto/features/Tenant%20Management%20/widget/Custom_MiniDropdown.dart';
+import 'package:roberto/features/Tenant Management /widget/custom_minitextfield.dart';
+import 'package:roberto/features/Tenant Management /widget/Custom_MiniDropdown.dart';
+import 'package:roberto/features/Tenant Management /bloc/tenant_bloc.dart';
+import 'package:roberto/features/Tenant Management /bloc/tenant_event.dart';
+import 'package:roberto/features/Subscription/bloc/subscription_bloc.dart';
+import 'package:roberto/features/Subscription/bloc/subscription_state.dart';
+import 'package:roberto/features/Subscription/bloc/subscription_event.dart';
 
 class CustomAddtenant extends StatefulWidget {
   const CustomAddtenant({super.key});
@@ -12,15 +18,62 @@ class CustomAddtenant extends StatefulWidget {
 
 class _CustomAddtenantState extends State<CustomAddtenant> {
   int selectedTab = 0;
-  String selectedBusinessType = "";
-  String selectedBranch = "2";
-  String selectedPlan = "Half Moon - \$49/mo";
-  String selectedBillingCycle = "Monthly";
+  
+  // Form controllers
+  final _businessNameCtrl = TextEditingController();
+  final _descriptionCtrl = TextEditingController();
+  final _ownerNameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+
+  // Dropdown states
+  String selectedBusinessType = "RETAIL"; // Matches backend enum or generic
+  String selectedIndustry = "CARGO";
+  String selectedPlanId = "";
+  String selectedBillingCycle = "MONTHLY";
+
+  @override
+  void initState() {
+    super.initState();
+    // Ensure plans are loaded
+    context.read<SubscriptionBloc>().add(FetchSubscriptionsRequested());
+  }
+
+  @override
+  void dispose() {
+    _businessNameCtrl.dispose();
+    _descriptionCtrl.dispose();
+    _ownerNameCtrl.dispose();
+    _emailCtrl.dispose();
+    _phoneCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
 
   void changeTab(int index) {
     setState(() {
       selectedTab = index;
     });
+  }
+
+  void _submit() {
+    final payload = {
+      "businessName": _businessNameCtrl.text,
+      "businessType": selectedBusinessType,
+      "industry": selectedIndustry,
+      "description": _descriptionCtrl.text,
+      "ownerName": _ownerNameCtrl.text,
+      "ownerEmail": _emailCtrl.text,
+      "ownerPassword": _passwordCtrl.text,
+      "ownerPhone": _phoneCtrl.text,
+      "planId": selectedPlanId.isNotEmpty ? selectedPlanId : "some-default-plan-id",
+      "planCycle": selectedBillingCycle,
+      "credits": 0,
+    };
+
+    context.read<TenantBloc>().add(CreateTenantRequested(payload: payload));
+    Navigator.pop(context); // Close modal, user can see success message via state if implemented.
   }
 
   @override
@@ -66,7 +119,7 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
 
             const SizedBox(height: 20),
 
-            // Tabs (ONLY CHANGE HERE)
+            // Tabs
             Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).scaffoldBackgroundColor,
@@ -83,14 +136,14 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
 
             const SizedBox(height: 20),
 
-            // ONLY TAB SWITCH LOGIC ADDED
+            // Form content
             if (selectedTab == 0) _businessInfo(),
             if (selectedTab == 1) _ownerDetails(),
             if (selectedTab == 2) _planSettings(),
 
             const SizedBox(height: 20),
 
-            // Buttons (UNCHANGED)
+            // Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -106,7 +159,7 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.primary,
                   ),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: _submit,
                   child: const Text(
                     "Create Account",
                     style: TextStyle(color: AppColor.white, fontSize: 13),
@@ -120,7 +173,6 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
     );
   }
 
-  // TAB ITEM (ONLY SMALL CHANGE)
   Widget _tabItem(String text, int index) {
     final active = selectedTab == index;
 
@@ -130,7 +182,7 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: active ? Theme.of(context).primaryColor.withOpacity(0.1) : Colors.transparent,
+            color: active ? Theme.of(context).primaryColor.withValues(alpha: 0.1) : Colors.transparent,
             borderRadius: BorderRadius.circular(30),
           ),
           child: Center(
@@ -148,14 +200,12 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
     );
   }
 
-  // ---------------- TAB CONTENTS (SAME UI)
-
   Widget _businessInfo() {
     return Column(
       children: [
         _inputLabel("Business Name"),
         const SizedBox(height: 5),
-        const CustomMinitextfield(hint: "Enter business name"),
+        CustomMinitextfield(hint: "Enter business name", controller: _businessNameCtrl),
 
         const SizedBox(height: 12),
 
@@ -163,29 +213,30 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
         const SizedBox(height: 5),
         CustomMiniDropdown(
           value: selectedBusinessType,
-          items: const ["Retail", "Service", "Manufacturing", "Tech", "Other"],
+          items: const ["RETAIL", "SERVICE", "MANUFACTURING", "PARCEL_DELIVERY", "OTHER"],
           hint: "Select type",
-          onChanged: (val) => setState(() => selectedBusinessType = val ?? ""),
+          onChanged: (val) => setState(() => selectedBusinessType = val ?? "RETAIL"),
         ),
 
         const SizedBox(height: 12),
 
-        _inputLabel("Select Branch"),
+        _inputLabel("Industry"),
         const SizedBox(height: 5),
         CustomMiniDropdown(
-          value: selectedBranch,
-          items: const ["1", "2", "3", "4", "5"],
-          hint: "Select branch",
-          onChanged: (val) => setState(() => selectedBranch = val ?? ""),
+          value: selectedIndustry,
+          items: const ["CARGO", "ECOMMERCE", "FOOD_DELIVERY", "OTHER"],
+          hint: "Select industry",
+          onChanged: (val) => setState(() => selectedIndustry = val ?? "CARGO"),
         ),
 
         const SizedBox(height: 12),
 
         _inputLabel("Description"),
         const SizedBox(height: 5),
-        const CustomMinitextfield(
+        CustomMinitextfield(
           hint: "Brief description of the business...",
           maxLines: 3,
+          controller: _descriptionCtrl,
         ),
       ],
     );
@@ -196,52 +247,91 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
       children: [
         _inputLabel("Owner Name"),
         const SizedBox(height: 5),
-        CustomMinitextfield(hint: "Enter owner name"),
+        CustomMinitextfield(hint: "Enter owner name", controller: _ownerNameCtrl),
 
         const SizedBox(height: 12),
 
         _inputLabel("Email"),
         const SizedBox(height: 5),
-        CustomMinitextfield(hint: "Enter email"),
+        CustomMinitextfield(hint: "Enter email", controller: _emailCtrl),
 
         const SizedBox(height: 12),
 
         _inputLabel("Phone"),
         const SizedBox(height: 5),
-        CustomMinitextfield(hint: "Enter phone"),
+        CustomMinitextfield(hint: "Enter phone (+880...)", controller: _phoneCtrl),
 
         const SizedBox(height: 12),
 
         _inputLabel("Initial Password"),
         const SizedBox(height: 5),
-        CustomMinitextfield(hint: "Create password"),
+        CustomMinitextfield(hint: "Create password", controller: _passwordCtrl, obscureText: true),
       ],
     );
   }
 
   Widget _planSettings() {
-    return Column(
-      children: [
-        _inputLabel("Subscription Plan"),
-        const SizedBox(height: 5),
-        CustomMiniDropdown(
-          value: selectedPlan,
-          items: const ["Half Moon - \$49/month", "Full Moon - \$199/month", "Moon Enterprise - \$499/month"],
-          hint: "Select plan",
-          onChanged: (val) => setState(() => selectedPlan = val ?? ""),
-        ),
+    return BlocBuilder<SubscriptionBloc, SubscriptionState>(
+      builder: (context, state) {
+        if (state is SubscriptionLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-        const SizedBox(height: 12),
+        List<String> planOptions = ["No Plans Found"];
+        Map<String, String> planMap = {}; // name -> id
 
-        _inputLabel("Billing Cycle"),
-        const SizedBox(height: 5),
-        CustomMiniDropdown(
-          value: selectedBillingCycle,
-          items: const ["Monthly", "Yearly"],
-          hint: "Select cycle",
-          onChanged: (val) => setState(() => selectedBillingCycle = val ?? ""),
-        ),
-      ],
+        if (state is SubscriptionLoaded) {
+          final plans = state.subscriptionData.plans;
+          if (plans.isNotEmpty) {
+            planOptions = [];
+            for (var plan in plans) {
+              planOptions.add(plan.name);
+              planMap[plan.name] = plan.id;
+            }
+            if (selectedPlanId.isEmpty || !planMap.values.contains(selectedPlanId)) {
+              selectedPlanId = plans.first.id;
+            }
+          }
+        }
+
+        String currentPlanName = planMap.entries
+            .firstWhere((e) => e.value == selectedPlanId, orElse: () => const MapEntry("Select plan", ""))
+            .key;
+            
+        if (!planOptions.contains(currentPlanName)) {
+           if(planOptions.isNotEmpty){
+             currentPlanName = planOptions.first;
+           }
+        }
+
+        return Column(
+          children: [
+            _inputLabel("Subscription Plan"),
+            const SizedBox(height: 5),
+            CustomMiniDropdown(
+              value: currentPlanName,
+              items: planOptions,
+              hint: "Select plan",
+              onChanged: (val) {
+                if (val != null && planMap.containsKey(val)) {
+                  setState(() => selectedPlanId = planMap[val]!);
+                }
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            _inputLabel("Billing Cycle"),
+            const SizedBox(height: 5),
+            CustomMiniDropdown(
+              value: selectedBillingCycle,
+              items: const ["MONTHLY", "YEARLY"],
+              hint: "Select cycle",
+              onChanged: (val) => setState(() => selectedBillingCycle = val ?? "MONTHLY"),
+            ),
+          ],
+        );
+      },
     );
   }
 

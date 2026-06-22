@@ -8,6 +8,7 @@ class CustomNotification extends StatelessWidget {
   final String subtitle;
   final String time;
   final bool showDot;
+  final VoidCallback? onTap;
 
   const CustomNotification({
     super.key,
@@ -16,26 +17,30 @@ class CustomNotification extends StatelessWidget {
     required this.subtitle,
     required this.time,
     this.showDot = false,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final bool isMobile = MediaQuery.of(context).size.width <= 600;
 
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 10 : 12),
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE),
-          width: 1,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: EdgeInsets.all(isMobile ? 10 : 12),
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardTheme.color,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE),
+            width: 1,
+          ),
         ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           SvgPicture.asset(
             svgPath,
             width: isMobile ? 36 : 46,
@@ -80,7 +85,6 @@ class CustomNotification extends StatelessWidget {
                   subtitle,
                   style: TextStyle(
                     fontSize: isMobile ? 12 : 13,
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -94,7 +98,14 @@ class CustomNotification extends StatelessWidget {
               ],
             ),
           ),
-        ],
+          if (showDot && onTap != null)
+            IconButton(
+              icon: const Icon(Icons.check_circle_outline, color: AppColor.primary, size: 20),
+              tooltip: "Mark as read",
+              onPressed: onTap,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -4,6 +4,11 @@ import 'package:roberto/features/Tenant%20Management%20/widget/custom_stat_card.
 import 'package:roberto/features/Tenant%20Management%20/widget/Custom_Addtenant.dart';
 import 'package:roberto/features/Tenant%20Management%20/widget/custom_headder.dart';
 
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:roberto/features/Tenant Management /bloc/tenant_bloc.dart';
+import 'package:roberto/features/Tenant Management /bloc/tenant_event.dart';
+import 'package:roberto/features/Tenant Management /bloc/tenant_state.dart';
+import 'package:roberto/features/Tenant Management /data/models/tenant_model.dart';
 import '../widget/custom_builditem.dart';
 
 class TenantScreen extends StatefulWidget {
@@ -14,44 +19,15 @@ class TenantScreen extends StatefulWidget {
 }
 
 class _TenantScreenState extends State<TenantScreen> {
-  final List<Map<String, String>> _tenants = [
-    {
-      'business': 'Fashion Boutique',
-      'owner': 'Sarah Johnson',
-      'email': 'sarah@fashionboutique.com',
-      'phone': '+1 234 567 8901',
-      'plan': 'Half Moon',
-      'status': 'Active',
-      'price': '\$199',
-    },
-    {
-      'business': 'TechGear Store',
-      'owner': 'Michael Chen',
-      'email': 'michael@techgear.com',
-      'phone': '+1 234 567 8902',
-      'plan': 'Full Moon',
-      'status': 'Active',
-      'price': '\$499',
-    },
-    {
-      'business': 'Organic Foods Co',
-      'owner': 'Emma Wilson',
-      'email': 'emma@organicfoods.com',
-      'phone': '+1 234 567 8903',
-      'plan': 'Moon Enterprise',
-      'status': 'Active',
-      'price': '\$0',
-    },
-    {
-      'business': 'Home Decor Hub',
-      'owner': 'David Brown',
-      'email': 'david@homedecor.com',
-      'phone': '+1 234 567 8904',
-      'plan': 'Half Moon',
-      'status': 'Suspended',
-      'price': '\$199',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    context.read<TenantBloc>().add(const FetchTenantsRequested());
+  }
+
+  void _onSearch(String val) {
+    context.read<TenantBloc>().add(FetchTenantsRequested(searchParam: val));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,47 +83,59 @@ class _TenantScreenState extends State<TenantScreen> {
         const SizedBox(height: 28),
 
         // ── Stat Cards ──────────────────────────────────────────────────────
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth > 600;
-            final cards = [
-              CustomStatCard(
-                label: 'Total Tenant',
-                value: '47',
-                iconPath: "assets/tenant.svg",
-              ),
-              CustomStatCard(
-                label: 'Active Tenant',
-                value: '38',
-                iconPath: "assets/active.svg",
-              ),
-              CustomStatCard(
-                label: 'MRR',
-                value: '\$8.9K',
-                iconPath: "assets/MRR.svg",
-              ),
-            ];
-            return isWide
-                ? Row(
-              children: cards
-                  .map((c) =>
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                          right: cards.indexOf(c) < 2 ? 16 : 0),
-                      child: c,
-                    ),
-                  ))
-                  .toList(),
-            )
-                : Column(
-              children: cards
-                  .map((c) =>
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: c,
-                  ))
-                  .toList(),
+        BlocBuilder<TenantBloc, TenantState>(
+          builder: (context, state) {
+            int totalTenants = 0;
+            int activeTenants = 0;
+            double mrr = 0.0;
+
+            if (state is TenantLoaded) {
+              totalTenants = state.tenantResponse.totalTenants;
+              activeTenants = state.tenantResponse.activeTenants;
+              mrr = state.tenantResponse.mrr;
+            }
+
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth > 600;
+                final cards = [
+                  CustomStatCard(
+                    label: 'Total Tenant',
+                    value: '$totalTenants',
+                    iconPath: "assets/tenant.svg",
+                  ),
+                  CustomStatCard(
+                    label: 'Active Tenant',
+                    value: '$activeTenants',
+                    iconPath: "assets/active.svg",
+                  ),
+                  CustomStatCard(
+                    label: 'MRR',
+                    value: '\$${mrr.toStringAsFixed(1)}',
+                    iconPath: "assets/MRR.svg",
+                  ),
+                ];
+                return isWide
+                    ? Row(
+                        children: cards
+                            .map((c) => Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsets.only(
+                                        right: cards.indexOf(c) < 2 ? 16 : 0),
+                                    child: c,
+                                  ),
+                                ))
+                            .toList(),
+                      )
+                    : Column(
+                        children: cards
+                            .map((c) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: c,
+                                ))
+                            .toList(),
+                      );
+              },
             );
           },
         ),
@@ -222,17 +210,58 @@ class _TenantScreenState extends State<TenantScreen> {
                   ),
                 ),
 
+              // Search bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: TextField(
+                  onChanged: _onSearch,
+                  decoration: InputDecoration(
+                    hintText: 'Search businesses...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                  ),
+                ),
+              ),
+
               // Rows
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _tenants.length,
-                separatorBuilder: (context, index) =>
-                Divider(
-                    height: 1, color: theme.dividerTheme.color),
-                itemBuilder: (context, index) {
-                  final t = _tenants[index];
-                  return isDesktop ? _buildRow(t, index) : _buildMobileCard(t, index);
+              BlocBuilder<TenantBloc, TenantState>(
+                builder: (context, state) {
+                  if (state is TenantLoading) {
+                    return const Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  } else if (state is TenantError) {
+                    return Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Center(
+                        child: Text(state.message, style: const TextStyle(color: Colors.red)),
+                      ),
+                    );
+                  } else if (state is TenantLoaded) {
+                    final tenants = state.tenantResponse.businesses;
+                    if (tenants.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: Center(child: Text("No businesses found.")),
+                      );
+                    }
+                    return ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: tenants.length,
+                      separatorBuilder: (context, index) =>
+                          Divider(height: 1, color: theme.dividerTheme.color),
+                      itemBuilder: (context, index) {
+                        final t = tenants[index];
+                        return isDesktop ? _buildRow(t, index) : _buildMobileCard(t, index);
+                      },
+                    );
+                  }
+                  return const SizedBox();
                 },
               ),
             ],
@@ -243,7 +272,7 @@ class _TenantScreenState extends State<TenantScreen> {
     );
   }
 
-  Widget _buildRow(Map<String, String> tenant, int index) {
+  Widget _buildRow(TenantBusiness tenant, int index) {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -252,7 +281,7 @@ class _TenantScreenState extends State<TenantScreen> {
           Expanded(
             flex: 3,
             child: Text(
-              tenant['business']!,
+              tenant.name,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -263,7 +292,7 @@ class _TenantScreenState extends State<TenantScreen> {
           Expanded(
             flex: 3,
             child: Text(
-              tenant['owner']!,
+              tenant.owner != null ? '${tenant.owner!.firstName ?? ''} ${tenant.owner!.lastName ?? ''}'.trim() : 'N/A',
               style: TextStyle(
                 fontSize: 14,
                 color: theme.colorScheme.onSurface,
@@ -276,7 +305,7 @@ class _TenantScreenState extends State<TenantScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  tenant['email']!,
+                  tenant.email ?? 'No email',
                   style: TextStyle(
                     fontSize: 13,
                     color: theme.textTheme.bodySmall?.color,
@@ -284,7 +313,7 @@ class _TenantScreenState extends State<TenantScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  tenant['phone']!,
+                  tenant.phone ?? 'No phone',
                   style: TextStyle(
                     fontSize: 12,
                     color: theme.textTheme.bodySmall?.color,
@@ -296,7 +325,7 @@ class _TenantScreenState extends State<TenantScreen> {
           Expanded(
             flex: 2,
             child: Text(
-              tenant['plan']!,
+              tenant.planCycle ?? 'N/A',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
@@ -307,12 +336,12 @@ class _TenantScreenState extends State<TenantScreen> {
           ),
           Expanded(
             flex: 2,
-            child: Center(child: _buildStatusDropdown(tenant, index)),
+            child: Center(child: _buildStatusLabel(tenant.status ?? 'Unknown')),
           ),
           Expanded(
             flex: 2,
             child: Text(
-              tenant['price']!,
+              '\$0', // Dynamic pricing missing in API
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -360,7 +389,7 @@ class _TenantScreenState extends State<TenantScreen> {
     );
   }
 
-  Widget _buildMobileCard(Map<String, String> tenant, int index) {
+  Widget _buildMobileCard(TenantBusiness tenant, int index) {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
@@ -374,24 +403,24 @@ class _TenantScreenState extends State<TenantScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                tenant['business']!,
+                tenant.name,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.onSurface,
                 ),
               ),
-              _buildStatusDropdown(tenant, index),
+              _buildStatusLabel(tenant.status ?? 'Unknown'),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            "Owner: ${tenant['owner']}",
+            "Owner: ${tenant.owner != null ? '${tenant.owner!.firstName ?? ''} ${tenant.owner!.lastName ?? ''}'.trim() : 'N/A'}",
             style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface),
           ),
           const SizedBox(height: 4),
           Text(
-            tenant['email']!,
+            tenant.email ?? 'No email',
             style: TextStyle(fontSize: 13, color: theme.textTheme.bodySmall?.color),
           ),
           const SizedBox(height: 12),
@@ -406,7 +435,7 @@ class _TenantScreenState extends State<TenantScreen> {
                     style: TextStyle(fontSize: 11, color: theme.textTheme.bodySmall?.color),
                   ),
                   Text(
-                    tenant['plan']!,
+                    tenant.planCycle ?? 'N/A',
                     style: TextStyle(
                         fontSize: 13, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
                   ),
@@ -420,7 +449,7 @@ class _TenantScreenState extends State<TenantScreen> {
                     style: TextStyle(fontSize: 11, color: theme.textTheme.bodySmall?.color),
                   ),
                   Text(
-                    tenant['price']!,
+                    '\$0',
                     style: TextStyle(
                         fontSize: 13, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
                   ),
@@ -437,84 +466,49 @@ class _TenantScreenState extends State<TenantScreen> {
     );
   }
 
-  Widget _buildStatusDropdown(Map<String, String> tenant, int index) {
+  Widget _buildStatusLabel(String status) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final status = tenant['status']!;
 
     Color bgColor;
     Color textColor;
 
-    switch (status) {
-      case 'Active':
+    switch (status.toUpperCase()) {
+      case 'ACTIVE':
         bgColor = isDark ? const Color(0xFF1B5E20).withOpacity(0.2) : const Color(0xffD1FAE5);
         textColor = isDark ? const Color(0xFF81C784) : const Color(0xff065F46);
         break;
-      case 'Suspended':
+      case 'SUSPENDED':
         bgColor = isDark ? const Color(0xFFB71C1C).withOpacity(0.2) : const Color(0xFFFFEBEE);
         textColor = isDark ? const Color(0xFFE57373) : const Color(0xff991B1B);
         break;
-      case 'Inactive':
       default:
         bgColor = isDark ? Colors.grey.withOpacity(0.2) : Colors.grey.shade100;
         textColor = isDark ? Colors.grey.shade400 : Colors.grey.shade700;
         break;
     }
 
-    return PopupMenuButton<String>(
-      onSelected: (String newStatus) {
-        setState(() {
-          _tenants[index]['status'] = newStatus;
-          // In a real app, you'd calculate price based on status/plan here
-        });
-      },
-      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-        _buildPopupItem('Active', isDark),
-        _buildPopupItem('Inactive', isDark),
-        _buildPopupItem('Suspended', isDark),
-      ],
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(12),
-          border: isDark ? Border.all(color: textColor.withOpacity(0.3)) : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              status,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: textColor,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(Icons.keyboard_arrow_down, size: 14, color: textColor),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: isDark ? Border.all(color: textColor.withOpacity(0.3)) : null,
       ),
-    );
-  }
-
-  PopupMenuItem<String> _buildPopupItem(String value, bool isDark) {
-    return PopupMenuItem<String>(
-      value: value,
-      height: 32,
       child: Text(
-        value,
+        status,
         style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: isDark ? Colors.white70 : Colors.black87,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: textColor,
         ),
       ),
     );
   }
 
-  void _showClientDetailsDialog(Map<String, String> tenant) {
+
+
+  void _showClientDetailsDialog(TenantBusiness tenant) {
     showDialog(
       context: context,
       builder: (context) {
@@ -568,28 +562,28 @@ class _TenantScreenState extends State<TenantScreen> {
                         children: [
                           CustomBuilditem(
                               label: 'Business Name',
-                              value: tenant['business']!),
+                              value: tenant.name),
                           const SizedBox(height: 14),
                           CustomBuilditem(
-                              label: 'Owner', value: tenant['owner']!),
+                              label: 'Owner', value: tenant.owner != null ? '${tenant.owner!.firstName ?? ''} ${tenant.owner!.lastName ?? ''}'.trim() : 'N/A'),
                           const SizedBox(height: 14),
                           CustomBuilditem(
-                              label: 'Email', value: tenant['email']!),
+                              label: 'Email', value: tenant.email ?? 'N/A'),
                           const SizedBox(height: 14),
                           CustomBuilditem(
-                              label: 'Phone', value: tenant['phone']!),
+                              label: 'Phone', value: tenant.phone ?? 'N/A'),
                           const SizedBox(height: 14),
                           CustomBuilditem(
-                              label: 'Plan', value: tenant['plan']!),
+                              label: 'Plan Cycle', value: tenant.planCycle ?? 'N/A'),
                           const SizedBox(height: 14),
                           CustomBuilditem(
-                              label: 'Status', value: tenant['status']!),
+                              label: 'Status', value: tenant.status ?? 'N/A'),
                           const SizedBox(height: 14),
                           CustomBuilditem(
-                              label: 'Monthly Revenue', value: tenant['price']!),
+                              label: 'Industry', value: tenant.industry ?? 'N/A'),
                           const SizedBox(height: 14),
                           CustomBuilditem(
-                              label: 'Joined Date', value: 'Jan 15, 2024'),
+                              label: 'Joined Date', value: tenant.createdAt ?? 'N/A'),
                         ],
                       )
                     : Column(
@@ -599,12 +593,12 @@ class _TenantScreenState extends State<TenantScreen> {
                               Expanded(
                                 child: CustomBuilditem(
                                     label: 'Business Name',
-                                    value: tenant['business']!),
+                                    value: tenant.name),
                               ),
                               const SizedBox(width: 20),
                               Expanded(
                                 child: CustomBuilditem(
-                                    label: 'Owner', value: tenant['owner']!),
+                                    label: 'Owner', value: tenant.owner != null ? '${tenant.owner!.firstName ?? ''} ${tenant.owner!.lastName ?? ''}'.trim() : 'N/A'),
                               ),
                             ],
                           ),
@@ -613,12 +607,12 @@ class _TenantScreenState extends State<TenantScreen> {
                             children: [
                               Expanded(
                                 child: CustomBuilditem(
-                                    label: 'Email', value: tenant['email']!),
+                                    label: 'Email', value: tenant.email ?? 'N/A'),
                               ),
                               const SizedBox(width: 20),
                               Expanded(
                                 child: CustomBuilditem(
-                                    label: 'Phone', value: tenant['phone']!),
+                                    label: 'Phone', value: tenant.phone ?? 'N/A'),
                               ),
                             ],
                           ),
@@ -627,12 +621,12 @@ class _TenantScreenState extends State<TenantScreen> {
                             children: [
                               Expanded(
                                 child: CustomBuilditem(
-                                    label: 'Plan', value: tenant['plan']!),
+                                    label: 'Plan Cycle', value: tenant.planCycle ?? 'N/A'),
                               ),
                               const SizedBox(width: 20),
                               Expanded(
                                 child: CustomBuilditem(
-                                    label: 'Status', value: tenant['status']!),
+                                    label: 'Status', value: tenant.status ?? 'N/A'),
                               ),
                             ],
                           ),
@@ -641,20 +635,32 @@ class _TenantScreenState extends State<TenantScreen> {
                             children: [
                               Expanded(
                                 child: CustomBuilditem(
-                                    label: 'Monthly Revenue',
-                                    value: tenant['price']!),
+                                    label: 'Industry',
+                                    value: tenant.industry ?? 'N/A'),
                               ),
                               const SizedBox(width: 20),
                               Expanded(
                                 child: CustomBuilditem(
                                     label: 'Joined Date',
-                                    value: 'Jan 15, 2024'),
+                                    value: tenant.createdAt ?? 'N/A'),
                               ),
                             ],
                           ),
                         ],
                       ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 20),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    onPressed: () {
+                      context.read<TenantBloc>().add(DeleteTenantRequested(businessId: tenant.id));
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.delete, size: 18),
+                    label: const Text('Delete Business'),
+                  ),
+                ),
               ],
             ),
           ),

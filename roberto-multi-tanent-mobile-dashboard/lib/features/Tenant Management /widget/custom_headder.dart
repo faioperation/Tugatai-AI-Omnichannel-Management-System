@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:roberto/app/app_color.dart';
 
 class CustomHeadder extends StatelessWidget {
   final String label;
   final TextAlign? textAlign;
-  const CustomHeadder({required this.label, this.textAlign});
+  const CustomHeadder({
+    super.key,
+    required this.label,
+    this.textAlign = TextAlign.left,
+  });
 
   @override
   Widget build(BuildContext context) {
