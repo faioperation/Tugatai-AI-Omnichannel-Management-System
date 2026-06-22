@@ -24,18 +24,22 @@ class CampaignRepository {
 
   Future<CampaignModel> createCampaign({
     required String title,
+    required String message,
     required String audience,
     required String inboxId,
     required List<String> selectedPeople,
+    required DateTime scheduledTime,
   }) async {
     try {
       final response = await _networkClient.postRequest(
         ApiConstants.businessOwnerCampaignCreate,
         body: {
           'title': title,
+          'message': message,
           'audience': audience,
           'inboxId': inboxId,
           'selectedPeople': selectedPeople,
+          'scheduledTime': scheduledTime.toIso8601String(),
         },
       );
       if (response.isSuccess) {
@@ -51,16 +55,20 @@ class CampaignRepository {
   Future<CampaignModel> updateCampaign({
     required String id,
     String? title,
+    String? message,
     String? audience,
     String? inboxId,
     List<String>? selectedPeople,
+    DateTime? scheduledTime,
   }) async {
     try {
       final Map<String, dynamic> body = {};
       if (title != null) body['title'] = title;
+      if (message != null) body['message'] = message;
       if (audience != null) body['audience'] = audience;
       if (inboxId != null) body['inboxId'] = inboxId;
       if (selectedPeople != null) body['selectedPeople'] = selectedPeople;
+      if (scheduledTime != null) body['scheduledTime'] = scheduledTime.toIso8601String();
 
       final response = await _networkClient.patchRequest(
         '${ApiConstants.businessOwnerCampaignUpdate}/$id',

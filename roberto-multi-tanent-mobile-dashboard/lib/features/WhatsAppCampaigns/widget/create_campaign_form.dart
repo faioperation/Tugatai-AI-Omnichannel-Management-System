@@ -21,6 +21,7 @@ class CreateCampaignForm extends StatefulWidget {
 
 class _CreateCampaignFormState extends State<CreateCampaignForm> {
   final _titleController = TextEditingController();
+  final _messageController = TextEditingController();
   String? _selectedAudience;
   String? _selectedInbox;
   String? _selectedTemplate;
@@ -30,7 +31,8 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
   void initState() {
     super.initState();
     if (widget.initialData != null) {
-      _titleController.text = widget.initialData!.name;
+      _titleController.text = widget.initialData!.title;
+      _messageController.text = widget.initialData!.description ?? '';
       // Handle other fields mapping if needed
     }
   }
@@ -89,6 +91,14 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
             decoration: _inputDecoration("Select the customer labels"),
           ),
           const SizedBox(height: 20),
+          _buildLabel("Message"),
+          TextFormField(
+            controller: _messageController,
+            readOnly: widget.isReadOnly,
+            maxLines: 3,
+            decoration: _inputDecoration("Please enter the campaign message"),
+          ),
+          const SizedBox(height: 20),
           _buildLabel("Scheduled time"),
           TextFormField(
             readOnly: true,
@@ -130,9 +140,11 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
                       String aud = _selectedAudience?.toUpperCase() ?? 'COLD';
                       widget.onCreate({
                         'title': _titleController.text,
+                        'message': _messageController.text,
                         'audience': aud,
                         'inboxId': '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d',
                         'selectedPeople': <String>[],
+                        'scheduledTime': _scheduledTime ?? DateTime.now(),
                       });
                     },
                     style: ElevatedButton.styleFrom(

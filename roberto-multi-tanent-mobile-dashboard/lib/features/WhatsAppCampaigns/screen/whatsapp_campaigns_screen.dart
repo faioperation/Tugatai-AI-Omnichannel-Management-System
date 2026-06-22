@@ -38,18 +38,22 @@ class _WhatsAppCampaignsScreenState extends State<WhatsAppCampaignsScreen> {
                 UpdateCampaign(
                   id: initialData.id,
                   title: data['title'],
+                  message: data['message'],
                   audience: data['audience'],
                   inboxId: data['inboxId'],
                   selectedPeople: data['selectedPeople'],
+                  scheduledTime: data['scheduledTime'],
                 ),
               );
             } else {
               context.read<CampaignBloc>().add(
                 CreateCampaign(
                   title: data['title'],
+                  message: data['message'],
                   audience: data['audience'],
                   inboxId: data['inboxId'],
                   selectedPeople: data['selectedPeople'],
+                  scheduledTime: data['scheduledTime'],
                 ),
               );
             }
