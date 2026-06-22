@@ -26,20 +26,31 @@ class ProfileRepository {
     }
   }
 
-  Future<UserModel> updateProfile({required String name, String? avatarPath}) async {
+  Future<UserModel> updateProfile({required String name, String? avatarPath, List<int>? avatarBytes, String? avatarName}) async {
     final body = {
       'name': name,
     };
     
     final files = <String, String>{};
-    if (avatarPath != null && avatarPath.isNotEmpty) {
+    if (avatarPath != null && avatarPath.isNotEmpty && avatarBytes == null) {
       files['avatar'] = avatarPath;
+    }
+
+    final fileBytes = <String, List<int>>{};
+    final fileNames = <String, String>{};
+    if (avatarBytes != null) {
+      fileBytes['avatar'] = avatarBytes;
+      if (avatarName != null) {
+        fileNames['avatar'] = avatarName;
+      }
     }
 
     final response = await networkClient.patchMultipartRequest(
       ApiConstants.updateProfile,
       body: body,
-      files: files,
+      files: files.isNotEmpty ? files : null,
+      fileBytes: fileBytes.isNotEmpty ? fileBytes : null,
+      fileNames: fileNames.isNotEmpty ? fileNames : null,
     );
 
     if (response.isSuccess && response.responseData != null) {

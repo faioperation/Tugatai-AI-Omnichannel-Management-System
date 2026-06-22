@@ -38,6 +38,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       final user = await profileRepository.updateProfile(
         name: name,
         avatarPath: event.avatarPath,
+        avatarBytes: event.avatarBytes,
+        avatarName: event.avatarName,
       );
       emit(ProfileUpdateSuccess(user: user));
       emit(ProfileLoaded(user: user));

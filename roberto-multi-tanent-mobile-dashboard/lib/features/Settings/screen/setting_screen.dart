@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
@@ -20,6 +21,8 @@ class _SettingScreenState extends State<SettingScreen> {
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   String? _selectedImagePath;
+  Uint8List? _selectedImageBytes;
+  String? _selectedImageName;
 
   @override
   void initState() {
@@ -169,10 +172,10 @@ class _SettingScreenState extends State<SettingScreen> {
                 radius: 28,
                 backgroundColor: AppColor.secondary,
                 backgroundImage: _selectedImagePath != null
-                    ? FileImage(File(_selectedImagePath!))
+                    ? (kIsWeb ? NetworkImage(_selectedImagePath!) : FileImage(File(_selectedImagePath!))) as ImageProvider
                     : (user.profilePicture != null && user.profilePicture!.isNotEmpty)
                         ? NetworkImage(user.profilePicture!)
-                        : null as ImageProvider?,
+                        : null,
                 child: (_selectedImagePath == null && (user.profilePicture == null || user.profilePicture!.isEmpty))
                     ? const Icon(Icons.person, color: Colors.grey, size: 36)
                     : null,
@@ -194,8 +197,11 @@ class _SettingScreenState extends State<SettingScreen> {
                           source: ImageSource.gallery,
                         );
                         if (image != null) {
+                          final bytes = await image.readAsBytes();
                           setState(() {
                             _selectedImagePath = image.path;
+                            _selectedImageBytes = bytes;
+                            _selectedImageName = image.name;
                           });
                         }
                       },
@@ -294,6 +300,8 @@ class _SettingScreenState extends State<SettingScreen> {
                                 firstName: _firstNameController.text,
                                 lastName: _lastNameController.text,
                                 avatarPath: _selectedImagePath,
+                                avatarBytes: _selectedImageBytes,
+                                avatarName: _selectedImageName,
                               ),
                             );
                       },

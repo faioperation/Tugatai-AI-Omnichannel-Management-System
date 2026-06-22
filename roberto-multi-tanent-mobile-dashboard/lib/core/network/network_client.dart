@@ -74,27 +74,36 @@ class NetworkClient {
   }
 
   Future<NetworkResponse> postMultipartRequest(String url,
-      {required Map<String, String> body, required Map<String, String> files}) async {
-    return _multipartRequest('POST', url, body: body, files: files);
+      {required Map<String, String> body, Map<String, String>? files, Map<String, List<int>>? fileBytes, Map<String, String>? fileNames}) async {
+    return _multipartRequest('POST', url, body: body, files: files, fileBytes: fileBytes, fileNames: fileNames);
   }
 
   Future<NetworkResponse> patchMultipartRequest(String url,
-      {required Map<String, String> body, required Map<String, String> files}) async {
-    return _multipartRequest('PATCH', url, body: body, files: files);
+      {required Map<String, String> body, Map<String, String>? files, Map<String, List<int>>? fileBytes, Map<String, String>? fileNames}) async {
+    return _multipartRequest('PATCH', url, body: body, files: files, fileBytes: fileBytes, fileNames: fileNames);
   }
 
   Future<NetworkResponse> _multipartRequest(String method, String url,
-      {required Map<String, String> body, required Map<String, String> files}) async {
+      {required Map<String, String> body, Map<String, String>? files, Map<String, List<int>>? fileBytes, Map<String, String>? fileNames}) async {
     try {
       Uri uri = Uri.parse(url);
       final request = MultipartRequest(method, uri);
       request.headers.addAll(commonHeaders());
       request.fields.addAll(body);
 
-      for (var entry in files.entries) {
-        final mimeType = lookupMimeType(entry.value);
-        final contentType = mimeType != null ? MediaType.parse(mimeType) : null;
-        request.files.add(await MultipartFile.fromPath(entry.key, entry.value, contentType: contentType));
+      if (files != null) {
+        for (var entry in files.entries) {
+          final mimeType = lookupMimeType(entry.value);
+          final contentType = mimeType != null ? MediaType.parse(mimeType) : null;
+          request.files.add(await MultipartFile.fromPath(entry.key, entry.value, contentType: contentType));
+        }
+      }
+
+      if (fileBytes != null) {
+        for (var entry in fileBytes.entries) {
+          final filename = fileNames?[entry.key] ?? 'upload.jpg';
+          request.files.add(MultipartFile.fromBytes(entry.key, entry.value, filename: filename));
+        }
       }
 
       _logRequest(url, headers: request.headers, body: body); 
