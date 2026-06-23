@@ -112,7 +112,12 @@ class _CustomPricingcalculatorState extends State<CustomPricingcalculator> {
 
       if (res['success'] == true) {
         setState(() {
-          calculationResult = res['data'];
+          final rawData = res['data'];
+          if (rawData is Map && rawData.containsKey('data')) {
+            calculationResult = Map<String, dynamic>.from(rawData['data']);
+          } else {
+            calculationResult = Map<String, dynamic>.from(rawData);
+          }
           isLoading = false;
         });
       } else {
@@ -146,6 +151,167 @@ class _CustomPricingcalculatorState extends State<CustomPricingcalculator> {
       }
     }
     return 0.0;
+  }
+
+  Widget _buildCalculationResultWidget(BuildContext context, Map<String, dynamic> result) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    // Extract breakdown if present
+    final breakdown = result['breakdown'] is Map ? Map<String, dynamic>.from(result['breakdown']) : null;
+    final currency = result['currency']?.toString() ?? 'USD';
+    
+    // Format helpers
+    String formatMoney(dynamic val) {
+      if (val == null) return '$currency 0.00';
+      final parsed = double.tryParse(val.toString()) ?? 0.0;
+      return '$currency ${parsed.toStringAsFixed(2)}';
+    }
+
+    String formatKey(String key) {
+      String formatted = key.replaceAll(RegExp(r'([A-Z])'), r' $1');
+      return formatted[0].toUpperCase() + formatted.substring(1);
+    }
+
+    final double finalPrice = _getFinalPriceValue(result);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? theme.colorScheme.surface : const Color(0xffF9FAFB),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.dividerTheme.color ?? const Color(0xffEEEEEE)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  result['ruleName'] ?? "Calculation Result",
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColor.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  result['type']?.toString().toUpperCase() ?? "CARGO",
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColor.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+
+          if (breakdown != null) ...[
+            _buildBreakdownRow("Base Cost", formatMoney(breakdown['baseCost']), theme),
+            _buildBreakdownRow("Weight Cost", formatMoney(breakdown['weightCost']), theme),
+            _buildBreakdownRow("Distance Cost", formatMoney(breakdown['distanceCost']), theme),
+            _buildBreakdownRow("Service Cost", formatMoney(breakdown['serviceCost']), theme),
+            
+            if (breakdown['extrasCost'] != null && breakdown['extrasCost'] != 0)
+              _buildBreakdownRow("Extras Cost", formatMoney(breakdown['extrasCost']), theme),
+              
+            if (breakdown['appliedExtras'] is Map && (breakdown['appliedExtras'] as Map).isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(left: 12, bottom: 8),
+                child: Column(
+                  children: (breakdown['appliedExtras'] as Map).entries.map((e) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("• ${formatKey(e.key.toString())}:", style: TextStyle(fontSize: 12, color: theme.hintColor)),
+                          Text(formatMoney(e.value), style: TextStyle(fontSize: 12, color: theme.hintColor)),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+
+            if (breakdown['minimumChargeApplied'] == true)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Minimum Charge Applied", style: TextStyle(fontSize: 13, color: theme.hintColor, fontStyle: FontStyle.italic)),
+                    const Text("Yes", style: TextStyle(fontSize: 13, color: Colors.green, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+
+            _buildBreakdownRow("Tax", formatMoney(breakdown['tax']), theme),
+            if (breakdown['subtotal'] != null)
+              _buildBreakdownRow("Subtotal", formatMoney(breakdown['subtotal']), theme),
+          ] else ...[
+            ...result.entries.where((entry) {
+              final k = entry.key.toLowerCase();
+              return k != 'ruleName' && k != 'type' && k != 'currency' && k != 'finalprice' && k != 'totalprice' && k != 'total' && k != 'totalcharge' && entry.value is! Map && entry.value is! List;
+            }).map((entry) {
+              return _buildBreakdownRow(formatKey(entry.key), entry.value is num ? formatMoney(entry.value) : entry.value.toString(), theme);
+            }),
+          ],
+
+          const Divider(height: 20, thickness: 1),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Final Price:",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColor.primary,
+                ),
+              ),
+              Text(
+                formatMoney(finalPrice),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColor.primary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBreakdownRow(String label, String value, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color)),
+          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+        ],
+      ),
+    );
   }
 
   @override
@@ -395,58 +561,7 @@ class _CustomPricingcalculatorState extends State<CustomPricingcalculator> {
                 ),
               ),
             ] else if (calculationResult != null) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isDark ? theme.colorScheme.surface : const Color(0xffF9FAFB),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    ...calculationResult!.entries.map((entry) {
-                      final key = entry.key;
-                      final val = entry.value;
-                      
-                      if (key.toLowerCase() == 'finalprice' || key.toLowerCase() == 'totalprice' || key.toLowerCase() == 'total' || key.toLowerCase() == 'totalcharge') {
-                        return const SizedBox.shrink();
-                      }
-                      
-                      String formattedKey = key.replaceAll(RegExp(r'([A-Z])'), r' $1');
-                      formattedKey = formattedKey[0].toUpperCase() + formattedKey.substring(1);
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text("$formattedKey:", style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface)),
-                            Text(val is num ? "\$${val.toStringAsFixed(2)}" : val.toString(), style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface)),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    const Divider(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text("Final Price:", style: TextStyle(
-                          fontSize: 15,
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        )),
-                        Text(
-                          "\$${_getFinalPriceValue(calculationResult!).toStringAsFixed(2)}",
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              _buildCalculationResultWidget(context, calculationResult!),
             ] else if (errorMessage != null) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),

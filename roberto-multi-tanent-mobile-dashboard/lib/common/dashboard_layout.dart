@@ -297,7 +297,7 @@ class _DashboardShellState extends State<DashboardShell> {
                 SvgPicture.asset('assets/logo.svg', height: 60),
                 const SizedBox(height: 10),
                 const Text(
-                  "TUGATAI",
+                  "MATRIX AI",
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
