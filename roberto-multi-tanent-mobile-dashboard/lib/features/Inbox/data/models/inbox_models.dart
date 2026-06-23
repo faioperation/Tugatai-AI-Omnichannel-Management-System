@@ -156,13 +156,25 @@ class MessageMod {
   bool get isMe => senderType == 'agent';
 
   factory MessageMod.fromJson(Map<String, dynamic> json) {
+    String senderType = json['senderType'] ?? '';
+    if (senderType.isEmpty) {
+      final direction = json['direction']?.toString().toUpperCase();
+      if (direction == 'OUTGOING') {
+        senderType = 'agent';
+      } else {
+        senderType = 'customer';
+      }
+    }
+
+    String messageText = json['messageText'] ?? json['text'] ?? '';
+
     return MessageMod(
       id: json['id'] ?? '',
       conversationId: json['conversationId'] ?? '',
-      senderType: json['senderType'] ?? 'customer',
+      senderType: senderType,
       senderId: json['senderId'] ?? '',
       type: json['type'] ?? 'text',
-      messageText: json['messageText'] ?? '',
+      messageText: messageText,
       mediaUrl: json['mediaUrl'],
       filePath: json['filePath'],
       aiReply: json['aiReply'] ?? false,

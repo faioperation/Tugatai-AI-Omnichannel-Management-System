@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:roberto/features/Inbox/data/models/inbox_models.dart';
+import 'package:roberto/core/network/api_constants.dart';
 
 class ChatView extends StatefulWidget {
   final ConversationMod? conversation;
@@ -201,6 +202,7 @@ class _ChatViewState extends State<ChatView> {
                               time: timeStr,
                               isMe: msg.isMe,
                               mediaUrl: msg.mediaUrl,
+                              filePath: msg.filePath,
                               context: context,
                             ),
                           );
@@ -262,15 +264,32 @@ class _ChatViewState extends State<ChatView> {
     );
   }
 
+  String _getFullImageUrl(String url) {
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
+      return url;
+    }
+    final base = ApiConstants.baseUrl.replaceAll('/api', '');
+    final path = url.startsWith('/') ? url : '/$url';
+    return '$base$path';
+  }
+
   Widget _buildMessageBubble({
     required String text,
     required String time,
     required bool isMe,
     String? mediaUrl,
+    String? filePath,
     required BuildContext context,
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    final String? displayUrl = (mediaUrl != null && mediaUrl.isNotEmpty)
+        ? mediaUrl
+        : (filePath != null && filePath.isNotEmpty ? filePath : null);
+
+    final showText = text.isNotEmpty && 
+        !( (text == '[Media: image]' || text == '[Media: Image]') && (displayUrl != null && displayUrl.isNotEmpty) );
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -289,11 +308,11 @@ class _ChatViewState extends State<ChatView> {
               crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (mediaUrl != null && mediaUrl.isNotEmpty) ...[
+                if (displayUrl != null && displayUrl.isNotEmpty) ...[
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
-                      mediaUrl,
+                      _getFullImageUrl(displayUrl),
                       width: 200,
                       height: 200,
                       fit: BoxFit.cover,
@@ -316,9 +335,9 @@ class _ChatViewState extends State<ChatView> {
                       },
                     ),
                   ),
-                  if (text.isNotEmpty) const SizedBox(height: 8),
+                  if (showText) const SizedBox(height: 8),
                 ],
-                if (text.isNotEmpty)
+                if (showText)
                   Text(
                     text,
                     style: TextStyle(
