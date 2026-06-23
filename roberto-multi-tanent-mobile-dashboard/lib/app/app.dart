@@ -30,6 +30,7 @@ import 'package:roberto/features/AiAgent/data/repositories/agent_training_reposi
 import 'package:roberto/features/AiAgent/bloc/agent_training_bloc.dart';
 import 'package:roberto/features/Pricing/data/repositories/pricing_repository.dart';
 import 'package:roberto/features/Pricing/bloc/pricing_bloc.dart';
+import 'package:roberto/features/Inbox/data/repositories/inbox_repository.dart';
 
 class Roberto extends StatelessWidget {
   const Roberto({super.key});
@@ -111,6 +112,11 @@ class Roberto extends StatelessWidget {
             ),
             RepositoryProvider<PricingRepository>(
               create: (context) => PricingRepository(
+                networkClient: context.read<NetworkClient>(),
+              ),
+            ),
+            RepositoryProvider<InboxRepository>(
+              create: (context) => InboxRepository(
                 networkClient: context.read<NetworkClient>(),
               ),
             ),

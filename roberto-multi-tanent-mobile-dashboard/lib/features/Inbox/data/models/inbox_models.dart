@@ -1,0 +1,172 @@
+class ConversationMod {
+  final String id;
+  final String businessId;
+  final String branchId;
+  final String platform;
+  final String customerId;
+  final String customerName;
+  final String? customerPhone;
+  final String lastMessage;
+  final String lastMessageAt;
+  final int unreadCount;
+  final bool aiReply;
+  final ChatSummaryMod? chatSummary;
+
+  ConversationMod({
+    required this.id,
+    required this.businessId,
+    required this.branchId,
+    required this.platform,
+    required this.customerId,
+    required this.customerName,
+    this.customerPhone,
+    required this.lastMessage,
+    required this.lastMessageAt,
+    required this.unreadCount,
+    required this.aiReply,
+    this.chatSummary,
+  });
+
+  factory ConversationMod.fromJson(Map<String, dynamic> json) {
+    return ConversationMod(
+      id: json['id'] ?? '',
+      businessId: json['businessId'] ?? '',
+      branchId: json['branchId'] ?? '',
+      platform: json['platform'] ?? 'messenger',
+      customerId: json['customerId'] ?? '',
+      customerName: json['customerName'] != null && json['customerName'].toString().isNotEmpty 
+          ? json['customerName'] 
+          : 'Social Customer',
+      customerPhone: json['customerPhone'],
+      lastMessage: json['lastMessage'] ?? '',
+      lastMessageAt: json['lastMessageAt'] ?? '',
+      unreadCount: json['unreadCount'] ?? 0,
+      aiReply: json['aiReply'] ?? false,
+      chatSummary: json['chatSummary'] != null ? ChatSummaryMod.fromJson(json['chatSummary']) : null,
+    );
+  }
+}
+
+class ChatSummaryMod {
+  final String id;
+  final String conversationId;
+  final String? items;
+  final String? pickupArea;
+  final String? destination;
+  final String? weight;
+  final String? pickupDateTime;
+  final String currentStatus;
+  final String? recentSummary;
+  final String? summary;
+  final List<String> keyPoints;
+  final String? intent;
+  final String? confidence;
+  final String? reason;
+  final BookingInfoMod? bookingInfo;
+
+  ChatSummaryMod({
+    required this.id,
+    required this.conversationId,
+    this.items,
+    this.pickupArea,
+    this.destination,
+    this.weight,
+    this.pickupDateTime,
+    required this.currentStatus,
+    this.recentSummary,
+    this.summary,
+    required this.keyPoints,
+    this.intent,
+    this.confidence,
+    this.reason,
+    this.bookingInfo,
+  });
+
+  factory ChatSummaryMod.fromJson(Map<String, dynamic> json) {
+    var keys = json['keyPoints'];
+    List<String> parsedKeys = [];
+    if (keys is List) {
+      parsedKeys = keys.map((e) => e.toString()).toList();
+    }
+    return ChatSummaryMod(
+      id: json['id'] ?? '',
+      conversationId: json['conversationId'] ?? '',
+      items: json['items'],
+      pickupArea: json['pickupArea'],
+      destination: json['destination'],
+      weight: json['weight'],
+      pickupDateTime: json['pickupDateTime'],
+      currentStatus: json['currentStatus'] ?? 'Inquiry',
+      recentSummary: json['recentSummary'],
+      summary: json['summary'],
+      keyPoints: parsedKeys,
+      intent: json['intent'],
+      confidence: json['confidence'],
+      reason: json['reason'],
+      bookingInfo: json['bookingInfo'] != null ? BookingInfoMod.fromJson(json['bookingInfo']) : null,
+    );
+  }
+}
+
+class BookingInfoMod {
+  final double? price;
+  final bool booked;
+  final String? reference;
+
+  BookingInfoMod({
+    this.price,
+    required this.booked,
+    this.reference,
+  });
+
+  factory BookingInfoMod.fromJson(Map<String, dynamic> json) {
+    return BookingInfoMod(
+      price: json['price'] != null ? double.tryParse(json['price'].toString()) : null,
+      booked: json['booked'] ?? false,
+      reference: json['reference'],
+    );
+  }
+}
+
+class MessageMod {
+  final String id;
+  final String conversationId;
+  final String senderType; // "customer" or "agent"
+  final String senderId;
+  final String type; // "text" or "image"
+  final String messageText;
+  final String? mediaUrl;
+  final String? filePath;
+  final bool aiReply;
+  final String createdAt;
+
+  MessageMod({
+    required this.id,
+    required this.conversationId,
+    required this.senderType,
+    required this.senderId,
+    required this.type,
+    required this.messageText,
+    this.mediaUrl,
+    this.filePath,
+    required this.aiReply,
+    required this.createdAt,
+  });
+
+  bool get isMe => senderType == 'agent';
+
+  factory MessageMod.fromJson(Map<String, dynamic> json) {
+    return MessageMod(
+      id: json['id'] ?? '',
+      conversationId: json['conversationId'] ?? '',
+      senderType: json['senderType'] ?? 'customer',
+      senderId: json['senderId'] ?? '',
+      type: json['type'] ?? 'text',
+      messageText: json['messageText'] ?? '',
+      mediaUrl: json['mediaUrl'],
+      filePath: json['filePath'],
+      aiReply: json['aiReply'] ?? false,
+      createdAt: json['createdAt'] ?? '',
+    );
+  }
+}

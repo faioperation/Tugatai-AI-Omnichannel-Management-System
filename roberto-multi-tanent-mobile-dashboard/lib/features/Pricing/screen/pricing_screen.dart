@@ -238,8 +238,10 @@ class _PricingScreenState extends State<PricingScreen> {
                               context.read<PricingBloc>().add(DeletePricingRule(id: id, role: widget.role));
                             },
                           )
-                    : const CustomPricingcalculator(
-                        key: ValueKey('Price Calculator')),
+                    : CustomPricingcalculator(
+                        key: const ValueKey('Price Calculator'),
+                        rules: _rules,
+                      ),
               ),
             ],
           ),

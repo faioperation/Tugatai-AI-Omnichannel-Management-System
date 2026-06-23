@@ -1,91 +1,113 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:roberto/features/Inbox/data/models/inbox_models.dart';
 
 class ChatView extends StatefulWidget {
+  final ConversationMod? conversation;
+  final List<MessageMod> messages;
+  final bool isLoading;
   final VoidCallback? onBack;
+  final ValueChanged<String> onSendMessage;
+  final ValueChanged<String> onSendImage;
+  final bool isAiOn;
+  final ValueChanged<bool> onToggleAi;
 
-  const ChatView({super.key, this.onBack});
+  const ChatView({
+    super.key,
+    this.conversation,
+    required this.messages,
+    required this.isLoading,
+    this.onBack,
+    required this.onSendMessage,
+    required this.onSendImage,
+    required this.isAiOn,
+    required this.onToggleAi,
+  });
 
   @override
   State<ChatView> createState() => _ChatViewState();
 }
 
 class _ChatViewState extends State<ChatView> {
-  bool isAiOn = true;
   final TextEditingController controller = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
-  String? _selectedImagePath;
-
-  List<Map<String, dynamic>> messages = [
-    {
-      "text": "Hi, I'd like to know more about your products..",
-      "time": "10:30 AM",
-      "isMe": false
-    },
-  ];
-
-  //  Dynamic reply function
-  String getAutoReply(String message) {
-    message = message.toLowerCase();
-
-    if (message.contains("price")) {
-      return "Our prices vary depending on the product 😊";
-    } else if (message.contains("hello") || message.contains("hi")) {
-      return "Hello! How can I help you today?";
-    } else if (message.contains("product")) {
-      return "We have a wide range of products available.";
-    } else if (message.contains("order")) {
-      return "You can place an order directly from our app.";
-    } else if (message.contains("thanks")) {
-      return "You're welcome 🙌";
-    } else {
-      return "Got it 👍 Let me check that for you.";
-    }
+  @override
+  void initState() {
+    super.initState();
+    _scrollToBottom();
   }
 
-  //  Send message
-  void sendMessage() {
-    if (controller.text.trim().isEmpty) return;
-
-    final userText = controller.text;
-
-    setState(() {
-      messages.add({
-        "text": userText,
-        "time": "Now",
-        "isMe": true,
-      });
-    });
-
-    controller.clear();
-
-    //  Auto reply
-    if (isAiOn) {
-      Future.delayed(const Duration(milliseconds: 800), () {
-        setState(() {
-          messages.add({
-            "text": getAutoReply(userText),
-            "time": "Now",
-            "isMe": false,
-          });
-        });
-      });
+  @override
+  void didUpdateWidget(covariant ChatView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.messages.length != oldWidget.messages.length || 
+        widget.isLoading != oldWidget.isLoading ||
+        widget.conversation?.id != oldWidget.conversation?.id) {
+      _scrollToBottom();
     }
   }
 
   @override
+  void dispose() {
+    _scrollController.dispose();
+    controller.dispose();
+    super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
+  }
+
+  void sendMessage() {
+    final text = controller.text.trim();
+    if (text.isEmpty) return;
+    widget.onSendMessage(text);
+    controller.clear();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (widget.conversation == null) {
+      return Container(
+        color: theme.scaffoldBackgroundColor,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.chat_bubble_outline, size: 64, color: theme.hintColor.withOpacity(0.3)),
+              const SizedBox(height: 16),
+              Text(
+                "Select a conversation to start chatting",
+                style: TextStyle(fontSize: 16, color: theme.hintColor, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final conv = widget.conversation!;
+    final initials = conv.customerName.isNotEmpty 
+        ? conv.customerName.split(' ').map((e) => e.isNotEmpty ? e[0] : '').join().toUpperCase()
+        : 'S';
+
     return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: theme.scaffoldBackgroundColor,
       child: Column(
         children: [
-          //  Header
+          // Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE))),
+              border: Border(bottom: BorderSide(color: theme.dividerTheme.color ?? const Color(0xffEEEEEE))),
             ),
             child: Row(
               children: [
@@ -102,9 +124,11 @@ class _ChatViewState extends State<ChatView> {
                     color: AppColor.primary,
                     shape: BoxShape.circle,
                   ),
-                  child: const Center(
-                    child: Text("R",
-                        style: TextStyle(color: Colors.white)),
+                  child: Center(
+                    child: Text(
+                      initials.length > 2 ? initials.substring(0, 2) : initials,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
 
@@ -114,15 +138,15 @@ class _ChatViewState extends State<ChatView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Robarto",
+                      Text(
+                        conv.customerName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       Text(
-                        "Active now",
-                        style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
+                        "${conv.platform.toUpperCase()} Chat",
+                        style: TextStyle(fontSize: 12, color: theme.textTheme.bodySmall?.color),
                       ),
                     ],
                   ),
@@ -133,12 +157,8 @@ class _ChatViewState extends State<ChatView> {
                 Transform.scale(
                   scale: 0.75,
                   child: Switch(
-                    value: isAiOn,
-                    onChanged: (val) {
-                      setState(() {
-                        isAiOn = val;
-                      });
-                    },
+                    value: widget.isAiOn,
+                    onChanged: widget.onToggleAi,
                     activeColor: AppColor.mini,
                   ),
                 ),
@@ -146,32 +166,54 @@ class _ChatViewState extends State<ChatView> {
             ),
           ),
 
-          //  Messages
+          // Messages
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final msg = messages[index];
+            child: widget.isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppColor.primary))
+                : widget.messages.isEmpty
+                    ? Center(
+                        child: Text(
+                          "No messages yet. Send a message to start the conversation!",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: theme.hintColor),
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: widget.messages.length,
+                        itemBuilder: (context, index) {
+                          final msg = widget.messages[index];
 
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildMessageBubble(
-                    text: msg["text"],
-                    time: msg["time"],
-                    isMe: msg["isMe"],
-                  ),
-                );
-              },
-            ),
+                          // Format time nicely
+                          String timeStr = 'Now';
+                          try {
+                            final parsed = DateTime.tryParse(msg.createdAt);
+                            if (parsed != null) {
+                              timeStr = "${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}";
+                            }
+                          } catch (_) {}
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _buildMessageBubble(
+                              text: msg.messageText,
+                              time: timeStr,
+                              isMe: msg.isMe,
+                              mediaUrl: msg.mediaUrl,
+                              context: context,
+                            ),
+                          );
+                        },
+                      ),
           ),
 
-          // ✅ Input
+          // Input field
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.light ? const Color(0xffF3F4F6) : Theme.of(context).colorScheme.surface,
-              border: Border(top: BorderSide(color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE))),
+              color: theme.brightness == Brightness.light ? const Color(0xffF3F4F6) : theme.colorScheme.surface,
+              border: Border(top: BorderSide(color: theme.dividerTheme.color ?? const Color(0xffEEEEEE))),
             ),
             child: Row(
               children: [
@@ -179,14 +221,9 @@ class _ChatViewState extends State<ChatView> {
                   icon: const Icon(Icons.photo_library),
                   onPressed: () async {
                     final ImagePicker picker = ImagePicker();
-
-                    final XFile? image =
-                    await picker.pickImage(source: ImageSource.gallery);
-
+                    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
                     if (image != null) {
-                      setState(() {
-                        _selectedImagePath = image.path;
-                      });
+                      widget.onSendImage(image.path);
                     }
                   },
                 ),
@@ -196,15 +233,17 @@ class _ChatViewState extends State<ChatView> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).cardTheme.color,
+                      color: theme.cardTheme.color,
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: TextField(
                       controller: controller,
+                      style: TextStyle(color: theme.colorScheme.onSurface),
                       decoration: const InputDecoration(
                         hintText: "Type a message",
                         border: InputBorder.none,
                       ),
+                      onSubmitted: (_) => sendMessage(),
                     ),
                   ),
                 ),
@@ -212,7 +251,7 @@ class _ChatViewState extends State<ChatView> {
                 const SizedBox(width: 10),
 
                 IconButton(
-                  icon: const Icon(Icons.send),
+                  icon: const Icon(Icons.send, color: AppColor.primary),
                   onPressed: sendMessage,
                 ),
               ],
@@ -227,28 +266,66 @@ class _ChatViewState extends State<ChatView> {
     required String text,
     required String time,
     required bool isMe,
+    String? mediaUrl,
+    required BuildContext context,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Align(
-      alignment:
-      isMe ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
-        crossAxisAlignment:
-        isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           Container(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: isMe
                   ? AppColor.primary
-                  : (Theme.of(context).brightness == Brightness.light ? const Color(0xffF3F4F6) : Theme.of(context).colorScheme.surface),
+                  : (isDark ? theme.colorScheme.surface : const Color(0xffF3F4F6)),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Text(
-              text,
-              style: TextStyle(
-                color: isMe ? Colors.white : (Theme.of(context).brightness == Brightness.light ? Colors.black : Colors.white),
-              ),
+            child: Column(
+              crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (mediaUrl != null && mediaUrl.isNotEmpty) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      mediaUrl,
+                      width: 200,
+                      height: 200,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 200,
+                          height: 120,
+                          color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                          child: const Icon(Icons.broken_image, color: Colors.grey),
+                        );
+                      },
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          width: 200,
+                          height: 120,
+                          color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColor.primary)),
+                        );
+                      },
+                    ),
+                  ),
+                  if (text.isNotEmpty) const SizedBox(height: 8),
+                ],
+                if (text.isNotEmpty)
+                  Text(
+                    text,
+                    style: TextStyle(
+                      color: isMe ? Colors.white : (isDark ? Colors.white : Colors.black),
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 3),

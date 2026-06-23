@@ -65,4 +65,26 @@ class ApiConstants {
   static const String branchManagerBookingsAll = '$baseUrl/branch-manager/bookings/all';
   static const String branchManagerBookingsCreate = '$baseUrl/branch-manager/bookings/create';
   static const String branchManagerBookingsSingle = '$baseUrl/branch-manager/bookings'; // + /:id
+
+  // Inbox & Conversations
+  static const String allConversations = '$baseUrl/conversations/all-conversations';
+  
+  static const String messengerConversations = '$baseUrl/v1/messenger/conversations';
+  static const String messengerMessages = '$baseUrl/v1/messenger/messages'; // + /:conversationId
+  static const String messengerSendText = '$baseUrl/v1/messenger/messages/send';
+  static const String messengerSendMedia = '$baseUrl/v1/messenger/messages/media';
+  
+  static const String instagramConversations = '$baseUrl/v1/instagram/conversations';
+  static const String instagramMessages = '$baseUrl/v1/instagram/messages'; // + /:conversationId
+  static const String instagramSendText = '$baseUrl/v1/instagram/messages/send';
+  static const String instagramSendMedia = '$baseUrl/v1/instagram/messages/media';
+  
+  static const String whatsappConversations = '$baseUrl/v1/whatsapp/conversations';
+  static const String whatsappMessages = '$baseUrl/v1/whatsapp/conversations'; // + /:conversationId/messages
+  static const String whatsappSendText = '$baseUrl/v1/whatsapp/messages/send';
+  static const String whatsappSendMedia = '$baseUrl/v1/whatsapp/messages/media';
+
+  // AI Chatbot status toggle
+  static const String conversationOff = '$baseUrl/conversation-off'; // + /:conversationId
+  static const String conversationOffHandoff = '$baseUrl/conversation-off/handoff';
 }

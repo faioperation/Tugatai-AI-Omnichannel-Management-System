@@ -123,4 +123,37 @@ class PricingRepository {
       };
     }
   }
+
+  Future<Map<String, dynamic>> calculatePrice({
+    required String pricingId,
+    required double weight,
+    required double distance,
+    required String serviceType,
+    required String selectedExtras,
+    required int quantity,
+  }) async {
+    final queryParams = [
+      'pricingId=$pricingId',
+      'weight=$weight',
+      'distance=$distance',
+      'serviceType=$serviceType',
+      'selectedExtras=$selectedExtras',
+      'quantity=$quantity',
+    ].join('&');
+
+    final url = '${ApiConstants.baseUrl}/pricing-calculator/calculate?$queryParams';
+    final response = await networkClient.getRequest(url);
+
+    if (response.isSuccess) {
+      return {
+        'success': true,
+        'data': response.responseData,
+      };
+    } else {
+      return {
+        'success': false,
+        'message': response.errorMassage ?? 'Failed to calculate price',
+      };
+    }
+  }
 }
