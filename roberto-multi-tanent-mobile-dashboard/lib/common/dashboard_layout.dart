@@ -192,7 +192,7 @@ class _DashboardShellState extends State<DashboardShell> {
       case 'AI Agent':
         return AiagentScreen(businessId: _selectedTenantBusinessId);
 
-      case 'Pricing Rule':
+      case 'Pricing':
         return PricingScreen(role: widget.role);
 
       case 'CRM & Leads':
