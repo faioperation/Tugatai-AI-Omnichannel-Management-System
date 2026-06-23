@@ -55,7 +55,7 @@ const FAQ = () => {
         <div className="flex flex-col items-center">
           <Header
             titleText="FAQ"
-            subtitleText="Everything you need to know about Tugatai"
+            subtitleText="Everything you need to know about Matrix"
           />
 
           <motion.div

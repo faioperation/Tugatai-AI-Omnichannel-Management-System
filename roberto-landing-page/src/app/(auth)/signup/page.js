@@ -70,9 +70,11 @@ const Signup = () => {
       <div className="bg-white rounded-[24px] w-full max-w-[600px] h-auto min-h-[800px] px-2 md:py-7 py-5  md:px-14   shadow-2xl">
         {/* Logo and Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-[#EA2B33] rounded-xl flex items-center justify-center mb-5">
-            <Image src={"/logo.png"} alt="logo" width={60} height={100} />
-          </div>
+          <Link href="/">
+            <div className="bg-[#EA2B33] rounded-xl flex items-center justify-center mb-5 cursor-pointer hover:opacity-90 transition-opacity">
+              <Image src={"/logo.png"} alt="logo" width={60} height={100} />
+            </div>
+          </Link>
           <h1 className="text-[28px] font-medium text-black mb-2 tracking-tight">
             Sign up
           </h1>

@@ -75,9 +75,11 @@ const Signin = () => {
       <div className="bg-white rounded-[24px] w-full max-w-[500px] h-auto px-6 md:py-10 py-8 md:px-10 shadow-2xl flex flex-col justify-center">
         {/* Logo and Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-[#EA2B33] rounded-xl flex items-center justify-center mb-5 p-2">
-            <Image src={"/logo.png"} alt="logo" width={60} height={80} className="object-contain" />
-          </div>
+          <Link href="/">
+            <div className="bg-[#EA2B33] rounded-xl flex items-center justify-center mb-5 p-2 cursor-pointer hover:opacity-90 transition-opacity">
+              <Image src={"/logo.png"} alt="logo" width={60} height={80} className="object-contain" />
+            </div>
+          </Link>
           <h1 className="text-[28px] font-medium text-black mb-2 tracking-tight">
             Sign in
           </h1>
@@ -108,11 +110,7 @@ const Signin = () => {
               onChange={(e) => handleInputChange("password", e.target.value)}
             />
             
-            <div className="flex justify-end w-full">
-              <a href="#" className="text-sm font-semibold text-[#EA2B33] hover:underline">
-                Forgot password?
-              </a>
-            </div>
+            
           </div>
 
           {/* Action Buttons */}

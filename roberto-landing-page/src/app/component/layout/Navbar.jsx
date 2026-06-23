@@ -128,7 +128,7 @@ const Navbar = () => {
 
               <div>
                 <p className="text-2xl font-bold text-[#EB232D] font-inter">
-                    TUGATAI
+                    MATRIX
                 </p>
 
                 {/* <span className="text-xs font-marope text-[#1E8380]">
@@ -218,9 +218,9 @@ const Navbar = () => {
                 </AnimatePresence>
               </div>
             ) : (
-              <Link href="/signup">
+              <Link href="/signin">
                 <button className="bg-gradient-to-r from-[#9810FA] to-[#AD46FF] text-white font-bold text-base px-6 py-3 rounded-xl cursor-pointer shadow shadow-[#9810FA] hover:shadow-[#9810FA]/30 transition-shadow">
-                 Sign Up
+                 Sign In
                 </button>
               </Link>
             )}
@@ -301,9 +301,9 @@ const Navbar = () => {
                       </button>
                     </div>
                   ) : (
-                    <Link href="/signup" onClick={() => setOpen(false)}>
+                    <Link href="/signin" onClick={() => setOpen(false)}>
                       <button className="bg-gradient-to-r from-[#9810FA] to-[#AD46FF] w-full text-white font-bold text-[17px] px-4 py-4 rounded-xl shadow-[0_0_20px_rgba(152,16,250,0.4)] hover:shadow-[0_0_30px_rgba(152,16,250,0.6)] transition-all">
-                        Sign Up
+                        Sign In
                       </button>
                     </Link>
                   )}
