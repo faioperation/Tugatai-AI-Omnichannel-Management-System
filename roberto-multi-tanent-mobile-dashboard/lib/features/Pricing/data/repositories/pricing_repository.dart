@@ -35,6 +35,7 @@ class PricingRepository {
     required String type,
     required Map<String, dynamic> configuration,
     required bool status,
+    String? branchId,
     bool isBranchManager = false,
   }) async {
     final body = {
@@ -43,6 +44,9 @@ class PricingRepository {
       "configuration": configuration,
       "status": status,
     };
+    if (branchId != null) {
+      body['branchId'] = branchId;
+    }
 
     final baseUrl = isBranchManager ? ApiConstants.branchManagerPricingCreate : '${ApiConstants.baseUrl}/business-owner/pricing/create';
     final response = await networkClient.postRequest(
@@ -70,6 +74,7 @@ class PricingRepository {
     String? type,
     Map<String, dynamic>? configuration,
     bool? status,
+    String? branchId,
     bool isBranchManager = false,
   }) async {
     final baseUrl = isBranchManager ? ApiConstants.branchManagerPricingSingle : '${ApiConstants.baseUrl}/business-owner/pricing';
@@ -80,6 +85,7 @@ class PricingRepository {
     if (type != null) body['type'] = type;
     if (configuration != null) body['configuration'] = configuration;
     if (status != null) body['status'] = status;
+    if (branchId != null) body['branchId'] = branchId;
 
     final response = await networkClient.patchRequest(
       url,

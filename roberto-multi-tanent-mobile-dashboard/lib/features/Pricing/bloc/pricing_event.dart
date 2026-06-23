@@ -29,6 +29,7 @@ class CreatePricingRule extends PricingEvent {
   final String type;
   final Map<String, dynamic> configuration;
   final bool status;
+  final String? branchId;
   final UserRole role;
 
   const CreatePricingRule({
@@ -36,11 +37,12 @@ class CreatePricingRule extends PricingEvent {
     required this.type,
     required this.configuration,
     this.status = true,
+    this.branchId,
     this.role = UserRole.businessOwner,
   });
 
   @override
-  List<Object> get props => [ruleName, type, configuration, status, role];
+  List<Object?> get props => [ruleName, type, configuration, status, branchId, role];
 }
 
 class UpdatePricingRule extends PricingEvent {
@@ -49,6 +51,7 @@ class UpdatePricingRule extends PricingEvent {
   final String? type;
   final Map<String, dynamic>? configuration;
   final bool? status;
+  final String? branchId;
   final UserRole role;
 
   const UpdatePricingRule({
@@ -57,11 +60,12 @@ class UpdatePricingRule extends PricingEvent {
     this.type,
     this.configuration,
     this.status,
+    this.branchId,
     this.role = UserRole.businessOwner,
   });
 
   @override
-  List<Object?> get props => [id, ruleName, type, configuration, status, role];
+  List<Object?> get props => [id, ruleName, type, configuration, status, branchId, role];
 }
 
 class DeletePricingRule extends PricingEvent {

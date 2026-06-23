@@ -5,6 +5,8 @@ class PricingRuleMod {
   final String name;
   final String type;
   final String value;
+  final String? branchId;
+  final Map<String, dynamic>? rawConfiguration;
   final bool isActive;
 
   PricingRuleMod({
@@ -12,6 +14,8 @@ class PricingRuleMod {
     required this.name,
     required this.type,
     required this.value,
+    this.branchId,
+    this.rawConfiguration,
     this.isActive = true,
   });
 
@@ -62,10 +66,12 @@ class PricingRuleMod {
     }
 
     return PricingRuleMod(
-      id: json['id']?.toString() ?? '',
+      id: json['id'] ?? '',
       name: json['ruleName'] ?? 'Unknown',
-      type: json['type'] ?? 'Unknown',
+      type: json['type'] ?? 'SHIPPING',
       value: parsedValue,
+      branchId: json['branchId'],
+      rawConfiguration: config is Map ? config as Map<String, dynamic> : null,
       isActive: json['status'] ?? true,
     );
   }
@@ -76,6 +82,7 @@ class PricingRuleMod {
       'ruleName': name,
       'type': type,
       'configuration': {'value': value}, // Basic mapping back to config
+      'branchId': branchId,
       'status': isActive,
     };
   }

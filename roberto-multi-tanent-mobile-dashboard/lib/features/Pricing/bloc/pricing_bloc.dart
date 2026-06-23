@@ -44,6 +44,7 @@ class PricingBloc extends Bloc<PricingEvent, PricingState> {
         type: event.type,
         configuration: event.configuration,
         status: event.status,
+        branchId: event.branchId,
         isBranchManager: event.role == UserRole.branchManager,
       );
 
@@ -67,6 +68,7 @@ class PricingBloc extends Bloc<PricingEvent, PricingState> {
         type: event.type,
         configuration: event.configuration,
         status: event.status,
+        branchId: event.branchId,
         isBranchManager: event.role == UserRole.branchManager,
       );
 

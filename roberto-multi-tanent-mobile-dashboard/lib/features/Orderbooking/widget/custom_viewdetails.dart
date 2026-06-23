@@ -15,11 +15,53 @@ class CustomViewdetails extends StatelessWidget {
     final width = MediaQuery.of(context).size.width;
     final bool isMobile = width < 600;
 
+    final customFieldRows = <Widget>[];
+    final predefinedKeys = {
+      'bookingType',
+      'appointmentDate',
+      'appointmentTime',
+      'platform',
+      'duration',
+      'customRequirement',
+      'pickupAddress',
+      'deliveryDate',
+      'deliveryAddress',
+      'productType',
+      'productHeight',
+      'productWeight',
+      'receiverPhone',
+      'companyName',
+      'customerName',
+      'customerNumber',
+      'email',
+      'price',
+      'note',
+      'status',
+      'branchId',
+    };
+
+    order.rawAdditionalDetails.forEach((key, value) {
+      if (!predefinedKeys.contains(key) && key.isNotEmpty) {
+        customFieldRows.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(key, style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface.withOpacity(0.6), fontSize: 13)),
+                Text(value?.toString() ?? '', style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 13)),
+              ],
+            ),
+          ),
+        );
+      }
+    });
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: theme.cardColor,
       child: Container(
-        width: isMobile ? width * 0.9 : 450,
+        width: isMobile ? width * 0.95 : 480,
         padding: const EdgeInsets.all(24),
         child: SingleChildScrollView(
           child: Column(
@@ -41,15 +83,76 @@ class CustomViewdetails extends StatelessWidget {
                 _buildIconRow(Icons.person_outline, order.customerName, theme),
                 const SizedBox(height: 12),
                 _buildIconRow(Icons.phone_outlined, order.phone, theme),
-                const SizedBox(height: 12),
-                _buildIconRow(Icons.location_on_outlined, order.address, theme),
+                if (order.email != null && order.email!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildIconRow(Icons.email_outlined, order.email!, theme),
+                ],
               ], theme, isDark),
               const SizedBox(height: 20),
 
+              // Booking Details Section
+              _buildSectionTitle('Booking Details (${order.bookingType ?? "General"})', theme),
+              const SizedBox(height: 8),
+              _buildInfoContainer([
+                if (order.bookingType == 'Appointment Booking') ...[
+                  _buildDetailRow('Date', order.appointmentDate ?? 'N/A', theme),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Time', order.appointmentTime ?? 'N/A', theme),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Platform', order.platform ?? 'N/A', theme),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Duration', order.duration ?? 'N/A', theme),
+                  if (order.customRequirement != null && order.customRequirement!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _buildDetailRow('Requirement', order.customRequirement!, theme),
+                  ],
+                ] else if (order.bookingType == 'Parcel Delivery') ...[
+                  _buildDetailRow('Pickup', order.pickupAddress ?? 'N/A', theme),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Delivery Date', order.deliveryDate ?? 'N/A', theme),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Delivery To', order.deliveryAddress ?? 'N/A', theme),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Receiver Phone', order.receiverPhone ?? 'N/A', theme),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Product Type', order.productType ?? 'N/A', theme),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Height / Weight', '${order.productHeight ?? "N/A"} / ${order.productWeight ?? "N/A"} kg', theme),
+                ] else if (order.bookingType == 'Order Booking') ...[
+                  _buildDetailRow('Company', order.companyName ?? 'N/A', theme),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Delivery Date', order.deliveryDate ?? 'N/A', theme),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Delivery To', order.deliveryAddress ?? 'N/A', theme),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Product Type', order.productType ?? 'N/A', theme),
+                ],
+              ], theme, isDark),
               const SizedBox(height: 20),
 
+              // Custom/Extra Fields Section
+              if (customFieldRows.isNotEmpty) ...[
+                _buildSectionTitle('Additional Fields', theme),
+                const SizedBox(height: 8),
+                _buildInfoContainer(customFieldRows, theme, isDark),
+                const SizedBox(height: 20),
+              ],
+
+              // Notes Section (if note is present)
+              if (order.note != null && order.note!.isNotEmpty) ...[
+                _buildSectionTitle('Notes', theme),
+                const SizedBox(height: 8),
+                _buildInfoContainer([
+                  Text(
+                    order.note!,
+                    style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface.withOpacity(0.8)),
+                  ),
+                ], theme, isDark),
+                const SizedBox(height: 20),
+              ],
+
               // Payment Information
-              _buildSectionTitle('Payment', theme),
+              _buildSectionTitle('Payment Details', theme),
               const SizedBox(height: 8),
               _buildPaymentContainer(theme, isDark),
               const SizedBox(height: 24),
@@ -71,12 +174,12 @@ class CustomViewdetails extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Order Details',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xff111827),
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 4),
@@ -92,9 +195,7 @@ class CustomViewdetails extends StatelessWidget {
             ],
           ),
         ),
-
         const SizedBox(width: 8),
-
         IconButton(
           onPressed: () => Navigator.pop(context),
           icon: Icon(Icons.close, color: theme.hintColor, size: 20),
@@ -112,12 +213,12 @@ class CustomViewdetails extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Order ID',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xff111827),
+                color: theme.colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 4),
@@ -148,13 +249,17 @@ class CustomViewdetails extends StatelessWidget {
 
   Widget _buildInfoContainer(List<Widget> children, ThemeData theme, bool isDark) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? theme.colorScheme.surfaceVariant.withOpacity(0.15) : const Color(0xffFEE2E2),
+        color: isDark ? theme.colorScheme.surfaceVariant.withOpacity(0.15) : const Color(0xffF9FAFB),
         borderRadius: BorderRadius.circular(12),
-        border: isDark ? Border.all(color: theme.dividerColor.withOpacity(0.1)) : null,
+        border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
       ),
-      child: Column(children: children),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
     );
   }
 
@@ -162,30 +267,74 @@ class CustomViewdetails extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? theme.colorScheme.surfaceVariant.withOpacity(0.15) : const Color(0xffFEE2E2),
+        color: isDark ? theme.colorScheme.surfaceVariant.withOpacity(0.15) : const Color(0xffF9FAFB),
         borderRadius: BorderRadius.circular(12),
-        border: isDark ? Border.all(color: theme.dividerColor.withOpacity(0.1)) : null,
+        border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(Icons.attach_money, size: 18, color: theme.colorScheme.onSurface.withOpacity(0.7)),
-              const SizedBox(width: 8),
-              Text('Total Amount',
-                  style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7), fontSize: 14)),
+              Row(
+                children: [
+                  Icon(Icons.attach_money, size: 18, color: theme.colorScheme.onSurface.withOpacity(0.7)),
+                  const SizedBox(width: 8),
+                  Text('Total Amount',
+                      style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7), fontSize: 14)),
+                ],
+              ),
+              Text(
+                '\$${order.price}',
+                style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold),
+              ),
             ],
           ),
-          Text(
-            '\$${order.shippingCharge.toStringAsFixed(2)}',
-            style: TextStyle(
-                color: theme.colorScheme.onSurface,
-                fontSize: 16,
-                fontWeight: FontWeight.bold),
-          ),
+          if (order.paymentMethod != null || order.paymentStatus != null || order.transactionId != null) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Divider(height: 1),
+            ),
+            _buildDetailRow('Method', order.paymentMethod ?? 'N/A', theme),
+            const SizedBox(height: 8),
+            _buildDetailRow('Status', order.paymentStatus ?? 'N/A', theme),
+            const SizedBox(height: 8),
+            _buildDetailRow('Txn ID', order.transactionId ?? 'N/A', theme),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, ThemeData theme) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurface.withOpacity(0.6),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -280,10 +429,16 @@ class CustomViewdetails extends StatelessWidget {
         fg = isDark ? Colors.blue.shade400 : const Color(0xff2563EB);
         label = 'Confirmed';
         break;
+      case OrderStatus.completed:
       case OrderStatus.delivered:
         bg = isDark ? Colors.green.withOpacity(0.1) : const Color(0xffD1FAE5);
         fg = isDark ? Colors.green.shade400 : const Color(0xff059669);
-        label = 'Delivered';
+        label = status == OrderStatus.completed ? 'Completed' : 'Delivered';
+        break;
+      case OrderStatus.cancelled:
+        bg = isDark ? Colors.red.withOpacity(0.1) : const Color(0xffFEE2E2);
+        fg = isDark ? Colors.red.shade400 : const Color(0xffDC2626);
+        label = 'Cancelled';
         break;
     }
 

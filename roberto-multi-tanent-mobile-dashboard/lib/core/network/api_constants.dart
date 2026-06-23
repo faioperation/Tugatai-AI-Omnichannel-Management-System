@@ -39,6 +39,7 @@ class ApiConstants {
   static const String businessOwnerBranchManagers = '$baseUrl/business-owner/branch-managers/all';
   static const String businessOwnerBranchManagersCreate = '$baseUrl/business-owner/branch-managers/create';
   static const String businessOwnerBranchManagersDelete = '$baseUrl/business-owner/branch-managers'; // + /:id
+  
   // Campaign endpoints
   static const String businessOwnerCampaigns = '$baseUrl/business-owner/campaigns/all';
   static const String businessOwnerCampaignCreate = '$baseUrl/business-owner/campaigns/create';
@@ -59,4 +60,9 @@ class ApiConstants {
   static const String branchManagerPricingAll = '$baseUrl/branch-manager/pricing/all';
   static const String branchManagerPricingCreate = '$baseUrl/branch-manager/pricing/create';
   static const String branchManagerPricingSingle = '$baseUrl/branch-manager/pricing'; // + /:id
+
+  // Branch Manager Booking endpoints
+  static const String branchManagerBookingsAll = '$baseUrl/branch-manager/bookings/all';
+  static const String branchManagerBookingsCreate = '$baseUrl/branch-manager/bookings/create';
+  static const String branchManagerBookingsSingle = '$baseUrl/branch-manager/bookings'; // + /:id
 }

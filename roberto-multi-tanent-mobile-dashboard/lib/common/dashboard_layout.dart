@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/common/sidebar_item.dart';
+import 'package:roberto/core/network/network_client.dart';
 import 'package:roberto/features/Tenant Management /screen/tenant_screen.dart';
 import 'package:roberto/features/Subscription/screen/subscription_screen.dart';
 import 'package:roberto/features/Settings/screen/setting_screen.dart';
 import 'package:roberto/features/Orderbooking/screen/order_booking_screen.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:roberto/features/Orderbooking/bloc/booking_bloc.dart';
+import 'package:roberto/features/Orderbooking/bloc/booking_event.dart';
+import 'package:roberto/features/Orderbooking/data/repositories/booking_repository.dart';
 import 'package:roberto/features/Inbox/screen/inbox_screen.dart';
 import 'package:roberto/features/AiAgent/screen/aiagent_screen.dart';
 import 'package:roberto/features/Pricing/screen/pricing_screen.dart';
@@ -187,7 +192,24 @@ class _DashboardShellState extends State<DashboardShell> {
             : const BusinessownerSettings();
 
       case 'Order Booking':
-        return OrderBookingScreen(onNavigate: _selectItem);
+        final profileState = context.read<ProfileBloc>().state;
+        String branchId = '';
+        if (profileState is ProfileLoaded) {
+          branchId = profileState.user.branchId ?? '';
+        } else if (profileState is ProfileUpdateSuccess) {
+          branchId = profileState.user.branchId ?? '';
+        } else if (widget.role == UserRole.branchManager) {
+          branchId = _selectedBranch['id'] ?? '';
+        }
+        
+        return BlocProvider(
+          create: (context) => BookingBloc(
+            repository: BookingRepository(
+              networkClient: context.read<NetworkClient>(),
+            ),
+          )..add(GetBookings(branchId: branchId)),
+          child: OrderBookingScreen(onNavigate: _selectItem),
+        );
 
       case 'AI Agent':
         return AiagentScreen(businessId: _selectedTenantBusinessId);

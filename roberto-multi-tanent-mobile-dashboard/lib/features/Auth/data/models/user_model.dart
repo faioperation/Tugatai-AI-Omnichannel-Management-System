@@ -9,6 +9,8 @@ class UserModel {
   final UserRole? primaryRole;
   final String? branchName;
   final String? branchAddress;
+  final String? branchId;
+  final String? businessType;
 
   UserModel({
     required this.id,
@@ -19,6 +21,8 @@ class UserModel {
     this.primaryRole,
     this.branchName,
     this.branchAddress,
+    this.branchId,
+    this.businessType,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -39,6 +43,13 @@ class UserModel {
       }
     }
 
+    final branch = json['branch'] as Map<String, dynamic>?;
+    final tenant = branch?['tenant'] as Map<String, dynamic>? ?? json['tenant'] as Map<String, dynamic>? ?? json['business'] as Map<String, dynamic>?;
+    final parsedBusinessType = json['businessType'] ?? 
+                               branch?['businessType'] ?? 
+                               tenant?['businessType'] ??
+                               json['business']?['businessType'];
+
     return UserModel(
       id: json['id'] ?? '',
       email: json['email'] ?? '',
@@ -48,6 +59,8 @@ class UserModel {
       primaryRole: parsedRole,
       branchName: json['branch']?['name'],
       branchAddress: json['branch']?['address'],
+      branchId: json['branch']?['id'],
+      businessType: parsedBusinessType?.toString(),
     );
   }
 }

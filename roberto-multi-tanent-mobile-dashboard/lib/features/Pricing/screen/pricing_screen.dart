@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -34,26 +35,43 @@ class _PricingScreenState extends State<PricingScreen> {
   }
 
   void _openAddRuleDialog({PricingRuleMod? rule}) {
+    // Fixed branchId for testing phase
+    const String testBranchId = '5feaac7b-c436-4ecb-8a12-9632e4090205';
+    
     showDialog(
       context: context,
       builder: (context) => CustomAddrule(
         rule: rule,
         onSave: (newRule) {
+          Map<String, dynamic> configMap;
+          try {
+            final decoded = jsonDecode(newRule.value);
+            if (decoded is Map<String, dynamic>) {
+              configMap = decoded;
+            } else {
+              configMap = {'value': newRule.value};
+            }
+          } catch (_) {
+            configMap = {'value': newRule.value};
+          }
+
           if (rule != null) {
             context.read<PricingBloc>().add(UpdatePricingRule(
                   id: rule.id,
                   ruleName: newRule.name,
                   type: newRule.type,
-                  configuration: {'value': newRule.value},
+                  configuration: configMap,
                   status: newRule.isActive,
+                  branchId: rule.branchId ?? testBranchId,
                   role: widget.role,
                 ));
           } else {
             context.read<PricingBloc>().add(CreatePricingRule(
                   ruleName: newRule.name,
                   type: newRule.type,
-                  configuration: {'value': newRule.value},
+                  configuration: configMap,
                   status: newRule.isActive,
+                  branchId: testBranchId,
                   role: widget.role,
                 ));
           }
