@@ -54,14 +54,11 @@ class _InboxScreenState extends State<InboxScreen> {
 
     try {
       final inboxRepo = context.read<InboxRepository>();
-      final res = await inboxRepo.getConversations(_selectedPlatform);
+      final res = await inboxRepo.getConversations('all');
 
       if (res['success'] == true && mounted) {
         setState(() {
-          final fetched = res['conversations'] as List<ConversationMod>;
-          _conversations = _selectedPlatform == 'all'
-              ? fetched
-              : fetched.where((c) => c.platform.toLowerCase() == _selectedPlatform.toLowerCase()).toList();
+          _conversations = res['conversations'] as List<ConversationMod>;
           _conversationsLoading = false;
           
           if (_selectedConversation != null) {
@@ -342,10 +339,14 @@ class _InboxScreenState extends State<InboxScreen> {
                               onPlatformChanged: (platform) {
                                 setState(() {
                                   _selectedPlatform = platform;
-                                  _selectedConversation = null;
-                                  _messages.clear();
+                                  if (_selectedConversation != null &&
+                                      platform != 'all' &&
+                                      _selectedConversation!.platform.toLowerCase() != platform.toLowerCase()) {
+                                    _selectedConversation = null;
+                                    _messages.clear();
+                                    _messagePollTimer?.cancel();
+                                  }
                                 });
-                                _fetchConversations();
                               },
                               onConversationSelected: (conv) {
                                 setState(() {
@@ -384,10 +385,14 @@ class _InboxScreenState extends State<InboxScreen> {
                                   onPlatformChanged: (platform) {
                                     setState(() {
                                       _selectedPlatform = platform;
-                                      _selectedConversation = null;
-                                      _messages.clear();
+                                      if (_selectedConversation != null &&
+                                          platform != 'all' &&
+                                          _selectedConversation!.platform.toLowerCase() != platform.toLowerCase()) {
+                                        _selectedConversation = null;
+                                        _messages.clear();
+                                        _messagePollTimer?.cancel();
+                                      }
                                     });
-                                    _fetchConversations();
                                   },
                                   onConversationSelected: (conv) {
                                     setState(() {
@@ -423,10 +428,14 @@ class _InboxScreenState extends State<InboxScreen> {
                                       onPlatformChanged: (platform) {
                                         setState(() {
                                           _selectedPlatform = platform;
-                                          _selectedConversation = null;
-                                          _messages.clear();
+                                          if (_selectedConversation != null &&
+                                              platform != 'all' &&
+                                              _selectedConversation!.platform.toLowerCase() != platform.toLowerCase()) {
+                                            _selectedConversation = null;
+                                            _messages.clear();
+                                            _messagePollTimer?.cancel();
+                                          }
                                         });
-                                        _fetchConversations();
                                       },
                                       onConversationSelected: (conv) {
                                         setState(() {

@@ -8,14 +8,7 @@ class InboxRepository {
   InboxRepository({required this.networkClient});
 
   Future<Map<String, dynamic>> getConversations(String platform) async {
-    String url = ApiConstants.allConversations;
-    if (platform == 'messenger') {
-      url = ApiConstants.messengerConversations;
-    } else if (platform == 'instagram') {
-      url = ApiConstants.instagramConversations;
-    } else if (platform == 'whatsapp') {
-      url = ApiConstants.whatsappConversations;
-    }
+    const url = ApiConstants.allConversations;
 
     final response = await networkClient.getRequest(url);
 

@@ -174,6 +174,13 @@ class MessageMod {
           senderType = 'customer';
         }
       }
+    } else {
+      final lowerType = senderType.toLowerCase();
+      if (lowerType == 'business' || lowerType == 'agent' || lowerType == 'me') {
+        senderType = 'agent';
+      } else {
+        senderType = 'customer';
+      }
     }
 
     String messageText = json['messageText'] ?? json['text'] ?? '';

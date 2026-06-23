@@ -225,14 +225,19 @@ class ChatList extends StatelessWidget {
     int wCount = 0;
     
     for (var c in conversations) {
-      if (c.platform == 'messenger') mCount++;
-      if (c.platform == 'instagram') iCount++;
-      if (c.platform == 'whatsapp') wCount++;
+      final plat = c.platform.toLowerCase();
+      if (plat == 'messenger') mCount++;
+      if (plat == 'instagram') iCount++;
+      if (plat == 'whatsapp') wCount++;
     }
     
-    final messengerCount = selectedPlatform == 'all' ? mCount.toString() : (selectedPlatform == 'messenger' ? conversations.length.toString() : '0');
-    final instagramCount = selectedPlatform == 'all' ? iCount.toString() : (selectedPlatform == 'instagram' ? conversations.length.toString() : '0');
-    final whatsappCount = selectedPlatform == 'all' ? wCount.toString() : (selectedPlatform == 'whatsapp' ? conversations.length.toString() : '0');
+    final messengerCount = mCount.toString();
+    final instagramCount = iCount.toString();
+    final whatsappCount = wCount.toString();
+
+    final filteredConversations = selectedPlatform == 'all'
+        ? conversations
+        : conversations.where((c) => c.platform.toLowerCase() == selectedPlatform.toLowerCase()).toList();
 
     return Container(
       color: theme.cardTheme.color,
@@ -248,12 +253,12 @@ class ChatList extends StatelessWidget {
           Expanded(
             child: isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppColor.primary))
-                : conversations.isEmpty
+                : filteredConversations.isEmpty
                     ? Center(child: Text("No conversations", style: TextStyle(color: theme.hintColor)))
                     : ListView.builder(
-                        itemCount: conversations.length,
+                        itemCount: filteredConversations.length,
                         itemBuilder: (context, index) {
-                          final conv = conversations[index];
+                          final conv = filteredConversations[index];
                           final isActive = selectedConversation?.id == conv.id;
                           return _buildChatListItem(conv, isActive, context);
                         },

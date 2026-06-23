@@ -320,12 +320,50 @@ class _ChatViewState extends State<ChatView> {
                 if (displayUrl != null && displayUrl.isNotEmpty) ...[
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      fullUrl,
-                      headers: headers,
-                      width: 200,
-                      height: 200,
-                      fit: BoxFit.cover,
+                    child: InkWell(
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => Dialog(
+                            backgroundColor: Colors.transparent,
+                            insetPadding: const EdgeInsets.all(10),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                GestureDetector(
+                                  onTap: () => Navigator.pop(context),
+                                  child: Container(
+                                    color: Colors.transparent,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                  ),
+                                ),
+                                InteractiveViewer(
+                                  child: Image.network(
+                                    fullUrl,
+                                    headers: headers,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 10,
+                                  right: 10,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                                    onPressed: () => Navigator.pop(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                      child: Image.network(
+                        fullUrl,
+                        headers: headers,
+                        width: 200,
+                        height: 200,
+                        fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
                           width: 200,
