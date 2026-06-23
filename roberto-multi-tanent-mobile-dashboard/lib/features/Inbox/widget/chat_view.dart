@@ -364,23 +364,24 @@ class _ChatViewState extends State<ChatView> {
                         width: 200,
                         height: 200,
                         fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: 200,
-                          height: 120,
-                          color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
-                          child: const Icon(Icons.broken_image, color: Colors.grey),
-                        );
-                      },
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          width: 200,
-                          height: 120,
-                          color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
-                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColor.primary)),
-                        );
-                      },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 200,
+                            height: 120,
+                            color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                            child: const Icon(Icons.broken_image, color: Colors.grey),
+                          );
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            width: 200,
+                            height: 120,
+                            color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+                            child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColor.primary)),
+                          );
+                        },
+                      ),
                     ),
                   ),
                   if (showText) const SizedBox(height: 8),
