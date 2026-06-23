@@ -161,8 +161,18 @@ class MessageMod {
       final direction = json['direction']?.toString().toUpperCase();
       if (direction == 'OUTGOING') {
         senderType = 'agent';
+      } else if (direction == 'INCOMING') {
+        if (json['rawPayload'] == null) {
+          senderType = 'agent';
+        } else {
+          senderType = 'customer';
+        }
       } else {
-        senderType = 'customer';
+        if (json['rawPayload'] == null) {
+          senderType = 'agent';
+        } else {
+          senderType = 'customer';
+        }
       }
     }
 

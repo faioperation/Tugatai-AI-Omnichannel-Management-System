@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:roberto/features/Inbox/data/models/inbox_models.dart';
+import 'package:roberto/features/Inbox/data/repositories/inbox_repository.dart';
 import 'package:roberto/core/network/api_constants.dart';
 
 class ChatView extends StatefulWidget {
@@ -292,6 +294,12 @@ class _ChatViewState extends State<ChatView> {
     final showText = text.isNotEmpty && 
         !( (text == '[Media: image]' || text == '[Media: Image]') && (displayUrl != null && displayUrl.isNotEmpty) );
 
+    final fullUrl = displayUrl != null ? _getFullImageUrl(displayUrl) : '';
+    final isRemote = fullUrl.startsWith('http://') || fullUrl.startsWith('https://');
+    final Map<String, String>? headers = isRemote
+        ? context.read<InboxRepository>().networkClient.commonHeaders()
+        : null;
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
@@ -313,7 +321,8 @@ class _ChatViewState extends State<ChatView> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
-                      _getFullImageUrl(displayUrl),
+                      fullUrl,
+                      headers: headers,
                       width: 200,
                       height: 200,
                       fit: BoxFit.cover,
