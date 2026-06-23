@@ -1,10 +1,12 @@
 "use client"
-import React from 'react'
+import React, { useState } from 'react'
 import Header from '../component/Header'
 import Container from '../component/Container'
 import { FiCheck } from 'react-icons/fi'
 import { motion } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import Cookies from 'js-cookie'
+import { toast } from 'react-hot-toast'
 
 const HalfMoonIcon = () => (
   <div className="transition-all duration-500 drop-shadow-none group-hover:drop-shadow-[0_0_15px_rgba(152,16,250,0.6)]">
@@ -75,6 +77,8 @@ const FullMoonIcon = () => (
 // Mock data removed in favor of API
 
 const Pricing = () => {
+  const [processingPlanId, setProcessingPlanId] = useState(null);
+
   const { data: plans, isLoading, error } = useQuery({
     queryKey: ['subscriptionPlans'],
     queryFn: async () => {
@@ -89,6 +93,45 @@ const Pricing = () => {
       }
       const json = await res.json();
       return json.data;
+    }
+  });
+
+  const checkoutMutation = useMutation({
+    mutationFn: async (data) => {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      const token = Cookies.get("accessToken");
+      if (!token) throw new Error("Please log in to upgrade your plan.");
+
+      const res = await fetch(`${baseUrl}/payment/create-checkout-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
+        },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+      return res.json();
+    },
+    onSuccess: (response) => {
+      if (response.data && response.data.url) {
+         window.location.href = response.data.url;
+      } else if (response.url) {
+         window.location.href = response.url;
+      } else {
+         toast.error("Checkout URL not found");
+      }
+    },
+    onError: (err) => {
+      toast.error(err.message);
+      setProcessingPlanId(null);
+    },
+    onSettled: () => {
+      // Re-enable if there is a failure or if redirect takes time
+      // But if successful redirect happens, it doesn't matter
     }
   });
 
@@ -156,8 +199,14 @@ const Pricing = () => {
                   </ul>
                 </div>
 
-                <button className="mt-5 w-full py-4 rounded-xl text-white font-inter font-semibold bg-white/5 border border-white/10 group-hover:bg-gradient-to-r group-hover:from-[#9810FA] group-hover:to-[#AD46FF] group-hover:border-transparent transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(173,70,255,0.4)] ">
-                  Upgrade
+                <button 
+                  onClick={() => {
+                    setProcessingPlanId(plan.id);
+                    checkoutMutation.mutate({ planId: plan.id, billingCycle: "monthly" });
+                  }}
+                  disabled={checkoutMutation.isPending && processingPlanId === plan.id}
+                  className={`mt-5 w-full py-4 rounded-xl text-white font-inter font-semibold bg-white/5 border border-white/10 group-hover:bg-gradient-to-r group-hover:from-[#9810FA] group-hover:to-[#AD46FF] group-hover:border-transparent transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(173,70,255,0.4)] ${(checkoutMutation.isPending && processingPlanId === plan.id) ? 'opacity-70 cursor-not-allowed' : ''}`}>
+                  {(checkoutMutation.isPending && processingPlanId === plan.id) ? 'Processing...' : 'Upgrade'}
                 </button>
               </motion.div>
             ))}
