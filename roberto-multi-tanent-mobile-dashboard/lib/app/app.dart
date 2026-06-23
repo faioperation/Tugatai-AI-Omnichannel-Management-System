@@ -11,6 +11,8 @@ import 'package:roberto/features/management/data/repositories/management_reposit
 import 'package:roberto/features/management/bloc/management_bloc.dart';
 import 'package:roberto/features/businesssubscription/data/repositories/business_subscription_repository.dart';
 import 'package:roberto/features/businesssubscription/bloc/business_subscription_bloc.dart';
+import 'package:roberto/features/CRM/data/repositories/crm_repository.dart';
+import 'package:roberto/features/CRM/bloc/crm_bloc.dart';
 import 'package:roberto/features/Auth/data/repositories/auth_repository.dart';
 import 'package:roberto/features/Auth/bloc/auth_bloc.dart';
 import 'package:roberto/features/Auth/bloc/forgot_password_bloc.dart';
@@ -26,6 +28,8 @@ import 'package:roberto/features/Tenant Management /data/repositories/tenant_rep
 import 'package:roberto/features/Tenant Management /bloc/tenant_bloc.dart';
 import 'package:roberto/features/AiAgent/data/repositories/agent_training_repository.dart';
 import 'package:roberto/features/AiAgent/bloc/agent_training_bloc.dart';
+import 'package:roberto/features/Pricing/data/repositories/pricing_repository.dart';
+import 'package:roberto/features/Pricing/bloc/pricing_bloc.dart';
 
 class Roberto extends StatelessWidget {
   const Roberto({super.key});
@@ -100,6 +104,16 @@ class Roberto extends StatelessWidget {
             RepositoryProvider<AgentTrainingRepository>(
               create: (context) => AgentTrainingRepository(),
             ),
+            RepositoryProvider<CrmRepository>(
+              create: (context) => CrmRepository(
+                networkClient: context.read<NetworkClient>(),
+              ),
+            ),
+            RepositoryProvider<PricingRepository>(
+              create: (context) => PricingRepository(
+                networkClient: context.read<NetworkClient>(),
+              ),
+            ),
           ],
           child: MultiBlocProvider(
             providers: [
@@ -156,6 +170,16 @@ class Roberto extends StatelessWidget {
               BlocProvider<AgentTrainingBloc>(
                 create: (context) => AgentTrainingBloc(
                   repository: context.read<AgentTrainingRepository>(),
+                ),
+              ),
+              BlocProvider<CrmBloc>(
+                create: (context) => CrmBloc(
+                  crmRepository: context.read<CrmRepository>(),
+                ),
+              ),
+              BlocProvider<PricingBloc>(
+                create: (context) => PricingBloc(
+                  pricingRepository: context.read<PricingRepository>(),
                 ),
               ),
             ],

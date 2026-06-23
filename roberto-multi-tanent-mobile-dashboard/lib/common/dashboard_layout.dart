@@ -192,11 +192,11 @@ class _DashboardShellState extends State<DashboardShell> {
       case 'AI Agent':
         return AiagentScreen(businessId: _selectedTenantBusinessId);
 
-      case 'Pricing':
-        return const PricingScreen();
+      case 'Pricing Rule':
+        return PricingScreen(role: widget.role);
 
       case 'CRM & Leads':
-        return CmrScreen(onNavigate: _selectItem);
+        return CmrScreen(onNavigate: _selectItem, role: widget.role);
 
 
 
@@ -549,13 +549,32 @@ class _DashboardShellState extends State<DashboardShell> {
   }
 
   Widget _buildStaticBranchInfo(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
-      ),
-      child: _buildBranchInfoContent(context, showArrow: false),
+    return BlocBuilder<ProfileBloc, ProfileState>(
+      builder: (context, state) {
+        Map<String, String> branchData = _selectedBranch;
+
+        if (state is ProfileLoaded || state is ProfileUpdateSuccess || state is ProfileUpdating) {
+          final user = (state is ProfileLoaded)
+              ? state.user
+              : (state is ProfileUpdateSuccess) ? state.user : (state as ProfileUpdating).currentUser;
+          
+          if (user.branchName != null && user.branchName!.isNotEmpty) {
+            branchData = {
+              'name': user.branchName!,
+              'address': user.branchAddress ?? '',
+            };
+          }
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
+          ),
+          child: _buildBranchInfoContent(context, showArrow: false, overrideBranch: branchData),
+        );
+      },
     );
   }
 
@@ -571,7 +590,8 @@ class _DashboardShellState extends State<DashboardShell> {
   }
 
   Widget _buildBranchInfoContent(BuildContext context,
-      {required bool showArrow}) {
+      {required bool showArrow, Map<String, String>? overrideBranch}) {
+    final Map<String, String> branch = overrideBranch ?? _selectedBranch;
     return Row(
       children: [
         const Icon(Icons.location_on_outlined,
@@ -582,7 +602,7 @@ class _DashboardShellState extends State<DashboardShell> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _selectedBranch['name']!,
+                branch['name'] ?? '',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -591,7 +611,7 @@ class _DashboardShellState extends State<DashboardShell> {
               ),
               const SizedBox(height: 2),
               Text(
-                _selectedBranch['address']!,
+                branch['address'] ?? '',
                 style: TextStyle(
                   fontSize: 11,
                   color: Theme.of(context).textTheme.bodySmall?.color,

@@ -45,4 +45,23 @@ class OverviewRepository {
       throw Exception(response.errorMassage ?? 'Network error occurred.');
     }
   }
+
+  Future<BusinessOverviewModel> getBranchManagerOverview() async {
+    final response = await networkClient.getRequest(ApiConstants.branchManagerOverview);
+
+    if (response.isSuccess && response.responseData != null) {
+      if (response.responseData['success'] == true) {
+        final data = response.responseData['data'];
+        if (data != null) {
+          return BusinessOverviewModel.fromJson(data);
+        } else {
+          throw Exception('Data is missing in the response.');
+        }
+      } else {
+        throw Exception(response.responseData['message'] ?? 'Failed to fetch branch manager overview.');
+      }
+    } else {
+      throw Exception(response.errorMassage ?? 'Network error occurred.');
+    }
+  }
 }

@@ -30,4 +30,34 @@ class PricingRuleMod {
       isActive: isActive ?? this.isActive,
     );
   }
+
+  factory PricingRuleMod.fromJson(Map<String, dynamic> json) {
+    String parsedValue = '';
+    final config = json['configuration'];
+    if (config != null) {
+      if (config is Map) {
+        parsedValue = config.entries.map((e) => '${e.key}: ${e.value}').join(', ');
+      } else {
+        parsedValue = config.toString();
+      }
+    }
+
+    return PricingRuleMod(
+      id: json['id']?.toString() ?? '',
+      name: json['ruleName'] ?? 'Unknown',
+      type: json['type'] ?? 'Unknown',
+      value: parsedValue,
+      isActive: json['status'] ?? true,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'ruleName': name,
+      'type': type,
+      'configuration': {'value': value}, // Basic mapping back to config
+      'status': isActive,
+    };
+  }
 }

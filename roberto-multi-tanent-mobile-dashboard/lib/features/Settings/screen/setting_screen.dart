@@ -155,12 +155,34 @@ class _SettingScreenState extends State<SettingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Title
-          const Text(
-            "Profile Information",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Profile Information",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (user.branchName != null && user.branchName.toString().isNotEmpty)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.location_on_outlined, color: Colors.red, size: 20),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(user.branchName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        if (user.branchAddress != null)
+                          Text(user.branchAddress, style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 12)),
+                      ],
+                    ),
+                  ],
+                ),
+            ],
           ),
 
           const SizedBox(height: 19),

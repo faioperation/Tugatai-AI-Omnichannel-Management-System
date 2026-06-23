@@ -11,6 +11,7 @@ class ApiConstants {
   // Overview endpoints
   static const String systemOwnerOverview = '$baseUrl/system-owner/dashboard/overview';
   static const String businessOwnerOverview = '$baseUrl/business-owner/dashboard/overview';
+  static const String branchManagerOverview = '$baseUrl/branch-manager/dashboard/overview';
 
   // Subscription endpoints
   static const String systemOwnerSubscriptions = '$baseUrl/system-owner/subscription-plans/all';
@@ -43,4 +44,19 @@ class ApiConstants {
   static const String businessOwnerCampaignCreate = '$baseUrl/business-owner/campaigns/create';
   static const String businessOwnerCampaignUpdate = '$baseUrl/business-owner/campaigns'; // + /:id
   static const String businessOwnerCampaignDelete = '$baseUrl/business-owner/campaigns'; // + /:id
+
+  // CRM Leads endpoints
+  static const String businessOwnerCrmLeads = '$baseUrl/business-owner/crm-leads/all';
+  static const String businessOwnerCrmLeadCreate = '$baseUrl/business-owner/crm-leads/create';
+  static const String businessOwnerCrmLead = '$baseUrl/business-owner/crm-leads'; // + /:id (for GET single, PATCH, DELETE)
+
+  // Branch Manager CRM Leads endpoints
+  static const String branchManagerCrmLeads = '$baseUrl/branch-manager/crm-leads/all';
+  static const String branchManagerCrmLeadCreate = '$baseUrl/branch-manager/crm-leads/create';
+  static const String branchManagerCrmLead = '$baseUrl/branch-manager/crm-leads'; // + /:id (for GET single, PATCH, DELETE)
+
+  // Branch Manager Pricing endpoints
+  static const String branchManagerPricingAll = '$baseUrl/branch-manager/pricing/all';
+  static const String branchManagerPricingCreate = '$baseUrl/branch-manager/pricing/create';
+  static const String branchManagerPricingSingle = '$baseUrl/branch-manager/pricing'; // + /:id
 }

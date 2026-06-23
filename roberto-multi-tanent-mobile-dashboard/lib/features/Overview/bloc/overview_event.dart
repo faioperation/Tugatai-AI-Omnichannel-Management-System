@@ -10,3 +10,5 @@ abstract class OverviewEvent extends Equatable {
 class FetchSystemOverviewRequested extends OverviewEvent {}
 
 class FetchBusinessOverviewRequested extends OverviewEvent {}
+
+class FetchBranchManagerOverviewRequested extends OverviewEvent {}

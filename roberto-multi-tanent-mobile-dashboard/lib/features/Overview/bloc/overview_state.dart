@@ -31,6 +31,15 @@ class BusinessOverviewLoaded extends OverviewState {
   List<Object?> get props => [businessData];
 }
 
+class BranchManagerOverviewLoaded extends OverviewState {
+  final BusinessOverviewModel businessData;
+
+  const BranchManagerOverviewLoaded({required this.businessData});
+
+  @override
+  List<Object?> get props => [businessData];
+}
+
 class OverviewError extends OverviewState {
   final String message;
 

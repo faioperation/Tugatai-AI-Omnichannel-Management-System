@@ -3,10 +3,12 @@ import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/CRM/widget/custom_crm.dart';
 import 'package:roberto/features/CRM/widget/custom_addlead.dart';
 import 'package:roberto/features/Tenant%20Management%20/widget/custom_stat_card.dart';
+import 'package:roberto/common/user_role.dart';
 
 class CmrScreen extends StatefulWidget {
   final Function(String)? onNavigate;
-  const CmrScreen({super.key, this.onNavigate});
+  final UserRole role;
+  const CmrScreen({super.key, this.onNavigate, this.role = UserRole.businessOwner});
 
   @override
   State<CmrScreen> createState() => _CmrScreenState();
@@ -19,7 +21,7 @@ class _CmrScreenState extends State<CmrScreen> {
       onTap: () {
         showDialog(
           context: context,
-          builder: (context) => const CustomAddlead (),
+          builder: (context) => CustomAddlead(role: widget.role),
         );
       },
       borderRadius: BorderRadius.circular(12),
@@ -133,7 +135,7 @@ class _CmrScreenState extends State<CmrScreen> {
         _buildStatCards(width),
 
         const SizedBox(height: 25),
-        CustomCrm(onNavigate: widget.onNavigate),
+        CustomCrm(onNavigate: widget.onNavigate, role: widget.role),
 
       ],
     ),

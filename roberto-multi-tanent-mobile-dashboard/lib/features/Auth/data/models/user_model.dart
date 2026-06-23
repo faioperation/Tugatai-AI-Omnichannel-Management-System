@@ -7,6 +7,8 @@ class UserModel {
   final String? lastName;
   final String? profilePicture;
   final UserRole? primaryRole;
+  final String? branchName;
+  final String? branchAddress;
 
   UserModel({
     required this.id,
@@ -15,6 +17,8 @@ class UserModel {
     this.lastName,
     this.profilePicture,
     this.primaryRole,
+    this.branchName,
+    this.branchAddress,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -42,6 +46,8 @@ class UserModel {
       lastName: json['lastName'],
       profilePicture: json['profilePicture'],
       primaryRole: parsedRole,
+      branchName: json['branch']?['name'],
+      branchAddress: json['branch']?['address'],
     );
   }
 }

@@ -147,61 +147,61 @@ class AiPerformanceSection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 20),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            bool isMobile = constraints.maxWidth < 600;
-            return isMobile 
-              ? Column(
-                  children: _buildCards().map((card) => Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: card,
-                  )).toList(),
-                )
-              : Row(
-                  children: _buildCards().map((card) => Expanded(child: Padding(
-                    padding: const EdgeInsets.only(right: 16),
-                    child: card,
-                  ))).toList(),
-                );
-          },
-        ),
+        // const SizedBox(height: 20),
+        // LayoutBuilder(
+        //   builder: (context, constraints) {
+        //     bool isMobile = constraints.maxWidth < 600;
+        //     return isMobile
+        //       ? Column(
+        //           children: _buildCards().map((card) => Padding(
+        //             padding: const EdgeInsets.only(bottom: 16),
+        //             child: card,
+        //           )).toList(),
+        //         )
+        //       : Row(
+        //           children: _buildCards().map((card) => Expanded(child: Padding(
+        //             padding: const EdgeInsets.only(right: 16),
+        //             child: card,
+        //           ))).toList(),
+        //         );
+        //   },
+        // ),
       ],
     );
   }
 
-  List<Widget> _buildCards() {
-    return [
-      const AiAnalyticsCard(
-        title: "Active Chats",
-        value: "0",
-        subtitle: "",
-        icon: Icons.chat_bubble_outline_rounded,
-        color: Color(0xFF6366F1), // Indigo
-        sparklineSpots: [
-          FlSpot(0, 0),
-        ],
-      ),
-      const AiAnalyticsCard(
-        title: "Success",
-        value: "0%",
-        subtitle: "",
-        icon: Icons.auto_awesome_rounded,
-        color: Color(0xFF10B981), // Emerald
-        sparklineSpots: [
-          FlSpot(0, 0),
-        ],
-      ),
-      const AiAnalyticsCard(
-        title: "CSAT",
-        value: "0.0",
-        subtitle: "",
-        icon: Icons.stars_rounded,
-        color: Color(0xFFF59E0B), // Amber
-        sparklineSpots: [
-          FlSpot(0, 0),
-        ],
-      ),
-    ];
-  }
+  // List<Widget> _buildCards() {
+  //   return [
+  //     const AiAnalyticsCard(
+  //       title: "Active Chats",
+  //       value: "0",
+  //       subtitle: "",
+  //       icon: Icons.chat_bubble_outline_rounded,
+  //       color: Color(0xFF6366F1), // Indigo
+  //       sparklineSpots: [
+  //         FlSpot(0, 0),
+  //       ],
+  //     ),
+  //     const AiAnalyticsCard(
+  //       title: "Success",
+  //       value: "0%",
+  //       subtitle: "",
+  //       icon: Icons.auto_awesome_rounded,
+  //       color: Color(0xFF10B981), // Emerald
+  //       sparklineSpots: [
+  //         FlSpot(0, 0),
+  //       ],
+  //     ),
+  //     const AiAnalyticsCard(
+  //       title: "CSAT",
+  //       value: "0.0",
+  //       subtitle: "",
+  //       icon: Icons.stars_rounded,
+  //       color: Color(0xFFF59E0B), // Amber
+  //       sparklineSpots: [
+  //         FlSpot(0, 0),
+  //       ],
+  //     ),
+  //   ];
+  // }
 }
