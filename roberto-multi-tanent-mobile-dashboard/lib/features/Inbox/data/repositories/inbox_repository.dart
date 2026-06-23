@@ -100,7 +100,13 @@ class InboxRepository {
     }
   }
 
-  Future<Map<String, dynamic>> sendImageMessage(String platform, String recipientId, String imagePath) async {
+  Future<Map<String, dynamic>> sendImageMessage(
+    String platform,
+    String recipientId,
+    String imagePath, {
+    List<int>? fileBytes,
+    String? fileName,
+  }) async {
     String url = ApiConstants.messengerSendMedia;
     if (platform == 'whatsapp') {
       url = ApiConstants.whatsappSendMedia;
@@ -114,9 +120,9 @@ class InboxRepository {
         'recipientId': recipientId,
         'type': 'image',
       },
-      files: {
-        'file': imagePath,
-      },
+      files: fileBytes == null ? {'file': imagePath} : null,
+      fileBytes: fileBytes != null ? {'file': fileBytes} : null,
+      fileNames: fileName != null ? {'file': fileName} : null,
     );
 
     if (response.isSuccess) {

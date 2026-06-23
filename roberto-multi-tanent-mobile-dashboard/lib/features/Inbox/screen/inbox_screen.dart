@@ -241,7 +241,7 @@ class _InboxScreenState extends State<InboxScreen> {
     }
   }
 
-  Future<void> _sendImageMessage(String imagePath) async {
+  Future<void> _sendImageMessage(String imagePath, List<int> bytes, String filename) async {
     if (_selectedConversation == null) return;
     final conv = _selectedConversation!;
 
@@ -263,7 +263,13 @@ class _InboxScreenState extends State<InboxScreen> {
 
     try {
       final inboxRepo = context.read<InboxRepository>();
-      final res = await inboxRepo.sendImageMessage(conv.platform, conv.customerId, imagePath);
+      final res = await inboxRepo.sendImageMessage(
+        conv.platform,
+        conv.customerId,
+        imagePath,
+        fileBytes: bytes,
+        fileName: filename,
+      );
 
       if (res['success'] == true) {
         _fetchConversations();

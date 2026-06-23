@@ -10,7 +10,7 @@ class ChatView extends StatefulWidget {
   final bool isLoading;
   final VoidCallback? onBack;
   final ValueChanged<String> onSendMessage;
-  final ValueChanged<String> onSendImage;
+  final Function(String path, List<int> bytes, String name) onSendImage;
   final bool isAiOn;
   final ValueChanged<bool> onToggleAi;
 
@@ -225,7 +225,8 @@ class _ChatViewState extends State<ChatView> {
                     final ImagePicker picker = ImagePicker();
                     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
                     if (image != null) {
-                      widget.onSendImage(image.path);
+                      final bytes = await image.readAsBytes();
+                      widget.onSendImage(image.path, bytes, image.name);
                     }
                   },
                 ),
