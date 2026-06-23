@@ -35,8 +35,27 @@ class PricingRuleMod {
     String parsedValue = '';
     final config = json['configuration'];
     if (config != null) {
-      if (config is Map) {
-        parsedValue = config.entries.map((e) => '${e.key}: ${e.value}').join(', ');
+      if (config is String) {
+        parsedValue = config;
+      } else if (config is Map) {
+        // If it's just a wrapped value from old code
+        if (config.containsKey('value') && config.length == 1) {
+          parsedValue = config['value'].toString();
+        } else {
+          List<String> parts = [];
+          config.forEach((key, val) {
+            String formattedKey = key.toString().replaceAll(RegExp(r'([A-Z])'), r' $1');
+            formattedKey = formattedKey[0].toUpperCase() + formattedKey.substring(1);
+            
+            if (val is Map) {
+              String subVals = val.entries.map((e) => '${e.key}: ${e.value}').join(', ');
+              parts.add('$formattedKey: $subVals');
+            } else {
+              parts.add('$formattedKey: $val');
+            }
+          });
+          parsedValue = parts.join('\n');
+        }
       } else {
         parsedValue = config.toString();
       }
