@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Container from "../Container";
+import Cookies from "js-cookie";
 
 const navitems = [
   { name: "Home", href: "home", isRoute: false },
@@ -17,10 +18,42 @@ const navitems = [
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
+  const [userName, setUserName] = useState(null);
+  const [userImage, setUserImage] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  
   const pathname = usePathname();
   const router = useRouter();
 
+  const formatName = (name) => {
+    if (!name) return "";
+    const words = name.split(" ");
+    if (words.length > 2) {
+      return `${words[0]} ${words[1]}...`;
+    }
+    return name;
+  };
+
+  const handleLogout = () => {
+    Cookies.remove("accessToken");
+    Cookies.remove("refreshToken");
+    Cookies.remove("userRole");
+    Cookies.remove("userName");
+    Cookies.remove("userImage");
+    Cookies.remove("businessId");
+    setUserName(null);
+    setUserImage(null);
+    setShowDropdown(false);
+    router.push("/signin");
+  };
+
   useEffect(() => {
+    // Check auth state
+    const name = Cookies.get("userName");
+    const image = Cookies.get("userImage");
+    if (name) setUserName(name);
+    if (image) setUserImage(image);
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -147,13 +180,50 @@ const Navbar = () => {
           <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="hidden md:block"
+            className="hidden md:block relative"
           >
-            <Link href="/signup">
-              <button className="bg-gradient-to-r from-[#9810FA] to-[#AD46FF] text-white font-bold text-base px-6 py-3 rounded-xl cursor-pointer shadow shadow-[#9810FA] hover:shadow-[#9810FA]/30 transition-shadow">
-               Sign Up
-              </button>
-            </Link>
+            {userName ? (
+              <div className="relative">
+                <div 
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2.5 rounded-xl cursor-pointer hover:bg-white/10 transition-colors"
+                >
+                  {userImage ? (
+                    <img src={userImage} alt={userName} className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#9810FA] to-[#AD46FF] flex items-center justify-center text-white font-bold shadow-[0_0_10px_rgba(152,16,250,0.5)]">
+                      {userName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="text-white font-semibold text-sm font-inter tracking-wide select-none">{formatName(userName)}</span>
+                </div>
+                
+                {/* Dropdown Menu */}
+                <AnimatePresence>
+                  {showDropdown && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute right-0 mt-3 w-48 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] overflow-hidden z-50"
+                    >
+                      <button 
+                        onClick={handleLogout}
+                        className="w-full text-left px-5 py-3.5 text-white hover:bg-[#EA2B33] transition-colors font-inter text-sm font-semibold"
+                      >
+                        Log out
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <Link href="/signup">
+                <button className="bg-gradient-to-r from-[#9810FA] to-[#AD46FF] text-white font-bold text-base px-6 py-3 rounded-xl cursor-pointer shadow shadow-[#9810FA] hover:shadow-[#9810FA]/30 transition-shadow">
+                 Sign Up
+                </button>
+              </Link>
+            )}
           </motion.div>
         </motion.div>
 
@@ -208,11 +278,35 @@ const Navbar = () => {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2 }}
                 >
-                  <Link href="/signup" onClick={() => setOpen(false)}>
-                    <button className="bg-gradient-to-r from-[#9810FA] to-[#AD46FF] w-full text-white font-bold text-[17px] px-4 py-4 rounded-xl shadow-[0_0_20px_rgba(152,16,250,0.4)] hover:shadow-[0_0_30px_rgba(152,16,250,0.6)] transition-all">
-                      Sign Up
-                    </button>
-                  </Link>
+                  {userName ? (
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-4 bg-white/5 border border-white/10 px-4 py-4 rounded-xl">
+                        {userImage ? (
+                          <img src={userImage} alt={userName} className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#9810FA] to-[#AD46FF] flex items-center justify-center text-white font-bold text-lg shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                            {userName.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <span className="text-white font-semibold text-[17px] font-inter">{formatName(userName)}</span>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          setOpen(false);
+                          handleLogout();
+                        }}
+                        className="w-full bg-white/5 border border-white/10 text-white font-bold text-[17px] px-4 py-4 rounded-xl hover:bg-[#EA2B33] transition-all text-left"
+                      >
+                        Log out
+                      </button>
+                    </div>
+                  ) : (
+                    <Link href="/signup" onClick={() => setOpen(false)}>
+                      <button className="bg-gradient-to-r from-[#9810FA] to-[#AD46FF] w-full text-white font-bold text-[17px] px-4 py-4 rounded-xl shadow-[0_0_20px_rgba(152,16,250,0.4)] hover:shadow-[0_0_30px_rgba(152,16,250,0.6)] transition-all">
+                        Sign Up
+                      </button>
+                    </Link>
+                  )}
                 </motion.div>
               </ul>
             </motion.div>
