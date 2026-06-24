@@ -8,6 +8,7 @@ class BusinessSubscriptionBloc extends Bloc<BusinessSubscriptionEvent, BusinessS
 
   BusinessSubscriptionBloc({required this.repository}) : super(BusinessSubscriptionInitial()) {
     on<FetchMySubscriptionRequested>(_onFetchMySubscription);
+    on<CreateCheckoutSessionRequested>(_onCreateCheckoutSession);
   }
 
   Future<void> _onFetchMySubscription(
@@ -19,7 +20,23 @@ class BusinessSubscriptionBloc extends Bloc<BusinessSubscriptionEvent, BusinessS
       final subscriptions = await repository.getMySubscription();
       emit(BusinessSubscriptionLoaded(subscriptions: subscriptions));
     } catch (e) {
-      emit(BusinessSubscriptionError(message: e.toString()));
+      emit(BusinessSubscriptionError(message: e.toString().replaceAll('Exception: ', '')));
+    }
+  }
+
+  Future<void> _onCreateCheckoutSession(
+    CreateCheckoutSessionRequested event,
+    Emitter<BusinessSubscriptionState> emit,
+  ) async {
+    emit(CheckoutSessionLoading());
+    try {
+      final url = await repository.createCheckoutSession(
+        planId: event.planId,
+        billingCycle: event.billingCycle,
+      );
+      emit(CheckoutSessionSuccess(url: url));
+    } catch (e) {
+      emit(BusinessSubscriptionError(message: e.toString().replaceAll('Exception: ', '')));
     }
   }
 }

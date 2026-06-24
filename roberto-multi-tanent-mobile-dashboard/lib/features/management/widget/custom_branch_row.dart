@@ -1,44 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/features/management/widget/custom_addbranch.dart';
+import 'package:roberto/features/management/data/models/branch_model.dart';
+import 'package:roberto/features/management/bloc/management_bloc.dart';
+import 'package:roberto/features/management/bloc/management_event.dart';
 
-class CustomBranchRow extends StatefulWidget {
+class CustomBranchRow extends StatelessWidget {
   final String slNo;
-  final String businessname;
-  final String location;
-  final String name;
-  final String status;
+  final BranchModel branch;
   final bool isMobile;
 
   const CustomBranchRow({
     super.key,
     required this.slNo,
-    required this.businessname,
-    required this.location,
-    required this.name,
-    required this.status,
+    required this.branch,
     this.isMobile = false,
   });
-
-  @override
-  State<CustomBranchRow> createState() => _CustomBranchRowState();
-}
-
-class _CustomBranchRowState extends State<CustomBranchRow> {
-  late String _currentStatus;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentStatus = widget.status;
-  }
-
-  bool get _isActive => _currentStatus.toLowerCase() == 'active';
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    if (widget.isMobile) {
+    if (isMobile) {
       return _buildMobileCard(context);
     }
 
@@ -54,26 +37,26 @@ class _CustomBranchRowState extends State<CustomBranchRow> {
           // SL No
           Expanded(
             flex: 1,
-            child: Text(widget.slNo, style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface)),
+            child: Text(slNo, style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface)),
           ),
 
           // Name
           Expanded(
             flex: 2,
-            child: Text(widget.businessname,
+            child: Text(branch.name,
                 style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: theme.colorScheme.onSurface)),
           ),
 
           // Location
           Expanded(
-            flex: 2,
+            flex: 3,
             child: Row(
               children: [
                 Icon(Icons.location_on, size: 14, color: theme.textTheme.bodySmall?.color),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    widget.location,
+                    branch.address,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13),
                   ),
@@ -82,18 +65,17 @@ class _CustomBranchRowState extends State<CustomBranchRow> {
             ),
           ),
 
-          // Contact
+          // Contact (Manager)
           Expanded(
             flex: 2,
-            child: Text(widget.name, style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface)),
+            child: Text(branch.manager?.name ?? 'No Manager', style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface)),
           ),
 
-          // Status
+          // Phone
           Expanded(
             flex: 2,
-            child: Center(child: _buildStatusDropdown(context)),
+            child: Text(branch.phone, style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface)),
           ),
-          const SizedBox(width: 16),
 
           // Actions
           Expanded(
@@ -106,18 +88,14 @@ class _CustomBranchRowState extends State<CustomBranchRow> {
                     context: context,
                     builder: (context) => CustomAddbranch(
                       isEdit: true,
-                      branchName: widget.businessname,
-                      location: widget.location,
-                      address: "123 Street Name, Area", // Mock address or pass if available
-                      status: _currentStatus,
+                      branch: branch,
                     ),
                   );
                 }),
-                // const SizedBox(width: 8),
-                // _buildActionIcon(Icons.remove_red_eye_outlined,
-                //     theme.textTheme.bodySmall?.color ?? Colors.grey, () {}),
                 const SizedBox(width: 8),
-                _buildActionIcon(Icons.delete_outline, Colors.red, () {}),
+                _buildActionIcon(Icons.delete_outline, Colors.red, () {
+                  _showDeleteConfirmation(context);
+                }),
               ],
             ),
           ),
@@ -152,19 +130,18 @@ class _CustomBranchRowState extends State<CustomBranchRow> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                widget.slNo,
+                slNo,
                 style: TextStyle(
                   color: theme.textTheme.bodySmall?.color,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              _buildStatusDropdown(context),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            widget.businessname,
+            branch.name,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -176,7 +153,9 @@ class _CustomBranchRowState extends State<CustomBranchRow> {
             children: [
               Icon(Icons.location_on_outlined, size: 14, color: theme.textTheme.bodySmall?.color),
               const SizedBox(width: 4),
-              Text(widget.location, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13)),
+              Expanded(
+                child: Text(branch.address, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13), overflow: TextOverflow.ellipsis),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -184,7 +163,15 @@ class _CustomBranchRowState extends State<CustomBranchRow> {
             children: [
               Icon(Icons.person_outline, size: 14, color: theme.textTheme.bodySmall?.color),
               const SizedBox(width: 4),
-              Text(widget.name, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13)),
+              Text(branch.manager?.name ?? 'No Manager', style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.phone_outlined, size: 14, color: theme.textTheme.bodySmall?.color),
+              const SizedBox(width: 4),
+              Text(branch.phone, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13)),
             ],
           ),
           const SizedBox(height: 16),
@@ -198,18 +185,14 @@ class _CustomBranchRowState extends State<CustomBranchRow> {
                   context: context,
                   builder: (context) => CustomAddbranch(
                     isEdit: true,
-                    branchName: widget.businessname,
-                    location: widget.location,
-                    address: "123 Street Name, Area", // Mock address or pass if available
-                    status: _currentStatus,
+                    branch: branch,
                   ),
                 );
               }),
-              // const SizedBox(width: 12),
-              // _buildActionIcon(Icons.remove_red_eye_outlined,
-              //     theme.textTheme.bodySmall?.color ?? Colors.grey, () {}),
               const SizedBox(width: 12),
-              _buildActionIcon(Icons.delete_outline, Colors.red, () {}),
+              _buildActionIcon(Icons.delete_outline, Colors.red, () {
+                _showDeleteConfirmation(context);
+              }),
             ],
           ),
         ],
@@ -217,52 +200,25 @@ class _CustomBranchRowState extends State<CustomBranchRow> {
     );
   }
 
-  Widget _buildStatusDropdown(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    
-    final activeBg = isDark ? const Color(0xFF1B5E20).withValues(alpha: 0.2) : const Color(0xFFE8F5E9);
-    final inactiveBg = isDark ? const Color(0xFFB71C1C).withValues(alpha: 0.2) : const Color(0xFFFFEBEE);
-    final activeColor = isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32);
-    final inactiveColor = isDark ? const Color(0xFFE57373) : const Color(0xFFC62828);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: _isActive ? activeBg : inactiveBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: _isActive ? activeColor.withValues(alpha: 0.3) : inactiveColor.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _currentStatus.toLowerCase(),
-          isDense: true,
-          dropdownColor: theme.cardTheme.color,
-          icon: Icon(
-            Icons.keyboard_arrow_down,
-            size: 14,
-            color: _isActive ? activeColor : inactiveColor,
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text("Delete Branch"),
+        content: Text("Are you sure you want to delete '${branch.name}'?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text("Cancel"),
           ),
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: _isActive ? activeColor : inactiveColor,
+          TextButton(
+            onPressed: () {
+              context.read<ManagementBloc>().add(DeleteBranchRequested(id: branch.id));
+              Navigator.pop(dialogCtx);
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
-          items: const [
-            DropdownMenuItem(value: 'active', child: Text('Active')),
-            DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
-          ],
-          onChanged: (value) {
-            if (value != null) {
-              setState(() {
-                _currentStatus = value;
-              });
-            }
-          },
-        ),
+        ],
       ),
     );
   }

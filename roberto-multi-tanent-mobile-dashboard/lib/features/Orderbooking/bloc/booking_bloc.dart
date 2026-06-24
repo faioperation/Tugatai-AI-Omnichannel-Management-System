@@ -35,6 +35,10 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
           total: meta['total'] ?? bookings.length,
           totalPages: meta['totalPage'] ?? 1,
           currentPage: meta['page'] ?? 1,
+          totalBookings: meta['totalBookings'] ?? 0,
+          pending: meta['pending'] ?? 0,
+          confirmed: meta['confirmed'] ?? 0,
+          delivered: meta['delivered'] ?? 0,
         ));
       } else {
         emit(BookingError(response['message'] ?? 'Failed to load bookings'));

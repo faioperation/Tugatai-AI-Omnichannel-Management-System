@@ -25,13 +25,16 @@ import 'package:roberto/features/DemoBooking/screen/demo_booking_screen.dart';
 import 'package:roberto/features/WhatsAppCampaigns/screen/whatsapp_campaigns_screen.dart';
 import 'package:roberto/app/app_routes.dart';
 import 'package:roberto/common/user_role.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:roberto/features/Settings/bloc/profile_bloc.dart';
 import 'package:roberto/features/Settings/bloc/profile_event.dart';
 import 'package:roberto/features/Settings/bloc/profile_state.dart';
 import 'package:roberto/features/notification/bloc/notification_bloc.dart';
 import 'package:roberto/features/notification/bloc/notification_event.dart';
 import 'package:roberto/features/notification/bloc/notification_state.dart';
+import 'package:roberto/features/management/bloc/management_bloc.dart';
+import 'package:roberto/features/management/bloc/management_event.dart';
+import 'package:roberto/features/management/bloc/management_state.dart';
 
 class DashboardShell extends StatefulWidget {
   final UserRole role;
@@ -55,6 +58,9 @@ class _DashboardShellState extends State<DashboardShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String _activeItem = 'Overview';
   String? _selectedTenantBusinessId;
+  String? _inboxTargetPhone;
+  String? _inboxTargetName;
+  String? _inboxTargetConversationId;
   
   final List<Map<String, String>> _branches = [
     {"name": "Queens Center", "address": "719/B, Queens, NY"},
@@ -77,6 +83,9 @@ class _DashboardShellState extends State<DashboardShell> {
     // Fetch initial data
     context.read<ProfileBloc>().add(FetchProfileRequested());
     context.read<NotificationBloc>().add(FetchNotificationsRequested());
+    if (widget.role == UserRole.businessOwner) {
+      context.read<ManagementBloc>().add(FetchBranchesRequested());
+    }
   }
 
   void _navigateTo(String item) {
@@ -126,7 +135,16 @@ class _DashboardShellState extends State<DashboardShell> {
     }
   }
 
-  void _selectItem(String item) {
+  void _selectItem(String item, {String? targetPhone, String? targetName, String? conversationId}) {
+    if (targetPhone != null) {
+      _inboxTargetPhone = targetPhone;
+    }
+    if (targetName != null) {
+      _inboxTargetName = targetName;
+    }
+    if (conversationId != null) {
+      _inboxTargetConversationId = conversationId;
+    }
     _navigateTo(item);
   }
 
@@ -134,8 +152,29 @@ class _DashboardShellState extends State<DashboardShell> {
   Widget build(BuildContext context) {
     bool isDesktop = MediaQuery.of(context).size.width > 900;
 
-    return Scaffold(
-      key: _scaffoldKey,
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<ManagementBloc, ManagementState>(
+          listener: (context, state) {
+            if (widget.role == UserRole.businessOwner && state is ManagementLoaded && state.branches.isNotEmpty) {
+              final dynamicBranches = state.branches.map((b) => {
+                'id': b.id,
+                'name': b.name,
+                'address': b.address,
+              }).toList();
+              
+              bool found = dynamicBranches.any((b) => (b['id'] != null && b['id'] == _selectedBranch['id']) || (b['name'] != null && b['name'] == _selectedBranch['name']));
+              if (!found) {
+                setState(() {
+                  _selectedBranch = dynamicBranches.first;
+                });
+              }
+            }
+          },
+        ),
+      ],
+      child: Scaffold(
+        key: _scaffoldKey,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: isDesktop ? null : Drawer(child: _buildSidebar(context)),
       body: SafeArea(
@@ -161,16 +200,24 @@ class _DashboardShellState extends State<DashboardShell> {
           ],
         ),
       ),
+      ),
     );
   }
 
   Widget _buildContent(BuildContext context) {
+    String currentBranchId = _selectedBranch['id'] ?? '';
 
     switch (_activeItem) {
       case 'Inbox':
         return widget.role == UserRole.systemOwner
             ? const DemoBookingScreen() // System Owner's inbox is Demo Bookings
-            : InboxScreen(isSystemOwner: widget.role == UserRole.systemOwner);
+            : InboxScreen(
+                isSystemOwner: widget.role == UserRole.systemOwner, 
+                branchId: currentBranchId,
+                initialCustomerPhone: _inboxTargetPhone,
+                initialCustomerName: _inboxTargetName,
+                initialConversationId: _inboxTargetConversationId,
+              );
       case 'Tenant Management':
       case 'Management':
         return widget.role == UserRole.systemOwner
@@ -195,23 +242,14 @@ class _DashboardShellState extends State<DashboardShell> {
             : const BusinessownerSettings();
 
       case 'Order Booking':
-        final profileState = context.read<ProfileBloc>().state;
-        String branchId = '';
-        if (profileState is ProfileLoaded) {
-          branchId = profileState.user.branchId ?? '';
-        } else if (profileState is ProfileUpdateSuccess) {
-          branchId = profileState.user.branchId ?? '';
-        } else if (widget.role == UserRole.branchManager) {
-          branchId = _selectedBranch['id'] ?? '';
-        }
-        
         return BlocProvider(
           create: (context) => BookingBloc(
             repository: BookingRepository(
               networkClient: context.read<NetworkClient>(),
+              isBranchManager: widget.role == UserRole.branchManager,
             ),
-          )..add(GetBookings(branchId: branchId)),
-          child: OrderBookingScreen(onNavigate: _selectItem),
+          )..add(GetBookings(branchId: currentBranchId)),
+          child: OrderBookingScreen(onNavigate: _selectItem, branchId: currentBranchId),
         );
 
       case 'AI Agent Training':
@@ -223,10 +261,10 @@ class _DashboardShellState extends State<DashboardShell> {
             : AiagentScreen(businessId: _selectedTenantBusinessId);
 
       case 'Pricing':
-        return PricingScreen(role: widget.role);
+        return PricingScreen(role: widget.role, branchId: currentBranchId);
 
       case 'CRM & Leads':
-        return CmrScreen(onNavigate: _selectItem, role: widget.role);
+        return CmrScreen(onNavigate: _selectItem, role: widget.role, branchId: currentBranchId);
 
 
 
@@ -240,12 +278,12 @@ class _DashboardShellState extends State<DashboardShell> {
         return const SettingScreen();
 
       case 'Campaigns':
-        return const WhatsAppCampaignsScreen();
+        return WhatsAppCampaignsScreen(branchId: currentBranchId);
 
       case 'Overview':
 
       default:
-        return OverviewScreen(role: widget.role);
+        return OverviewScreen(role: widget.role, branchId: currentBranchId);
     }
   }
 
@@ -327,52 +365,65 @@ class _DashboardShellState extends State<DashboardShell> {
                 ),
                 child: widget.role == UserRole.branchManager
                     ? _buildStaticBranchInfo(context)
-                    : PopupMenuButton<Map<String, String>>(
-                        offset: const Offset(0, 50),
-                        position: PopupMenuPosition.under,
-                        color: Theme.of(context).cardTheme.color,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        onSelected: (Map<String, String> branch) {
-                          setState(() {
-                            _selectedBranch = branch;
-                          });
-                        },
-                        itemBuilder: (context) => _branches.map((branch) {
-                          return PopupMenuItem<Map<String, String>>(
-                            value: branch,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  branch['name']!,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: branch == _selectedBranch
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface,
-                                  ),
+                    : BlocBuilder<ManagementBloc, ManagementState>(
+                        builder: (context, state) {
+                          List<Map<String, String>> dynamicBranches = _branches;
+                          if (state is ManagementLoaded && state.branches.isNotEmpty) {
+                            dynamicBranches = state.branches.map((b) => {
+                                  'id': b.id,
+                                  'name': b.name,
+                                  'address': b.address,
+                                }).toList();
+                          }
+
+                          return PopupMenuButton<Map<String, String>>(
+                            offset: const Offset(0, 50),
+                            position: PopupMenuPosition.under,
+                            color: Theme.of(context).cardTheme.color,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            onSelected: (Map<String, String> branch) {
+                              setState(() {
+                                _selectedBranch = branch;
+                              });
+                            },
+                            itemBuilder: (context) => dynamicBranches.map((branch) {
+                              return PopupMenuItem<Map<String, String>>(
+                                value: branch,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      branch['name'] ?? '',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: branch['name'] == _selectedBranch['name']
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                      ),
+                                    ),
+                                    Text(
+                                      branch['address'] ?? '',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.color,
+                                      ),
+                                    ),
+                                    if (branch != dynamicBranches.last)
+                                      const Divider(height: 16),
+                                  ],
                                 ),
-                                Text(
-                                  branch['address']!,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.color,
-                                  ),
-                                ),
-                                if (branch != _branches.last)
-                                  const Divider(height: 16),
-                              ],
-                            ),
+                              );
+                            }).toList(),
+                            child: _buildBranchSelectorTrigger(context),
                           );
-                        }).toList(),
-                        child: _buildBranchSelectorTrigger(context),
+                        },
                       ),
               ),
             ),

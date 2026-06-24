@@ -29,3 +29,14 @@ class BusinessSubscriptionError extends BusinessSubscriptionState {
   @override
   List<Object?> get props => [message];
 }
+
+class CheckoutSessionLoading extends BusinessSubscriptionState {}
+
+class CheckoutSessionSuccess extends BusinessSubscriptionState {
+  final String url;
+
+  const CheckoutSessionSuccess({required this.url});
+
+  @override
+  List<Object?> get props => [url];
+}

@@ -11,7 +11,8 @@ import 'package:roberto/features/CRM/bloc/crm_state.dart';
 class CmrScreen extends StatefulWidget {
   final Function(String)? onNavigate;
   final UserRole role;
-  const CmrScreen({super.key, this.onNavigate, this.role = UserRole.businessOwner});
+  final String? branchId;
+  const CmrScreen({super.key, this.onNavigate, this.role = UserRole.businessOwner, this.branchId});
 
   @override
   State<CmrScreen> createState() => _CmrScreenState();
@@ -151,7 +152,7 @@ class _CmrScreenState extends State<CmrScreen> {
               const SizedBox(height: 20),
               _buildStatCards(width),
               const SizedBox(height: 25),
-              CustomCrm(onNavigate: widget.onNavigate, role: widget.role),
+              CustomCrm(onNavigate: widget.onNavigate, role: widget.role, branchId: widget.branchId),
             ],
           ),
         );

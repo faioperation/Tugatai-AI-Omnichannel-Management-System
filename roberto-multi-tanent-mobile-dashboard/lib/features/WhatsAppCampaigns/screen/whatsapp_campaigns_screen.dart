@@ -8,9 +8,13 @@ import 'package:roberto/features/WhatsAppCampaigns/bloc/campaign_state.dart';
 import 'package:roberto/features/WhatsAppCampaigns/data/models/campaign_model.dart';
 import 'package:roberto/features/WhatsAppCampaigns/widget/campaign_card.dart';
 import 'package:roberto/features/WhatsAppCampaigns/widget/create_campaign_form.dart';
+import 'package:roberto/features/management/bloc/management_bloc.dart';
+import 'package:roberto/features/management/bloc/management_state.dart';
+import 'package:roberto/features/management/data/models/branch_model.dart';
 
 class WhatsAppCampaignsScreen extends StatefulWidget {
-  const WhatsAppCampaignsScreen({super.key});
+  final String? branchId;
+  const WhatsAppCampaignsScreen({super.key, this.branchId});
 
   @override
   State<WhatsAppCampaignsScreen> createState() => _WhatsAppCampaignsScreenState();
@@ -20,10 +24,28 @@ class _WhatsAppCampaignsScreenState extends State<WhatsAppCampaignsScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<CampaignBloc>().add(FetchCampaigns());
+    _fetchData();
+  }
+
+  @override
+  void didUpdateWidget(covariant WhatsAppCampaignsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.branchId != widget.branchId) {
+      _fetchData();
+    }
+  }
+
+  void _fetchData() {
+    context.read<CampaignBloc>().add(FetchCampaigns(branchId: widget.branchId));
   }
 
   void _showCampaignDialog({bool isReadOnly = false, CampaignModel? initialData}) {
+    List<BranchModel> branches = [];
+    final managementState = context.read<ManagementBloc>().state;
+    if (managementState is ManagementLoaded) {
+      branches = managementState.branches;
+    }
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -31,6 +53,8 @@ class _WhatsAppCampaignsScreenState extends State<WhatsAppCampaignsScreen> {
         child: CreateCampaignForm(
           isReadOnly: isReadOnly,
           initialData: initialData,
+          branches: branches,
+          currentBranchId: widget.branchId,
           onCancel: () => Navigator.pop(context),
           onCreate: (data) {
             if (initialData != null) {
@@ -39,10 +63,10 @@ class _WhatsAppCampaignsScreenState extends State<WhatsAppCampaignsScreen> {
                   id: initialData.id,
                   title: data['title'],
                   message: data['message'],
-                  audience: data['audience'],
-                  inboxId: data['inboxId'],
+                  branchId: data['branchId'],
                   selectedPeople: data['selectedPeople'],
                   scheduledTime: data['scheduledTime'],
+                  endDate: data['endDate'],
                 ),
               );
             } else {
@@ -50,10 +74,10 @@ class _WhatsAppCampaignsScreenState extends State<WhatsAppCampaignsScreen> {
                 CreateCampaign(
                   title: data['title'],
                   message: data['message'],
-                  audience: data['audience'],
-                  inboxId: data['inboxId'],
+                  branchId: data['branchId'],
                   selectedPeople: data['selectedPeople'],
                   scheduledTime: data['scheduledTime'],
+                  endDate: data['endDate'],
                 ),
               );
             }
@@ -142,12 +166,12 @@ class _WhatsAppCampaignsScreenState extends State<WhatsAppCampaignsScreen> {
                       ),
                       itemCount: campaigns.length,
                       itemBuilder: (context, index) {
-                        final campaign = campaigns[index];
+                        CampaignModel campaign = campaigns[index];
                         return CampaignCard(
                           title: campaign.title,
                           status: campaign.status,
                           date: DateFormat('MMM dd, yyyy').format(campaign.createdAt),
-                          description: campaign.description ?? '',
+                          description: campaign.message,
                           onView: () => _showCampaignDialog(isReadOnly: true, initialData: campaign),
                           onEdit: () => _showCampaignDialog(isReadOnly: false, initialData: campaign),
                           onDelete: () {

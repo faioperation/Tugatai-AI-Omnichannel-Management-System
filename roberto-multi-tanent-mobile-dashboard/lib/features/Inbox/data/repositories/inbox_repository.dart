@@ -7,8 +7,8 @@ class InboxRepository {
 
   InboxRepository({required this.networkClient});
 
-  Future<Map<String, dynamic>> getConversations(String platform) async {
-    const url = ApiConstants.allConversations;
+  Future<Map<String, dynamic>> getConversations(String platform, {String? branchId}) async {
+    final url = branchId != null ? '${ApiConstants.allConversations}?branchId=$branchId' : ApiConstants.allConversations;
 
     final response = await networkClient.getRequest(url);
 

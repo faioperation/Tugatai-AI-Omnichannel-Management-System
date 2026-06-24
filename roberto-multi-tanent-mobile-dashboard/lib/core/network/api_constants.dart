@@ -16,6 +16,7 @@ class ApiConstants {
   // Subscription endpoints
   static const String systemOwnerSubscriptions = '$baseUrl/system-owner/subscription-plans/all';
   static const String businessOwnerMySubscription = '$baseUrl/payment/my-subscription';
+  static const String createCheckoutSession = '$baseUrl/payment/create-checkout-session';
 
   // Profile endpoints
   static const String getProfile = '$baseUrl/user/profile/me';
@@ -45,6 +46,9 @@ class ApiConstants {
   static const String businessOwnerBranchManagers = '$baseUrl/business-owner/branch-managers/all';
   static const String businessOwnerBranchManagersCreate = '$baseUrl/business-owner/branch-managers/create';
   static const String businessOwnerBranchManagersDelete = '$baseUrl/business-owner/branch-managers'; // + /:id
+  static const String businessOwnerBranchesAll = '$baseUrl/business-owner/branches/all';
+  static const String businessOwnerBranchesCreate = '$baseUrl/business-owner/branches/create';
+  static const String businessOwnerBranchesSingle = '$baseUrl/business-owner/branches'; // + /:id
   
   // Campaign endpoints
   static const String businessOwnerCampaigns = '$baseUrl/business-owner/campaigns/all';

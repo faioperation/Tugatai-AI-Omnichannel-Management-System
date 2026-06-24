@@ -27,8 +27,9 @@ class OverviewRepository {
     }
   }
 
-  Future<BusinessOverviewModel> getBusinessOwnerOverview() async {
-    final response = await networkClient.getRequest(ApiConstants.businessOwnerOverview);
+  Future<BusinessOverviewModel> getBusinessOwnerOverview({String? branchId}) async {
+    final url = branchId != null ? '${ApiConstants.businessOwnerOverview}?branchId=$branchId' : ApiConstants.businessOwnerOverview;
+    final response = await networkClient.getRequest(url);
 
     if (response.isSuccess && response.responseData != null) {
       if (response.responseData['success'] == true) {

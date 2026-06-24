@@ -16,8 +16,9 @@ import 'package:roberto/common/user_role.dart';
 
 class PricingScreen extends StatefulWidget {
   final UserRole role;
+  final String? branchId;
 
-  const PricingScreen({super.key, this.role = UserRole.businessOwner});
+  const PricingScreen({super.key, this.role = UserRole.businessOwner, this.branchId});
 
   @override
   State<PricingScreen> createState() => _PricingScreenState();
@@ -34,12 +35,23 @@ class _PricingScreenState extends State<PricingScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<PricingBloc>().add(FetchPricingRules(role: widget.role));
+    _fetchData();
+  }
+
+  @override
+  void didUpdateWidget(covariant PricingScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.branchId != widget.branchId) {
+      _fetchData();
+    }
+  }
+
+  void _fetchData() {
+    context.read<PricingBloc>().add(FetchPricingRules(role: widget.role, branchId: widget.branchId));
   }
 
   void _openAddRuleDialog({PricingRuleMod? rule}) {
-    // Fixed branchId for testing phase
-    const String testBranchId = '5feaac7b-c436-4ecb-8a12-9632e4090205';
+    final currentBranchId = widget.branchId ?? '';
     
     showDialog(
       context: context,
@@ -65,7 +77,7 @@ class _PricingScreenState extends State<PricingScreen> {
                   type: newRule.type,
                   configuration: configMap,
                   status: newRule.isActive,
-                  branchId: rule.branchId ?? testBranchId,
+                  branchId: rule.branchId ?? currentBranchId,
                   role: widget.role,
                 ));
           } else {
@@ -74,7 +86,7 @@ class _PricingScreenState extends State<PricingScreen> {
                   type: newRule.type,
                   configuration: configMap,
                   status: newRule.isActive,
-                  branchId: testBranchId,
+                  branchId: currentBranchId,
                   role: widget.role,
                 ));
           }

@@ -7,6 +7,8 @@ class CustomPlan extends StatelessWidget {
   final String price;
   final List<String> features;
   final String iconPath;
+  final String? buttonText;
+  final VoidCallback? onButtonPressed;
 
   const CustomPlan({
     super.key,
@@ -15,6 +17,8 @@ class CustomPlan extends StatelessWidget {
     required this.price,
     required this.features,
     required this.iconPath,
+    this.buttonText,
+    this.onButtonPressed,
   });
 
   @override
@@ -87,6 +91,27 @@ class CustomPlan extends StatelessWidget {
 
               // FEATURES
               ...features.map((f) => _FeatureItem(text: f)).toList(),
+
+              if (buttonText != null && onButtonPressed != null) ...[
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    onPressed: onButtonPressed,
+                    child: Text(
+                      buttonText!,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -126,7 +151,6 @@ class CustomPlan extends StatelessWidget {
     );
   }
 }
-
 
 class _FeatureItem extends StatelessWidget {
   final String text;

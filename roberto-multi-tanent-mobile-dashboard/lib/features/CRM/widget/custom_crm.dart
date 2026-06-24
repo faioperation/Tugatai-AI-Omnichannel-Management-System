@@ -15,7 +15,8 @@ import 'package:roberto/common/user_role.dart';
 class CustomCrm extends StatefulWidget {
   final Function(String)? onNavigate;
   final UserRole role;
-  const CustomCrm({super.key, this.onNavigate, this.role = UserRole.businessOwner});
+  final String? branchId;
+  const CustomCrm({super.key, this.onNavigate, this.role = UserRole.businessOwner, this.branchId});
 
   @override
   State<CustomCrm> createState() => _CustomCrmState();
@@ -26,14 +27,22 @@ class _CustomCrmState extends State<CustomCrm> {
   int _currentPage = 1;
   static const int _itemsPerPage = 20;
 
-  // Use a fixed branchId for the testing phase per business owner user requirement
-  final String _testBranchId = '5feaac7b-c436-4ecb-8a12-9632e4090205';
-
   @override
   void initState() {
     super.initState();
-    // Fetch initial leads
-    context.read<CrmBloc>().add(FetchLeads(branchId: _testBranchId, role: widget.role));
+    _fetchData();
+  }
+
+  @override
+  void didUpdateWidget(covariant CustomCrm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.branchId != widget.branchId) {
+      _fetchData();
+    }
+  }
+
+  void _fetchData() {
+    context.read<CrmBloc>().add(FetchLeads(branchId: widget.branchId ?? '', role: widget.role));
   }
 
   Color _getTagColor(String? status) {
@@ -165,7 +174,7 @@ class _CustomCrmState extends State<CustomCrm> {
                               IconButton(
                                 icon: const Icon(Icons.refresh),
                                 onPressed: () {
-                                  context.read<CrmBloc>().add(FetchLeads(branchId: _testBranchId, role: widget.role));
+                                  context.read<CrmBloc>().add(FetchLeads(branchId: widget.branchId ?? '', role: widget.role));
                                 },
                               )
                             ],
@@ -193,7 +202,7 @@ class _CustomCrmState extends State<CustomCrm> {
                             IconButton(
                               icon: const Icon(Icons.refresh),
                               onPressed: () {
-                                context.read<CrmBloc>().add(FetchLeads(branchId: _testBranchId, role: widget.role));
+                                context.read<CrmBloc>().add(FetchLeads(branchId: widget.branchId ?? '', role: widget.role));
                               },
                             )
                           ],

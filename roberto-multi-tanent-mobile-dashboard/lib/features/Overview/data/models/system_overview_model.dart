@@ -67,16 +67,27 @@ class OverviewActivityModel {
 
   factory OverviewActivityModel.fromJson(Map<String, dynamic> json) {
     final createdBy = json['createdBy'] as Map<String, dynamic>?;
+    final user = json['user'] as Map<String, dynamic>?;
+    
+    // Synthesize activityTitle for Business Owner API format
+    String synthesizedTitle = '';
+    if (json['action'] != null && json['targetTable'] != null) {
+      final action = json['action'].toString().toLowerCase();
+      final table = json['targetTable'].toString().replaceAll('_', ' ').toLowerCase();
+      final firstName = user?['firstName'] ?? createdBy?['firstName'] ?? 'User';
+      synthesizedTitle = '$firstName ${action}d a $table';
+    }
+
     return OverviewActivityModel(
       id: json['id'] ?? '',
       activityName: json['activityName'] ?? '',
-      activityTitle: json['activityTitle'] ?? '',
+      activityTitle: json['activityTitle'] ?? synthesizedTitle,
       activityType: json['activityType'] ?? '',
       markAsRead: json['markAsRead'] ?? false,
-      createdById: json['createdById'],
+      createdById: json['createdById'] ?? json['userId'],
       createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null,
-      createdByFirstName: createdBy?['firstName'],
-      createdByEmail: createdBy?['email'],
+      createdByFirstName: createdBy?['firstName'] ?? user?['firstName'],
+      createdByEmail: createdBy?['email'] ?? user?['email'],
     );
   }
 }

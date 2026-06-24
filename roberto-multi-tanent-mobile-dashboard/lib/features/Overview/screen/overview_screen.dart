@@ -13,10 +13,12 @@ import 'package:roberto/features/Overview/widget/role_reports.dart';
 
 class OverviewScreen extends StatefulWidget {
   final UserRole role;
+  final String? branchId;
 
   const OverviewScreen({
     super.key,
     this.role = UserRole.businessOwner,
+    this.branchId,
   });
 
   @override
@@ -27,10 +29,22 @@ class _OverviewScreenState extends State<OverviewScreen> {
   @override
   void initState() {
     super.initState();
+    _fetchData();
+  }
+
+  @override
+  void didUpdateWidget(covariant OverviewScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.branchId != widget.branchId) {
+      _fetchData();
+    }
+  }
+
+  void _fetchData() {
     if (widget.role == UserRole.systemOwner) {
       context.read<OverviewBloc>().add(FetchSystemOverviewRequested());
     } else if (widget.role == UserRole.businessOwner) {
-      context.read<OverviewBloc>().add(FetchBusinessOverviewRequested());
+      context.read<OverviewBloc>().add(FetchBusinessOverviewRequested(branchId: widget.branchId));
     }
   }
 

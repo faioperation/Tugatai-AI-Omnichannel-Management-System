@@ -8,9 +8,10 @@ class CampaignRepository {
   CampaignRepository({required NetworkClient networkClient})
       : _networkClient = networkClient;
 
-  Future<List<CampaignModel>> getCampaigns() async {
+  Future<List<CampaignModel>> getCampaigns({String? branchId}) async {
     try {
-      final response = await _networkClient.getRequest(ApiConstants.businessOwnerCampaigns);
+      final url = branchId != null ? '${ApiConstants.businessOwnerCampaigns}?branchId=$branchId' : ApiConstants.businessOwnerCampaigns;
+      final response = await _networkClient.getRequest(url);
       if (response.isSuccess) {
         final List<dynamic> data = response.responseData['data'] ?? [];
         return data.map((json) => CampaignModel.fromJson(json)).toList();
@@ -25,10 +26,10 @@ class CampaignRepository {
   Future<CampaignModel> createCampaign({
     required String title,
     required String message,
-    required String audience,
-    required String inboxId,
+    required String branchId,
     required List<String> selectedPeople,
     required DateTime scheduledTime,
+    required DateTime endDate,
   }) async {
     try {
       final response = await _networkClient.postRequest(
@@ -36,10 +37,10 @@ class CampaignRepository {
         body: {
           'title': title,
           'message': message,
-          'audience': audience,
-          'inboxId': inboxId,
+          'branchId': branchId,
           'selectedPeople': selectedPeople,
           'scheduledTime': scheduledTime.toIso8601String(),
+          'endDate': endDate.toIso8601String(),
         },
       );
       if (response.isSuccess) {
@@ -56,19 +57,19 @@ class CampaignRepository {
     required String id,
     String? title,
     String? message,
-    String? audience,
-    String? inboxId,
+    String? branchId,
     List<String>? selectedPeople,
     DateTime? scheduledTime,
+    DateTime? endDate,
   }) async {
     try {
       final Map<String, dynamic> body = {};
       if (title != null) body['title'] = title;
       if (message != null) body['message'] = message;
-      if (audience != null) body['audience'] = audience;
-      if (inboxId != null) body['inboxId'] = inboxId;
+      if (branchId != null) body['branchId'] = branchId;
       if (selectedPeople != null) body['selectedPeople'] = selectedPeople;
       if (scheduledTime != null) body['scheduledTime'] = scheduledTime.toIso8601String();
+      if (endDate != null) body['endDate'] = endDate.toIso8601String();
 
       final response = await _networkClient.patchRequest(
         '${ApiConstants.businessOwnerCampaignUpdate}/$id',

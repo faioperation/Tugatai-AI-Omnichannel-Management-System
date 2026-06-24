@@ -14,6 +14,7 @@ class CustomOrders extends StatelessWidget {
   void showUpdateStatusDialog({
     required BuildContext context,
     required OrderMod order,
+    String? displayId,
     required void Function(OrderStatus newStatus) onUpdate,
   }) {
     showDialog(
@@ -75,7 +76,7 @@ class CustomOrders extends StatelessWidget {
                     const SizedBox(height: 4),
 
                     Text(
-                      'Update the delivery status for order ${order.orderId}',
+                      'Update the delivery status for order ${displayId ?? order.orderId}',
                       style: TextStyle(
                         fontSize: 13,
                         color: Theme.of(context).textTheme.bodyMedium?.color,
@@ -93,7 +94,7 @@ class CustomOrders extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          _buildDialogInfoRow('Order ID:', order.orderId),
+                          _buildDialogInfoRow('Order ID:', displayId ?? order.orderId),
                           const SizedBox(height: 8),
                           _buildDialogInfoRow(
                               'Customer:', order.customerName),

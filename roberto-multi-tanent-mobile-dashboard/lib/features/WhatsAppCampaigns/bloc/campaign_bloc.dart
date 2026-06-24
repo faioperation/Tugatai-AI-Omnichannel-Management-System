@@ -21,7 +21,7 @@ class CampaignBloc extends Bloc<CampaignEvent, CampaignState> {
   ) async {
     emit(CampaignLoading());
     try {
-      final campaigns = await _campaignRepository.getCampaigns();
+      final campaigns = await _campaignRepository.getCampaigns(branchId: event.branchId);
       emit(CampaignLoaded(campaigns: campaigns));
     } catch (e) {
       emit(CampaignError(message: e.toString()));
@@ -37,10 +37,10 @@ class CampaignBloc extends Bloc<CampaignEvent, CampaignState> {
       await _campaignRepository.createCampaign(
         title: event.title,
         message: event.message,
-        audience: event.audience,
-        inboxId: event.inboxId,
+        branchId: event.branchId,
         selectedPeople: event.selectedPeople,
         scheduledTime: event.scheduledTime,
+        endDate: event.endDate,
       );
       emit(CampaignActionSuccess(message: 'Campaign created successfully'));
       add(FetchCampaigns());
@@ -59,10 +59,10 @@ class CampaignBloc extends Bloc<CampaignEvent, CampaignState> {
         id: event.id,
         title: event.title,
         message: event.message,
-        audience: event.audience,
-        inboxId: event.inboxId,
+        branchId: event.branchId,
         selectedPeople: event.selectedPeople,
         scheduledTime: event.scheduledTime,
+        endDate: event.endDate,
       );
       emit(CampaignActionSuccess(message: 'Campaign updated successfully'));
       add(FetchCampaigns());

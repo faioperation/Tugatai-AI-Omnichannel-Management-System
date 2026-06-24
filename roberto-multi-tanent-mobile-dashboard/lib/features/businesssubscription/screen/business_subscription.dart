@@ -16,7 +16,6 @@ class _BusinessSubscriptionState extends State<BusinessSubscription> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -43,53 +42,6 @@ class _BusinessSubscriptionState extends State<BusinessSubscription> {
               ),
             ),
           ],
-        ),
-
-        const SizedBox(height: 28),
-        // ── Stat Cards ──────────────────────────────────────────────────────
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth > 600;
-            final cards = [
-              CustomStatCard(
-                label: 'MRR',
-                value: '\$8.9K',
-                iconPath: "assets/MRR.svg",
-              ),
-              CustomStatCard(
-                label: 'ARR',
-                value: '\$107K',
-                iconPath: "assets/ARR.svg",
-              ),
-              CustomStatCard(
-                label: 'Active Subs',
-                value: '47',
-                iconPath: "assets/person.svg",
-              ),
-            ];
-            return isWide
-                ? Row(
-              children: cards
-                  .map((c) =>
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                          right: cards.indexOf(c) < 2 ? 16 : 0),
-                      child: c,
-                    ),
-                  ))
-                  .toList(),
-            )
-                : Column(
-              children: cards
-                  .map((c) =>
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: c,
-                  ))
-                  .toList(),
-            );
-          },
         ),
 
         const SizedBox(height: 20),
@@ -138,7 +90,6 @@ class _BusinessSubscriptionState extends State<BusinessSubscription> {
     required int index,
     required String label,
   }) {
-    final theme = Theme.of(context);
     final isActive = _selectedTab == index;
 
     return GestureDetector(

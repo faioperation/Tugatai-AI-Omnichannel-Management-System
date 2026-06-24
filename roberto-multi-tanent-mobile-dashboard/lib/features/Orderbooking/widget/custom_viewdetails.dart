@@ -48,6 +48,11 @@ class CustomViewdetails extends StatelessWidget {
       'note',
       'status',
       'branchId',
+      'id',
+      'businessId',
+      'parcelDeliveryId',
+      'tenantId',
+      'userId',
     };
 
     String formatKeyName(String key) {
@@ -542,6 +547,11 @@ class CustomViewdetails extends StatelessWidget {
       'note',
       'status',
       'branchId',
+      'id',
+      'businessId',
+      'parcelDeliveryId',
+      'tenantId',
+      'userId',
     };
 
     String formatKeyName(String key) {

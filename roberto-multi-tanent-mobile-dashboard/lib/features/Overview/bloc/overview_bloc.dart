@@ -32,7 +32,7 @@ class OverviewBloc extends Bloc<OverviewEvent, OverviewState> {
   ) async {
     emit(OverviewLoading());
     try {
-      final businessData = await overviewRepository.getBusinessOwnerOverview();
+      final businessData = await overviewRepository.getBusinessOwnerOverview(branchId: event.branchId);
       emit(BusinessOverviewLoaded(businessData: businessData));
     } catch (e) {
       emit(OverviewError(message: e.toString().replaceAll('Exception: ', '')));

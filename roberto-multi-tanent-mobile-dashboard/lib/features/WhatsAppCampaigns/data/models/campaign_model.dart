@@ -2,9 +2,12 @@ class CampaignModel {
   final String id;
   final String title;
   final String status;
-  final String? description;
-  final String? inboxId;
-  final String? audience;
+  final String message;
+  final String? branchId;
+  final List<String>? selectedPeople;
+  final DateTime? scheduledTime;
+  final DateTime? endDate;
+  final bool? isExpire;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -12,9 +15,12 @@ class CampaignModel {
     required this.id,
     required this.title,
     required this.status,
-    this.description,
-    this.inboxId,
-    this.audience,
+    required this.message,
+    this.branchId,
+    this.selectedPeople,
+    this.scheduledTime,
+    this.endDate,
+    this.isExpire,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -24,9 +30,12 @@ class CampaignModel {
       id: json['id'] ?? '',
       title: json['title'] ?? '',
       status: json['status'] ?? 'PENDING',
-      description: json['description'] ?? json['message'] ?? '',
-      inboxId: json['inboxId'],
-      audience: json['audience'],
+      message: json['message'] ?? '',
+      branchId: json['branchId'],
+      selectedPeople: json['selectedPeople'] != null ? List<String>.from(json['selectedPeople']) : null,
+      scheduledTime: json['scheduledTime'] != null ? DateTime.tryParse(json['scheduledTime']) : null,
+      endDate: json['endDate'] != null ? DateTime.tryParse(json['endDate']) : null,
+      isExpire: json['isExpire'],
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : DateTime.now(),
     );
@@ -37,9 +46,12 @@ class CampaignModel {
       'id': id,
       'title': title,
       'status': status,
-      'description': description,
-      'inboxId': inboxId,
-      'audience': audience,
+      'message': message,
+      'branchId': branchId,
+      'selectedPeople': selectedPeople,
+      'scheduledTime': scheduledTime?.toIso8601String(),
+      'endDate': endDate?.toIso8601String(),
+      'isExpire': isExpire,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };

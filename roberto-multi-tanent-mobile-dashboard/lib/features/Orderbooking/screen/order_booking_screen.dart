@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/Tenant%20Management%20/widget/custom_stat_card.dart';
 import 'package:roberto/features/Orderbooking/widget/order_mod.dart';
@@ -6,7 +7,6 @@ import 'package:roberto/features/Orderbooking/widget/custom_orders.dart';
 import 'package:roberto/features/Orderbooking/widget/custom_viewdetails.dart';
 import 'package:roberto/features/Tenant%20Management%20/widget/custom_headder.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:roberto/features/Auth/widget/custom_textfield.dart';
 import 'package:roberto/features/Orderbooking/widget/create_order_dialog.dart';
 import 'package:roberto/common/custom_pagination.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,14 +15,14 @@ import 'package:roberto/features/Settings/bloc/profile_state.dart';
 import 'package:roberto/features/Orderbooking/bloc/booking_bloc.dart';
 import 'package:roberto/features/Orderbooking/bloc/booking_event.dart';
 import 'package:roberto/features/Orderbooking/bloc/booking_state.dart';
-import 'package:roberto/features/Orderbooking/data/repositories/booking_repository.dart';
 
 // Breakpoint
 const double _kDesktop = 700;
 
 class OrderBookingScreen extends StatefulWidget {
-  final Function(String)? onNavigate;
-  const OrderBookingScreen({super.key, this.onNavigate});
+  final void Function(String, {String? targetPhone, String? conversationId})? onNavigate;
+  final String? branchId;
+  const OrderBookingScreen({super.key, this.onNavigate, this.branchId});
 
   @override
   State<OrderBookingScreen> createState() => _OrderBookingScreenState();
@@ -31,13 +31,47 @@ class OrderBookingScreen extends StatefulWidget {
 class _OrderBookingScreenState extends State<OrderBookingScreen> {
 
   String _getBranchId() {
-    final profileState = context.read<ProfileBloc>().state;
-    if (profileState is ProfileLoaded) {
-      return profileState.user.branchId ?? '';
-    } else if (profileState is ProfileUpdateSuccess) {
-      return profileState.user.branchId ?? '';
+    return widget.branchId ?? '';
+  }
+
+  DateTime? _parseDateString(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return null;
+    
+    // First try standard ISO parsing (e.g. 2026-06-24)
+    final parsed = DateTime.tryParse(dateStr);
+    if (parsed != null) return parsed;
+    
+    // Then try 'dd MMMM yyyy' (e.g. 22 June 2026)
+    try {
+      return DateFormat('dd MMMM yyyy').parse(dateStr);
+    } catch (_) {}
+    
+    // Then try 'MMMM dd, yyyy' (e.g. June 22, 2026)
+    try {
+      return DateFormat('MMMM dd, yyyy').parse(dateStr);
+    } catch (_) {}
+    
+    return null;
+  }
+
+  String _formatDeliveryDate(OrderMod order) {
+    if (order.deliveryDate != null && order.deliveryDate!.isNotEmpty) {
+      final parsed = _parseDateString(order.deliveryDate);
+      if (parsed != null) {
+        return DateFormat('dd MMM yyyy').format(parsed);
+      }
+      return order.deliveryDate!;
     }
-    return '';
+    final appt = "${order.appointmentDate ?? ''} ${order.appointmentTime ?? ''}".trim();
+    return appt.isNotEmpty ? appt : "N/A";
+  }
+
+  @override
+  void didUpdateWidget(covariant OrderBookingScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.branchId != widget.branchId) {
+      context.read<BookingBloc>().add(GetBookings(branchId: widget.branchId ?? ''));
+    }
   }
   int selectedIndex = 0;
 
@@ -123,7 +157,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
             children: [
               _buildHeader(isMobile, theme, isDark),
               SizedBox(height: isMobile ? 16 : 24),
-              _buildStatCards(isMobile),
+              _buildStatCards(isMobile, state),
               SizedBox(height: isMobile ? 14 : 20),
               if (selectedIndex == 0) ...[
                 _buildFilterBar(isMobile, theme, isDark),
@@ -232,16 +266,28 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   }
 
   // ─── STAT CARDS ─────────────────────────────────────────────────────
-  Widget _buildStatCards(bool isMobile) {
+  Widget _buildStatCards(bool isMobile, BookingState state) {
+    int total = 0;
+    int pending = 0;
+    int confirmed = 0;
+    int delivered = 0;
+
+    if (state is BookingLoaded) {
+      total = state.totalBookings;
+      pending = state.pending;
+      confirmed = state.confirmed;
+      delivered = state.delivered;
+    }
+
     final cards = [
       CustomStatCard(
-          label: 'Total Orders', value: '856', iconPath: 'assets/order1.svg'),
+          label: 'Total Orders', value: '$total', iconPath: 'assets/order1.svg'),
       CustomStatCard(
-          label: 'Pending', value: '124', iconPath: 'assets/pending.svg'),
+          label: 'Pending', value: '$pending', iconPath: 'assets/pending.svg'),
       CustomStatCard(
-          label: 'Confirmed', value: '89', iconPath: 'assets/confirm.svg'),
+          label: 'Confirmed', value: '$confirmed', iconPath: 'assets/confirm.svg'),
       CustomStatCard(
-          label: 'Delivered', value: '643', iconPath: 'assets/deliver.svg'),
+          label: 'Delivered', value: '$delivered', iconPath: 'assets/deliver.svg'),
     ];
 
     if (!isMobile) {
@@ -503,7 +549,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
           Expanded(
             flex: 2,
             child: Center(
-              child: Text("${order.appointmentDate ?? ''} ${order.appointmentTime ?? ''}",
+              child: Text(_formatDeliveryDate(order),
                   style: TextStyle(
                       color: theme.hintColor, fontSize: 13)),
             ),
@@ -646,7 +692,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 child: _buildCardDetail(
                   icon: Icons.access_time,
                   label: 'Delivery',
-                  value: "${order.appointmentDate ?? ''} ${order.appointmentTime ?? ''}",
+                  value: _formatDeliveryDate(order),
                   theme: theme,
                 ),
               ),
@@ -794,7 +840,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
               builder: (context) => CustomViewdetails(
                 order: order,
                 displayId: displayId,
-                onUpdatePressed: () => _showStatusUpdateDialog(order),
+                onUpdatePressed: () => _showStatusUpdateDialog(order, displayId),
               ),
             );
           },
@@ -1074,12 +1120,10 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   Widget _buildCalendarCell(DateTime day, ThemeData theme, bool isDark,
       {bool isSelected = false, bool isToday = false}) {
     // Count orders dynamically for this day
-    final dayOrders = _orders.where((o) => 
-      DateTime.tryParse(o.appointmentDate ?? "") != null && 
-      DateTime.tryParse(o.appointmentDate ?? "")!.year == day.year && 
-      DateTime.tryParse(o.appointmentDate ?? "")!.month == day.month && 
-      DateTime.tryParse(o.appointmentDate ?? "")!.day == day.day
-    ).toList();
+    final dayOrders = _orders.where((o) {
+      final orderDate = _parseDateString(o.deliveryDate) ?? _parseDateString(o.appointmentDate);
+      return orderDate != null && orderDate.year == day.year && orderDate.month == day.month && orderDate.day == day.day;
+    }).toList();
     
     int eventCount = dayOrders.length;
     final hasEvent = eventCount > 0;
@@ -1209,12 +1253,10 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     final selectedDay = _selectedDay ?? DateTime.now();
     final dayStr = '${_getMonthYear(selectedDay).split(' ')[0]} ${selectedDay.day}';
 
-    final filteredOrders = _orders.where((o) => 
-      DateTime.tryParse(o.appointmentDate ?? "") != null && 
-      DateTime.tryParse(o.appointmentDate ?? "")!.year == selectedDay.year && 
-      DateTime.tryParse(o.appointmentDate ?? "")!.month == selectedDay.month && 
-      DateTime.tryParse(o.appointmentDate ?? "")!.day == selectedDay.day
-    ).toList();
+    final filteredOrders = _orders.where((o) {
+      final orderDate = _parseDateString(o.deliveryDate) ?? _parseDateString(o.appointmentDate);
+      return orderDate != null && orderDate.year == selectedDay.year && orderDate.month == selectedDay.month && orderDate.day == selectedDay.day;
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1225,7 +1267,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 fontWeight: FontWeight.bold,
                 color: theme.colorScheme.onSurface)),
         const SizedBox(height: 4),
-        Text('${filteredOrders.length} deliverys scheduled',
+        Text('${filteredOrders.length} deliveries scheduled',
             style: TextStyle(fontSize: 13, color: theme.textTheme.bodySmall?.color ?? const Color(0xff6B7280))),
         const SizedBox(height: 16),
         
@@ -1267,8 +1309,9 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     required bool isDark,
   }) {
     final status = order.status;
-    final orderId = order.orderId;
-    final time = "${order.appointmentDate ?? ''} ${order.appointmentTime ?? ''}";
+    final int idx = _orders.indexOf(order);
+    final String displayId = idx != -1 ? '#${idx + 1}' : order.orderId;
+    final time = _formatDeliveryDate(order);
     final name = order.customerName;
     final items = '${order.note ?? "Booking"} x1';
     final actionText = status == OrderStatus.pending ? 'Mark as Confirmed' : 'Mark as Delivered';
@@ -1289,7 +1332,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(orderId,
+                  Text(displayId,
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: theme.colorScheme.onSurface,
@@ -1320,10 +1363,6 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                final order = _orders.firstWhere(
-                    (o) => o.orderId.replaceAll('#', '') == orderId,
-                    orElse: () => _orders.first);
-
                 final int idx = _orders.indexOf(order);
                 final String displayId = idx != -1 ? '#${idx + 1}' : order.orderId;
 
@@ -1332,7 +1371,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                   builder: (context) => CustomViewdetails(
                     order: order,
                     displayId: displayId,
-                    onUpdatePressed: () => _showStatusUpdateDialog(order),
+                    onUpdatePressed: () => _showStatusUpdateDialog(order, displayId),
                   ),
                 );
               },
@@ -1353,19 +1392,19 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: () {
-                widget.onNavigate?.call('Inbox');
-              },
+              onPressed: order.conversationId != null ? () {
+                widget.onNavigate?.call('Inbox', targetPhone: order.phone, conversationId: order.conversationId);
+              } : null,
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColor.primary,
-                side: const BorderSide(color: AppColor.primary),
+                foregroundColor: order.conversationId != null ? AppColor.primary : Colors.grey,
+                side: BorderSide(color: order.conversationId != null ? AppColor.primary : Colors.grey.shade300),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8)),
               ),
-              icon: const Icon(Icons.chat_outlined, size: 16),
-              label: const Text('See Latest Chat',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              icon: Icon(order.conversationId != null ? Icons.chat_outlined : Icons.phone_callback_outlined, size: 16),
+              label: Text(order.conversationId != null ? 'See Latest Chat' : 'Order from calls',
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
             ),
           )
         ],
@@ -1427,10 +1466,11 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     });
   }
 
-  void _showStatusUpdateDialog(OrderMod order) {
+  void _showStatusUpdateDialog(OrderMod order, [String? displayId]) {
     const CustomOrders().showUpdateStatusDialog(
       context: context,
       order: order,
+      displayId: displayId,
       onUpdate: (status) {
         _updateOrderStatus(order.orderId, status);
       },

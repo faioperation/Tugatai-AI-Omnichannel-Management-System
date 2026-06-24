@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/Auth/widget/custom_textfield.dart';
+import 'package:roberto/features/management/data/models/branch_model.dart';
+import 'package:roberto/features/management/data/models/branch_manager_model.dart';
+import 'package:roberto/features/management/bloc/management_bloc.dart';
+import 'package:roberto/features/management/bloc/management_event.dart';
+import 'package:roberto/features/management/bloc/management_state.dart';
 
 class CustomAddbranch extends StatefulWidget {
   final bool isEdit;
-  final String? branchName;
-  final String? location;
-  final String? address;
-  final String? status;
+  final BranchModel? branch;
 
   const CustomAddbranch({
     super.key,
     this.isEdit = false,
-    this.branchName,
-    this.location,
-    this.address,
-    this.status,
+    this.branch,
   });
 
   @override
@@ -23,22 +23,33 @@ class CustomAddbranch extends StatefulWidget {
 }
 
 class _CustomAddbranchState extends State<CustomAddbranch> {
-  String _selectedStatus = "Active";
-  String? _selectedBranchManager;
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  String? _selectedManagerId;
 
   @override
   void initState() {
     super.initState();
-    if (widget.status != null) {
-      // Normalize to match dropdown items ["Active", "Inactive"]
-      final status = widget.status!.toLowerCase();
-      if (status == 'active') {
-        _selectedStatus = "Active";
-      } else if (status == 'inactive') {
-        _selectedStatus = "Inactive";
-      }
+    if (widget.isEdit && widget.branch != null) {
+      _nameController.text = widget.branch!.name;
+      _emailController.text = widget.branch!.email;
+      _phoneController.text = widget.branch!.phone;
+      _addressController.text = widget.branch!.address;
+      _selectedManagerId = widget.branch!.managerId;
     }
   }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -70,30 +81,35 @@ class _CustomAddbranchState extends State<CustomAddbranch> {
               _buildFieldLabel(context, "Branch Name"),
               CustomTextfield(
                 hintText: "Main Branch",
-                initialValue: widget.branchName,
+                controller: _nameController,
               ),
               const SizedBox(height: 16),
 
-              _buildFieldLabel(context, "Location"),
+              _buildFieldLabel(context, "Branch Email"),
               CustomTextfield(
-                hintText: "Dhaka, Bangladesh",
-                initialValue: widget.location,
+                hintText: "branch@example.com",
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+
+              _buildFieldLabel(context, "Branch Phone"),
+              CustomTextfield(
+                hintText: "+1234567890",
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 16),
 
               _buildFieldLabel(context, "Address"),
               CustomTextfield(
-                hintText: "123 Street Name, Area",
-                initialValue: widget.address,
+                hintText: "123 Business Rd, City",
+                controller: _addressController,
               ),
               const SizedBox(height: 16),
 
               _buildFieldLabel(context, "Assign Branch Manager"),
               _buildBranchManagerDropdown(theme),
-              const SizedBox(height: 16),
-
-              _buildFieldLabel(context, "Status"),
-              _buildStatusDropdown(theme),
               const SizedBox(height: 24),
 
               // Actions
@@ -143,75 +159,55 @@ class _CustomAddbranchState extends State<CustomAddbranch> {
     );
   }
 
-  Widget _buildStatusDropdown(ThemeData theme) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: theme.brightness == Brightness.dark
-            ? theme.colorScheme.surface
-            : const Color(0xffF9FAFB),
-        borderRadius: BorderRadius.circular(12),
-        border:
-            Border.all(color: theme.dividerTheme.color ?? Colors.transparent),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedStatus,
-          isExpanded: true,
-          dropdownColor: theme.cardTheme.color,
-          items: ["Active", "Inactive"]
-              .map((s) => DropdownMenuItem(
-                    value: s,
-                    child: Text(s,
-                        style: TextStyle(
-                            fontSize: 14, color: theme.colorScheme.onSurface)),
-                  ))
-              .toList(),
-          onChanged: (v) {
-            if (v != null) {
-              setState(() => _selectedStatus = v);
-            }
-          },
-        ),
-      ),
-    );
-  }
-
   Widget _buildBranchManagerDropdown(ThemeData theme) {
-    // These would normally come from a provider/state management
-    final branchManagers = ["John Smith", "Michael Chen", "Sarah Johnson", "David Brown"];
-    
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: theme.brightness == Brightness.dark
-            ? theme.colorScheme.surface
-            : const Color(0xffF9FAFB),
-        borderRadius: BorderRadius.circular(12),
-        border:
-            Border.all(color: theme.dividerTheme.color ?? Colors.transparent),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedBranchManager,
-          hint: Text("Select Branch Manager", style: TextStyle(fontSize: 14, color: theme.textTheme.bodySmall?.color)),
-          isExpanded: true,
-          dropdownColor: theme.cardTheme.color,
-          items: branchManagers
-              .map((m) => DropdownMenuItem(
-                    value: m,
-                    child: Text(m,
-                        style: TextStyle(
-                            fontSize: 14, color: theme.colorScheme.onSurface)),
-                  ))
-              .toList(),
-          onChanged: (v) {
-            setState(() => _selectedBranchManager = v);
-          },
-        ),
-      ),
+    return BlocBuilder<ManagementBloc, ManagementState>(
+      builder: (context, state) {
+        List<BranchManagerModel> managers = [];
+        if (state is ManagementLoaded) {
+          managers = state.managers;
+        }
+
+        // Validate selection selection is present in current managers
+        final hasSelected = managers.any((m) => m.id == _selectedManagerId);
+        if (!hasSelected && managers.isNotEmpty) {
+          // If we had no selection, we can pre-select if desired.
+        }
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: theme.brightness == Brightness.dark
+                ? theme.colorScheme.surface
+                : const Color(0xffF9FAFB),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: theme.dividerTheme.color ?? Colors.transparent),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedManagerId,
+              hint: Text(
+                "Select Branch Manager",
+                style: TextStyle(fontSize: 14, color: theme.textTheme.bodySmall?.color),
+              ),
+              isExpanded: true,
+              dropdownColor: theme.cardTheme.color,
+              items: managers
+                  .map((m) => DropdownMenuItem<String>(
+                        value: m.id,
+                        child: Text(
+                          m.name,
+                          style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface),
+                        ),
+                      ))
+                  .toList(),
+              onChanged: (v) {
+                setState(() => _selectedManagerId = v);
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -250,7 +246,7 @@ class _CustomAddbranchState extends State<CustomAddbranch> {
       ),
     );
 
-    final createBtn = ElevatedButton(
+    final submitBtn = ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColor.primary,
         foregroundColor: Colors.white,
@@ -258,10 +254,46 @@ class _CustomAddbranchState extends State<CustomAddbranch> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 0,
       ),
-      onPressed: () => Navigator.pop(context),
+      onPressed: () {
+        final name = _nameController.text.trim();
+        final email = _emailController.text.trim();
+        final phone = _phoneController.text.trim();
+        final address = _addressController.text.trim();
+        final managerId = _selectedManagerId ?? '';
+
+        if (name.isEmpty || email.isEmpty || phone.isEmpty || address.isEmpty || managerId.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("All fields are required. Please select a manager."),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        if (widget.isEdit && widget.branch != null) {
+          context.read<ManagementBloc>().add(UpdateBranchRequested(
+                id: widget.branch!.id,
+                name: name,
+                email: email,
+                phone: phone,
+                address: address,
+                managerId: managerId,
+              ));
+        } else {
+          context.read<ManagementBloc>().add(CreateBranchRequested(
+                name: name,
+                email: email,
+                phone: phone,
+                address: address,
+                managerId: managerId,
+              ));
+        }
+        Navigator.pop(context);
+      },
       child: Center(
         child: Text(
-          widget.isEdit ? "Update branch" : "Create branch",
+          widget.isEdit ? "Update Branch" : "Create Branch",
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
@@ -271,7 +303,7 @@ class _CustomAddbranchState extends State<CustomAddbranch> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          createBtn,
+          submitBtn,
           const SizedBox(height: 12),
           cancelBtn,
         ],
@@ -282,7 +314,7 @@ class _CustomAddbranchState extends State<CustomAddbranch> {
       children: [
         Expanded(child: cancelBtn),
         const SizedBox(width: 12),
-        Expanded(child: createBtn),
+        Expanded(child: submitBtn),
       ],
     );
   }

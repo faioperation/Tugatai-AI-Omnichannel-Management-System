@@ -45,6 +45,29 @@ class InvoiceModel {
   }
 }
 
+class PlanFeatureModel {
+  final String id;
+  final String planId;
+  final String key;
+  final String value;
+
+  PlanFeatureModel({
+    required this.id,
+    required this.planId,
+    required this.key,
+    required this.value,
+  });
+
+  factory PlanFeatureModel.fromJson(Map<String, dynamic> json) {
+    return PlanFeatureModel(
+      id: json['id'] ?? '',
+      planId: json['planId'] ?? '',
+      key: json['key'] ?? '',
+      value: json['value'] ?? '',
+    );
+  }
+}
+
 class PlanModel {
   final String id;
   final String name;
@@ -54,6 +77,7 @@ class PlanModel {
   final double yearlyPrice;
   final String currency;
   final bool isActive;
+  final List<PlanFeatureModel> features;
 
   PlanModel({
     required this.id,
@@ -64,9 +88,13 @@ class PlanModel {
     required this.yearlyPrice,
     required this.currency,
     required this.isActive,
+    required this.features,
   });
 
   factory PlanModel.fromJson(Map<String, dynamic> json) {
+    var featureList = json['features'] as List? ?? [];
+    List<PlanFeatureModel> parsedFeatures = featureList.map((f) => PlanFeatureModel.fromJson(f)).toList();
+
     return PlanModel(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
@@ -76,6 +104,7 @@ class PlanModel {
       yearlyPrice: (json['yearlyPrice'] ?? 0).toDouble(),
       currency: json['currency'] ?? '',
       isActive: json['isActive'] ?? false,
+      features: parsedFeatures,
     );
   }
 }
@@ -114,6 +143,12 @@ class BusinessSubscriptionModel {
     required this.invoicePath,
     required this.invoiceUrl,
   });
+
+  bool get isExpired {
+    if (status.toUpperCase() != 'ACTIVE') return true;
+    if (endDate == null) return false;
+    return endDate!.isBefore(DateTime.now());
+  }
 
   factory BusinessSubscriptionModel.fromJson(Map<String, dynamic> json) {
     var invoiceList = json['invoices'] as List? ?? [];
