@@ -1,0 +1,235 @@
+Analyzing roberto-multi-tanent-mobile-dashboard...              
+
+warning • Unused import: 'package:roberto/app/app_color.dart' • lib/features/AiAgent/screen/aiagent_screen.dart:2:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/AiAgent/screen/aiagent_screen.dart:119:46 • deprecated_member_use
+   info • 'color' is deprecated and shouldn't be used. Use colorFilter instead • lib/features/AiAgent/screen/aiagent_screen.dart:133:15 • deprecated_member_use
+warning • Unused import: 'package:roberto/app/app_color.dart' • lib/features/AiAgent/widget/custom_agent.dart:3:8 • unused_import
+   info • 'color' is deprecated and shouldn't be used. Use colorFilter instead • lib/features/AiAgent/widget/custom_agent.dart:57:13 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/AiAgent/widget/custom_agent.dart:103:9 • deprecated_member_use
+warning • Unused import: 'package:roberto/app/app_color.dart' • lib/features/AiAgent/widget/system_prompt_view.dart:2:8 • unused_import
+   info • The import of 'dart:ui' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' • lib/features/AiAgent/widget/training_data_view.dart:1:8 • unnecessary_import
+warning • Unused import: 'package:roberto/app/app_color.dart' • lib/features/AiAgent/widget/training_data_view.dart:3:8 • unused_import
+   info • The private field _rememberMe could be 'final' • lib/features/Auth/screen/forgot_screen.dart:18:8 • prefer_final_fields
+warning • The value of the field '_rememberMe' isn't used • lib/features/Auth/screen/forgot_screen.dart:18:8 • unused_field
+warning • Unused import: 'package:roberto/features/Auth/screen/forgot_screen.dart' • lib/features/Auth/screen/reset_screen.dart:3:8 • unused_import
+   info • The private field _rememberMe could be 'final' • lib/features/Auth/screen/reset_screen.dart:19:8 • prefer_final_fields
+warning • The value of the field '_rememberMe' isn't used • lib/features/Auth/screen/reset_screen.dart:19:8 • unused_field
+warning • Unused import: 'package:roberto/features/Auth/screen/forgot_screen.dart' • lib/features/Auth/screen/successful_screen.dart:3:8 • unused_import
+warning • Unused import: '../widget/custom_textfield.dart' • lib/features/Auth/screen/successful_screen.dart:8:8 • unused_import
+   info • The private field _rememberMe could be 'final' • lib/features/Auth/screen/successful_screen.dart:19:8 • prefer_final_fields
+warning • The value of the field '_rememberMe' isn't used • lib/features/Auth/screen/successful_screen.dart:19:8 • unused_field
+warning • Unused import: '../widget/custom_textfield.dart' • lib/features/Auth/screen/verify_screen.dart:8:8 • unused_import
+   info • The private field _rememberMe could be 'final' • lib/features/Auth/screen/verify_screen.dart:19:8 • prefer_final_fields
+warning • The value of the field '_rememberMe' isn't used • lib/features/Auth/screen/verify_screen.dart:19:8 • unused_field
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Auth/widget/custom_screen.dart:39:41 • deprecated_member_use
+warning • The value of the local variable 'isDark' isn't used • lib/features/CRM/widget/custom_crm.dart:14:11 • unused_local_variable
+   info • Don't invoke 'print' in production code • lib/features/CRM/widget/custom_crm.dart:199:9 • avoid_print
+warning • Unused import: 'package:roberto/app/app_color.dart' • lib/features/CRM/widget/custom_lead_row.dart:2:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/CRM/widget/custom_lead_row.dart:103:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/CRM/widget/custom_lead_row.dart:172:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/CRM/widget/custom_lead_row.dart:391:29 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Inbox/widget/chat_details.dart:98:64 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Inbox/widget/chat_list.dart:133:143 • deprecated_member_use
+warning • The value of the field '_selectedImagePath' isn't used • lib/features/Inbox/widget/chat_view.dart:19:11 • unused_field
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/Inbox/widget/chat_view.dart:142:21 • deprecated_member_use
+  error • Missing concrete implementation of 'State.build' • lib/features/Orderbooking/screen/order_booking_screen.dart:22:7 • non_abstract_class_inherits_abstract_member
+   info • The private field _searchQuery could be 'final' • lib/features/Orderbooking/screen/order_booking_screen.dart:25:10 • prefer_final_fields
+   info • The private field _selectedStatus could be 'final' • lib/features/Orderbooking/screen/order_booking_screen.dart:26:10 • prefer_final_fields
+   info • The private field _selectedTime could be 'final' • lib/features/Orderbooking/screen/order_booking_screen.dart:27:10 • prefer_final_fields
+   info • The private field _focusedDay could be 'final' • lib/features/Orderbooking/screen/order_booking_screen.dart:30:12 • prefer_final_fields
+warning • The declaration '_filteredOrders' isn't referenced • lib/features/Orderbooking/screen/order_booking_screen.dart:102:22 • unused_element
+  error • The instance member 'context' can't be accessed in an initializer • lib/features/Orderbooking/screen/order_booking_screen.dart:121:28 • implicit_this_reference_in_initializer
+  error • The instance member 'theme' can't be accessed in an initializer • lib/features/Orderbooking/screen/order_booking_screen.dart:122:20 • implicit_this_reference_in_initializer
+  error • Expected a class member • lib/features/Orderbooking/screen/order_booking_screen.dart:124:5 • expected_class_member
+   info • Missing type annotation • lib/features/Orderbooking/screen/order_booking_screen.dart:124:12 • strict_top_level_inference
+   info • The variable name 'LayoutBuilder' isn't a lowerCamelCase identifier • lib/features/Orderbooking/screen/order_booking_screen.dart:124:12 • non_constant_identifier_names
+  error • 'LayoutBuilder' must have a method body because '_OrderBookingScreenState' isn't abstract • lib/features/Orderbooking/screen/order_booking_screen.dart:124:12 • concrete_class_with_abstract_member
+   info • Missing type annotation • lib/features/Orderbooking/screen/order_booking_screen.dart:125:7 • strict_top_level_inference
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/Orderbooking/screen/order_booking_screen.dart:125:14 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/Orderbooking/screen/order_booking_screen.dart:125:14 • obsolete_colon_for_default_value
+  error • The default value of an optional parameter must be constant • lib/features/Orderbooking/screen/order_booking_screen.dart:125:16 • non_constant_default_value
+  error • Too many positional arguments: 1 expected, but 3 found • lib/features/Orderbooking/screen/order_booking_screen.dart:137:43 • extra_positional_arguments
+  error • Undefined name 'context' • lib/features/Orderbooking/screen/order_booking_screen.dart:201:24 • undefined_identifier
+  error • Undefined name 'isDark' • lib/features/Orderbooking/screen/order_booking_screen.dart:303:16 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Orderbooking/screen/order_booking_screen.dart:303:25 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Orderbooking/screen/order_booking_screen.dart:305:35 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Orderbooking/screen/order_booking_screen.dart:309:47 • undefined_identifier
+  error • The function 'setState' isn't defined • lib/features/Orderbooking/screen/order_booking_screen.dart:313:33 • undefined_function
+  error • Undefined name '_searchQuery' • lib/features/Orderbooking/screen/order_booking_screen.dart:313:48 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Orderbooking/screen/order_booking_screen.dart:314:53 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Orderbooking/screen/order_booking_screen.dart:318:52 • undefined_identifier
+  error • Undefined name '_selectedStatus' • lib/features/Orderbooking/screen/order_booking_screen.dart:329:14 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Orderbooking/screen/order_booking_screen.dart:330:14 • undefined_identifier
+  error • Undefined name 'isDark' • lib/features/Orderbooking/screen/order_booking_screen.dart:331:15 • undefined_identifier
+  error • The function 'setState' isn't defined • lib/features/Orderbooking/screen/order_booking_screen.dart:333:25 • undefined_function
+  error • Undefined name '_selectedStatus' • lib/features/Orderbooking/screen/order_booking_screen.dart:333:40 • undefined_identifier
+  error • Undefined name '_selectedTime' • lib/features/Orderbooking/screen/order_booking_screen.dart:337:14 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Orderbooking/screen/order_booking_screen.dart:338:14 • undefined_identifier
+  error • Undefined name 'isDark' • lib/features/Orderbooking/screen/order_booking_screen.dart:339:15 • undefined_identifier
+  error • The function 'setState' isn't defined • lib/features/Orderbooking/screen/order_booking_screen.dart:341:25 • undefined_function
+  error • Undefined name '_selectedTime' • lib/features/Orderbooking/screen/order_booking_screen.dart:341:40 • undefined_identifier
+  error • Undefined name 'isDark' • lib/features/Orderbooking/screen/order_booking_screen.dart:376:16 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Orderbooking/screen/order_booking_screen.dart:376:25 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Orderbooking/screen/order_booking_screen.dart:378:35 • undefined_identifier
+  error • Undefined name '_filteredOrders' • lib/features/Orderbooking/screen/order_booking_screen.dart:418:17 • undefined_identifier
+  error • Undefined name '_filteredOrders' • lib/features/Orderbooking/screen/order_booking_screen.dart:428:18 • undefined_identifier
+  error • 2 positional arguments expected by '_buildCustomerCell', but 1 found • lib/features/Orderbooking/screen/order_booking_screen.dart:457:44 • not_enough_positional_arguments
+  error • Undefined name 'context' • lib/features/Orderbooking/screen/order_booking_screen.dart:504:40 • undefined_identifier
+  error • Undefined name '_filteredOrders' • lib/features/Orderbooking/screen/order_booking_screen.dart:513:9 • undefined_identifier
+  error • Undefined name '_filteredOrders' • lib/features/Orderbooking/screen/order_booking_screen.dart:525:11 • undefined_identifier
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Orderbooking/screen/order_booking_screen.dart:539:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Orderbooking/screen/order_booking_screen.dart:569:52 • deprecated_member_use
+  error • The named parameter 'theme' is required, but there's no corresponding argument • lib/features/Orderbooking/screen/order_booking_screen.dart:604:24 • missing_required_argument
+  error • The named parameter 'theme' is required, but there's no corresponding argument • lib/features/Orderbooking/screen/order_booking_screen.dart:611:24 • missing_required_argument
+  error • The named parameter 'theme' is required, but there's no corresponding argument • lib/features/Orderbooking/screen/order_booking_screen.dart:623:24 • missing_required_argument
+  error • The named parameter 'theme' is required, but there's no corresponding argument • lib/features/Orderbooking/screen/order_booking_screen.dart:630:24 • missing_required_argument
+  error • The named parameter 'label' is required, but there's no corresponding argument • lib/features/Orderbooking/screen/order_booking_screen.dart:647:24 • missing_required_argument
+  error • Undefined name 'context' • lib/features/Orderbooking/screen/order_booking_screen.dart:650:32 • undefined_identifier
+  error • The named parameter 'style' isn't defined • lib/features/Orderbooking/screen/order_booking_screen.dart:655:19 • undefined_named_parameter
+  error • The named parameter 'icon' isn't defined • lib/features/Orderbooking/screen/order_booking_screen.dart:662:19 • undefined_named_parameter
+  error • The named parameter 'label' isn't defined • lib/features/Orderbooking/screen/order_booking_screen.dart:663:19 • undefined_named_parameter
+  error • Too many positional arguments: 0 expected, but 4 found • lib/features/Orderbooking/screen/order_booking_screen.dart:667:15 • extra_positional_arguments_could_be_named
+  error • Expected to find ')' • lib/features/Orderbooking/screen/order_booking_screen.dart:677:13 • expected_token
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Orderbooking/screen/order_booking_screen.dart:723:24 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Orderbooking/screen/order_booking_screen.dart:738:46 • deprecated_member_use
+  error • Undefined name 'selectedIndex' • lib/features/Orderbooking/screen/order_booking_screen.dart:807:24 • undefined_identifier
+  error • The function 'setState' isn't defined • lib/features/Orderbooking/screen/order_booking_screen.dart:809:20 • undefined_function
+  error • Undefined name 'selectedIndex' • lib/features/Orderbooking/screen/order_booking_screen.dart:809:35 • undefined_identifier
+  error • 1 positional argument expected by '_buildCalendarTitle', but 0 found • lib/features/Orderbooking/screen/order_booking_screen.dart:954:45 • not_enough_positional_arguments
+  error • 2 positional arguments expected by '_buildCalendarNav', but 0 found • lib/features/Orderbooking/screen/order_booking_screen.dart:956:43 • not_enough_positional_arguments
+  error • 1 positional argument expected by '_buildCalendarTitle', but 0 found • lib/features/Orderbooking/screen/order_booking_screen.dart:962:45 • not_enough_positional_arguments
+  error • 2 positional arguments expected by '_buildCalendarNav', but 0 found • lib/features/Orderbooking/screen/order_booking_screen.dart:963:43 • not_enough_positional_arguments
+  error • Undefined name '_focusedDay' • lib/features/Orderbooking/screen/order_booking_screen.dart:973:25 • undefined_identifier
+  error • Undefined name '_selectedDay' • lib/features/Orderbooking/screen/order_booking_screen.dart:974:54 • undefined_identifier
+  error • The function 'setState' isn't defined • lib/features/Orderbooking/screen/order_booking_screen.dart:976:15 • undefined_function
+  error • Undefined name '_selectedDay' • lib/features/Orderbooking/screen/order_booking_screen.dart:977:17 • undefined_identifier
+  error • Undefined name '_focusedDay' • lib/features/Orderbooking/screen/order_booking_screen.dart:978:17 • undefined_identifier
+  error • Undefined name '_focusedDay' • lib/features/Orderbooking/screen/order_booking_screen.dart:982:15 • undefined_identifier
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Orderbooking/screen/order_booking_screen.dart:1004:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Orderbooking/screen/order_booking_screen.dart:1052:36 • deprecated_member_use
+  error • The function 'setState' isn't defined • lib/features/Orderbooking/screen/order_booking_screen.dart:1136:11 • undefined_function
+  error • Undefined name '_focusedDay' • lib/features/Orderbooking/screen/order_booking_screen.dart:1137:13 • undefined_identifier
+  error • Undefined name '_focusedDay' • lib/features/Orderbooking/screen/order_booking_screen.dart:1138:17 • undefined_identifier
+  error • Undefined name '_focusedDay' • lib/features/Orderbooking/screen/order_booking_screen.dart:1138:35 • undefined_identifier
+  error • Undefined name '_focusedDay' • lib/features/Orderbooking/screen/order_booking_screen.dart:1138:58 • undefined_identifier
+  error • Undefined name '_focusedDay' • lib/features/Orderbooking/screen/order_booking_screen.dart:1142:28 • undefined_identifier
+  error • The function 'setState' isn't defined • lib/features/Orderbooking/screen/order_booking_screen.dart:1149:11 • undefined_function
+  error • Undefined name '_focusedDay' • lib/features/Orderbooking/screen/order_booking_screen.dart:1150:13 • undefined_identifier
+  error • Undefined name '_focusedDay' • lib/features/Orderbooking/screen/order_booking_screen.dart:1151:17 • undefined_identifier
+  error • Undefined name '_focusedDay' • lib/features/Orderbooking/screen/order_booking_screen.dart:1151:35 • undefined_identifier
+  error • Undefined name '_focusedDay' • lib/features/Orderbooking/screen/order_booking_screen.dart:1151:58 • undefined_identifier
+  error • Undefined name '_selectedDay' • lib/features/Orderbooking/screen/order_booking_screen.dart:1167:37 • undefined_identifier
+  error • Undefined name '_selectedDay' • lib/features/Orderbooking/screen/order_booking_screen.dart:1167:86 • undefined_identifier
+  error • Undefined name '_orders' • lib/features/Orderbooking/screen/order_booking_screen.dart:1262:31 • undefined_identifier
+  error • Undefined name '_orders' • lib/features/Orderbooking/screen/order_booking_screen.dart:1264:35 • undefined_identifier
+  error • Undefined name 'context' • lib/features/Orderbooking/screen/order_booking_screen.dart:1267:28 • undefined_identifier
+warning • The declaration '_buildDialogInfoRow' isn't referenced • lib/features/Orderbooking/screen/order_booking_screen.dart:1293:10 • unused_element
+warning • The declaration '_buildDialogStatusRow' isn't referenced • lib/features/Orderbooking/screen/order_booking_screen.dart:1308:10 • unused_element
+  error • The function 'setState' isn't defined • lib/features/Orderbooking/screen/order_booking_screen.dart:1320:5 • undefined_function
+  error • Undefined name '_orders' • lib/features/Orderbooking/screen/order_booking_screen.dart:1321:21 • undefined_identifier
+  error • Undefined name '_orders' • lib/features/Orderbooking/screen/order_booking_screen.dart:1323:9 • undefined_identifier
+  error • Undefined name '_orders' • lib/features/Orderbooking/screen/order_booking_screen.dart:1323:26 • undefined_identifier
+  error • Expected a method, getter, setter or operator declaration • lib/features/Orderbooking/screen/order_booking_screen.dart:1341:1 • expected_executable
+  error • Methods can't be invoked in constant expressions • lib/features/Orderbooking/widget/create_order_dialog.dart:307:18 • const_eval_method_invocation
+  error • Methods can't be invoked in constant expressions • lib/features/Orderbooking/widget/custom_orders.dart:56:40 • const_eval_method_invocation
+warning • Unused import: 'package:roberto/app/app_color.dart' • lib/features/Orderbooking/widget/custom_orderstatus.dart:2:8 • unused_import
+warning • Unused import: 'package:roberto/features/Tenant%20Management%20/widget/custom_headder.dart' • lib/features/Orderbooking/widget/custom_orderstatus.dart:3:8 • unused_import
+warning • The declaration '_StatusBadge' isn't referenced • lib/features/Orderbooking/widget/custom_orderstatus.dart:35:7 • unused_element
+warning • The declaration '_Avatar' isn't referenced • lib/features/Orderbooking/widget/custom_orderstatus.dart:107:7 • unused_element
+warning • The declaration '_ActionIcon' isn't referenced • lib/features/Orderbooking/widget/custom_orderstatus.dart:132:7 • unused_element
+warning • A value for optional parameter 'color' isn't ever given • lib/features/Orderbooking/widget/custom_orderstatus.dart:136:47 • unused_element_parameter
+warning • A value for optional parameter 'onTap' isn't ever given • lib/features/Orderbooking/widget/custom_orderstatus.dart:136:59 • unused_element_parameter
+   info • Parameter 'key' could be a super parameter • lib/features/Orderbooking/widget/custom_viewdetails.dart:8:9 • use_super_parameters
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Orderbooking/widget/order_row_item.dart:52:54 • deprecated_member_use
+warning • Unused import: 'package:roberto/app/app_color.dart' • lib/features/Overview/widget/stat_card.dart:2:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Overview/widget/stat_card.dart:47:36 • deprecated_member_use
+warning • Unused import: 'package:flutter_svg/flutter_svg.dart' • lib/features/Pricing/screen/pricing_screen.dart:3:8 • unused_import
+warning • Unused import: 'package:roberto/features/Tenant%20Management%20/widget/custom_headder.dart' • lib/features/Pricing/screen/pricing_screen.dart:7:8 • unused_import
+   info • Unnecessary 'const' keyword • lib/features/Pricing/screen/pricing_screen.dart:38:13 • unnecessary_const
+   info • Unnecessary 'const' keyword • lib/features/Pricing/screen/pricing_screen.dart:39:13 • unnecessary_const
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Pricing/screen/pricing_screen.dart:199:52 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/Pricing/widget/custom_addrule.dart:103:23 • deprecated_member_use
+  error • Expected a method, getter, setter or operator declaration • lib/features/Pricing/widget/custom_addrule.dart:177:1 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/Pricing/widget/custom_addrule.dart:178:1 • expected_executable
+warning • Unused import: 'package:roberto/app/app_color.dart' • lib/features/Pricing/widget/custom_pricingcalculator.dart:2:8 • unused_import
+   info • Don't invoke 'print' in production code • lib/features/Pricing/widget/custom_pricingrule.dart:92:15 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/Pricing/widget/custom_pricingrule.dart:95:15 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/Pricing/widget/custom_pricingrule.dart:105:15 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/Pricing/widget/custom_pricingrule.dart:108:15 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/Pricing/widget/custom_pricingrule.dart:118:15 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/Pricing/widget/custom_pricingrule.dart:121:15 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/Pricing/widget/custom_pricingrule.dart:131:15 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/Pricing/widget/custom_pricingrule.dart:134:15 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/Pricing/widget/custom_pricingrule.dart:144:15 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/Pricing/widget/custom_pricingrule.dart:147:15 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/Pricing/widget/custom_pricingrule.dart:157:15 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/Pricing/widget/custom_pricingrule.dart:160:15 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/Pricing/widget/custom_pricingrule.dart:170:15 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/Pricing/widget/custom_pricingrule.dart:173:15 • avoid_print
+  error • Undefined name 'theme' • lib/features/Pricing/widget/custom_widgetrule.dart:39:16 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Pricing/widget/custom_widgetrule.dart:42:48 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Pricing/widget/custom_widgetrule.dart:43:33 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Pricing/widget/custom_widgetrule.dart:57:24 • undefined_identifier
+  error • Undefined name 'isDark' • lib/features/Pricing/widget/custom_widgetrule.dart:71:28 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Pricing/widget/custom_widgetrule.dart:71:37 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Pricing/widget/custom_widgetrule.dart:79:30 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Pricing/widget/custom_widgetrule.dart:94:24 • undefined_identifier
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/Pricing/widget/custom_widgetrule.dart:113:19 • deprecated_member_use
+  error • Undefined name 'theme' • lib/features/Pricing/widget/custom_widgetrule.dart:162:28 • undefined_identifier
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/Pricing/widget/custom_widgetrule.dart:175:19 • deprecated_member_use
+  error • Undefined name 'isDark' • lib/features/Pricing/widget/custom_widgetrule.dart:187:26 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Pricing/widget/custom_widgetrule.dart:187:35 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Pricing/widget/custom_widgetrule.dart:194:28 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/Pricing/widget/custom_widgetrule.dart:204:28 • undefined_identifier
+warning • The value of the local variable 'image' isn't used • lib/features/Settings/screen/setting_screen.dart:88:44 • unused_local_variable
+  error • Expected a method, getter, setter or operator declaration • lib/features/Settings/widget/custom_profile.dart:62:1 • expected_executable
+warning • Unused import: 'package:roberto/app/app_color.dart' • lib/features/Subscription/screen/subscription_screen.dart:2:8 • unused_import
+warning • Unused import: 'package:flutter_svg/flutter_svg.dart' • lib/features/Subscription/screen/subscription_screen.dart:5:8 • unused_import
+warning • The value of the local variable 'isDesktop' isn't used • lib/features/Subscription/screen/subscription_screen.dart:17:10 • unused_local_variable
+warning • Unnecessary cast • lib/features/Subscription/widget/custom_billing.dart:176:70 • unnecessary_cast
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Subscription/widget/custom_plan.dart:35:54 • deprecated_member_use
+   info • Unnecessary use of 'toList' in a spread • lib/features/Subscription/widget/custom_plan.dart:89:61 • unnecessary_to_list_in_spreads
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Subscription/widget/custom_plan.dart:113:58 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Subscription/widget/custom_planbilling.dart:58:52 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Tenant Management /screen/tenant_screen.dart:441:55 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Tenant Management /screen/tenant_screen.dart:442:58 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Tenant Management /screen/tenant_screen.dart:451:86 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/Tenant Management /widget/custom_addtenant.dart:128:60 • deprecated_member_use
+warning • Unused import: 'package:roberto/app/app_color.dart' • lib/features/Tenant Management /widget/custom_headder.dart:2:8 • unused_import
+   info • Constructors for public widgets should have a named 'key' parameter • lib/features/Tenant Management /widget/custom_headder.dart:6:9 • use_key_in_widget_constructors
+  error • Undefined name 'theme' • lib/features/businesssetting/screen/businessowner_settings.dart:51:22 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/businesssetting/screen/businessowner_settings.dart:53:41 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/businesssetting/screen/businessowner_settings.dart:134:22 • undefined_identifier
+  error • Undefined name 'theme' • lib/features/businesssetting/screen/businessowner_settings.dart:136:41 • undefined_identifier
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/businesssetting/screen/businessowner_settings.dart:156:23 • deprecated_member_use
+warning • Unused import: 'package:roberto/app/app_color.dart' • lib/features/businesssubscription/screen/business_subscription.dart:2:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/businesssubscription/screen/business_subscription.dart:108:35 • deprecated_member_use
+warning • Unused import: 'package:flutter_svg/flutter_svg.dart' • lib/features/businesssubscription/widget/custom_history.dart:3:8 • unused_import
+   info • Don't invoke 'print' in production code • lib/features/businesssubscription/widget/custom_history.dart:65:19 • avoid_print
+warning • Unused import: 'package:roberto/app/app_color.dart' • lib/features/businesssubscription/widget/subscription_row.dart:2:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/businesssubscription/widget/subscription_row.dart:110:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/businesssubscription/widget/subscription_row.dart:178:55 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/businesssubscription/widget/subscription_row.dart:179:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/businesssubscription/widget/subscription_row.dart:189:54 • deprecated_member_use
+   info • Don't invoke 'print' in production code • lib/features/businesssubscription/widget/subscription_row.dart:207:9 • avoid_print
+warning • The value of the local variable 'theme' isn't used • lib/features/management/screen/management_screen.dart:19:11 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/management/screen/management_screen.dart:159:41 • deprecated_member_use
+warning • Unused import: 'package:roberto/app/app_color.dart' • lib/features/management/widget/custom_branch_row.dart:2:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/management/widget/custom_branch_row.dart:126:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/management/widget/custom_branch_row.dart:194:55 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/management/widget/custom_branch_row.dart:195:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/management/widget/custom_branch_row.dart:205:42 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/management/widget/custom_branch_row.dart:205:75 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/management/widget/custom_branch_row.dart:246:24 • deprecated_member_use
+warning • The value of the local variable 'isDark' isn't used • lib/features/management/widget/custom_branchmanagement.dart:17:11 • unused_local_variable
+warning • Unused import: 'package:roberto/app/app_color.dart' • lib/features/management/widget/custom_user_row.dart:2:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/management/widget/custom_user_row.dart:127:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/management/widget/custom_user_row.dart:195:55 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/management/widget/custom_user_row.dart:196:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/management/widget/custom_user_row.dart:206:42 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/management/widget/custom_user_row.dart:206:75 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/management/widget/custom_user_row.dart:247:24 • deprecated_member_use
+warning • Unused import: 'package:roberto/app/app_color.dart' • lib/features/notification/screen/notification_screen.dart:2:8 • unused_import
+warning • Unused import: 'package:roberto/main.dart' • test/widget_test.dart:12:8 • unused_import
+
+231 issues found. (ran in 1.5s)
