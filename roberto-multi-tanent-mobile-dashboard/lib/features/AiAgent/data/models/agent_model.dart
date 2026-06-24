@@ -7,6 +7,10 @@ class AgentModel {
   final AgentMetadata? metadata;
   final String? createdAt;
   final String? updatedAt;
+  final String? twilioSid;
+  final String? twilioAuthToken;
+  final String? twilioNumber;
+  final String? transferNumber;
 
   AgentModel({
     required this.id,
@@ -17,9 +21,14 @@ class AgentModel {
     this.metadata,
     this.createdAt,
     this.updatedAt,
+    this.twilioSid,
+    this.twilioAuthToken,
+    this.twilioNumber,
+    this.transferNumber,
   });
 
   factory AgentModel.fromJson(Map<String, dynamic> json) {
+    final meta = json['metadata'] as Map<String, dynamic>? ?? {};
     return AgentModel(
       id: json['id'] ?? '',
       businessId: json['businessId'] ?? '',
@@ -29,9 +38,14 @@ class AgentModel {
       metadata: json['metadata'] != null ? AgentMetadata.fromJson(json['metadata']) : null,
       createdAt: json['createdAt'],
       updatedAt: json['updatedAt'],
+      twilioSid: json['twilioSid'] ?? json['twilio_sid'] ?? meta['twilioSid'] ?? meta['twilio_sid'],
+      twilioAuthToken: json['twilioAuthToken'] ?? json['twilio_auth_token'] ?? meta['twilioAuthToken'] ?? meta['twilio_auth_token'],
+      twilioNumber: json['twilioNumber'] ?? json['twilio_number'] ?? meta['twilioNumber'] ?? meta['twilio_number'],
+      transferNumber: json['transferNumber'] ?? json['transfer_number'] ?? meta['transferNumber'] ?? meta['transfer_number'],
     );
   }
 }
+
 
 class AgentMetadata {
   final String? agentName;

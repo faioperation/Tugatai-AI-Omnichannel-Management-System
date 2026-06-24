@@ -615,15 +615,40 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
               ),
             ],
           ),
+          if (agent.twilioNumber != null && agent.twilioNumber!.isNotEmpty) ...[
+            const Divider(height: 24),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _buildAgentProperty(theme, 'Twilio Number', agent.twilioNumber!),
+                ),
+                Expanded(
+                  child: _buildAgentProperty(
+                    theme,
+                    'Transfer Number',
+                    (agent.transferNumber != null && agent.transferNumber!.isNotEmpty) ? agent.transferNumber! : 'N/A',
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
           Align(
             alignment: Alignment.centerRight,
             child: ElevatedButton.icon(
               onPressed: () => _showTwilioSetupDialog(context, agent),
               icon: const Icon(Icons.phone_in_talk_outlined, size: 16),
-              label: const Text('Add Twilio Number', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              label: Text(
+                agent.twilioNumber != null && agent.twilioNumber!.isNotEmpty
+                    ? 'Update Twilio Details'
+                    : 'Add Twilio Number',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.indigo,
+                backgroundColor: agent.twilioNumber != null && agent.twilioNumber!.isNotEmpty
+                    ? Colors.indigo
+                    : Colors.teal,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -1023,6 +1048,16 @@ class _TwilioSetupDialogState extends State<_TwilioSetupDialog> {
   final _transferController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    // Load pre-existing configuration values if they exist
+    _sidController.text = widget.agent.twilioSid ?? '';
+    _tokenController.text = widget.agent.twilioAuthToken ?? '';
+    _numberController.text = widget.agent.twilioNumber ?? '';
+    _transferController.text = widget.agent.transferNumber ?? '';
+  }
+
+  @override
   void dispose() {
     _sidController.dispose();
     _tokenController.dispose();
@@ -1043,187 +1078,278 @@ class _TwilioSetupDialogState extends State<_TwilioSetupDialog> {
             assistantId: widget.agent.vapiId ?? '',
           ),
         );
+  }
 
-    Navigator.pop(context);
+  InputDecoration _buildInputDecoration(String hintText, bool enabled) {
+    final theme = widget.theme;
+    final isDark = theme.brightness == Brightness.dark;
+    final baseBorderColor = theme.dividerTheme.color ?? (isDark ? Colors.grey.shade800 : Colors.grey.shade400);
+
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: TextStyle(color: theme.textTheme.bodySmall?.color?.withOpacity(0.5)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      enabled: enabled,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(
+          color: baseBorderColor.withOpacity(0.4),
+        ),
+      ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(
+          color: baseBorderColor.withOpacity(0.2),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(
+          color: theme.colorScheme.primary,
+          width: 1.5,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(
+          color: Colors.red,
+          width: 1,
+        ),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(
+          color: Colors.red,
+          width: 1.5,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final assistantId = widget.agent.vapiId ?? 'Not Configured';
+    final isDark = widget.theme.brightness == Brightness.dark;
+    final dialogBorderColor = widget.theme.dividerTheme.color ?? (isDark ? Colors.grey.shade800 : Colors.grey.shade300);
 
     return Dialog(
       backgroundColor: widget.theme.cardTheme.color,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        width: MediaQuery.of(context).size.width < 600
-            ? MediaQuery.of(context).size.width * 0.9
-            : 500,
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: dialogBorderColor.withOpacity(0.6)),
+      ),
+      child: BlocConsumer<AgentManagementBloc, AgentManagementState>(
+        bloc: widget.blocContext.read<AgentManagementBloc>(),
+        listener: (context, state) {
+          if (state is AgentManagementOperationSuccess && state.message.contains("Twilio")) {
+            Navigator.pop(context);
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state is AgentManagementLoading;
+          final errorMessage = state is AgentManagementError ? state.message : null;
+
+          return Container(
+            width: MediaQuery.of(context).size.width < 600
+                ? MediaQuery.of(context).size.width * 0.9
+                : 500,
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Configure Twilio Number',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: widget.theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: isLoading ? null : () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     Text(
-                      'Configure Twilio Number',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: widget.theme.colorScheme.onSurface,
+                      'Associate a Twilio phone number with this voice agent.',
+                      style: TextStyle(fontSize: 13, color: widget.theme.textTheme.bodySmall?.color),
+                    ),
+                    
+                    if (errorMessage != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          border: Border.all(color: Colors.red.withOpacity(0.3)),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.error_outline, color: Colors.red, size: 18),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                errorMessage,
+                                style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    const Divider(height: 32),
+
+                    // Twilio Account SID
+                    Text(
+                      'Twilio Account SID',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: widget.theme.colorScheme.onSurface),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _sidController,
+                      enabled: !isLoading,
+                      decoration: _buildInputDecoration('Enter Twilio Account SID', !isLoading),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Account SID is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Twilio Auth Token
+                    Text(
+                      'Twilio Auth Token',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: widget.theme.colorScheme.onSurface),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _tokenController,
+                      obscureText: true,
+                      enabled: !isLoading,
+                      decoration: _buildInputDecoration('Enter Twilio Auth Token', !isLoading),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Auth Token is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Twilio Number
+                    Text(
+                      'Twilio Number (e.g. +1XXXXXXXXXX)',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: widget.theme.colorScheme.onSurface),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _numberController,
+                      enabled: !isLoading,
+                      decoration: _buildInputDecoration('+1XXXXXXXXXX', !isLoading),
+                      validator: (value) {
+                        final phoneRegex = RegExp(r'^\+[1-9]\d{1,14}$');
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Twilio number is required';
+                        } else if (!phoneRegex.hasMatch(value.trim())) {
+                          return 'Enter a valid E.164 number (e.g. +1XXXXXXXXXX)';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Transfer Number
+                    Text(
+                      'Transfer Number (e.g. +1XXXXXXXXXX)',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: widget.theme.colorScheme.onSurface),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _transferController,
+                      enabled: !isLoading,
+                      decoration: _buildInputDecoration('+1XXXXXXXXXX', !isLoading),
+                      validator: (value) {
+                        final phoneRegex = RegExp(r'^\+[1-9]\d{1,14}$');
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Transfer number is required';
+                        } else if (!phoneRegex.hasMatch(value.trim())) {
+                          return 'Enter a valid E.164 number (e.g. +1XXXXXXXXXX)';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Assistant ID Info (Read Only)
+                    Text(
+                      'Vapi Assistant ID',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: widget.theme.colorScheme.onSurface),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: widget.theme.disabledColor.withOpacity(0.05),
+                        border: Border.all(color: dialogBorderColor.withOpacity(0.4)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: SelectableText(
+                        assistantId,
+                        style: TextStyle(color: widget.theme.textTheme.bodyMedium?.color, fontSize: 13, fontWeight: FontWeight.w600),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
+                    const SizedBox(height: 32),
+
+                    // Submit Buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        OutlinedButton(
+                          onPressed: isLoading ? null : () => Navigator.pop(context),
+                          child: Text('Cancel', style: TextStyle(color: widget.theme.textTheme.bodyMedium?.color)),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: isLoading ? null : _submit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColor.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.0,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Text('Setup Twilio'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Associate a Twilio phone number with this voice agent.',
-                  style: TextStyle(fontSize: 13, color: widget.theme.textTheme.bodySmall?.color),
-                ),
-                const Divider(height: 32),
-
-                // Twilio Account SID
-                Text(
-                  'Twilio Account SID',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: widget.theme.colorScheme.onSurface),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _sidController,
-                  decoration: InputDecoration(
-                    hintText: 'Enter Twilio Account SID',
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Account SID is required';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Twilio Auth Token
-                Text(
-                  'Twilio Auth Token',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: widget.theme.colorScheme.onSurface),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _tokenController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    hintText: 'Enter Twilio Auth Token',
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Auth Token is required';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Twilio Number
-                Text(
-                  'Twilio Number (e.g. +1XXXXXXXXXX)',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: widget.theme.colorScheme.onSurface),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _numberController,
-                  decoration: InputDecoration(
-                    hintText: '+1XXXXXXXXXX',
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Twilio number is required';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Transfer Number
-                Text(
-                  'Transfer Number (e.g. +1XXXXXXXXXX)',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: widget.theme.colorScheme.onSurface),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _transferController,
-                  decoration: InputDecoration(
-                    hintText: '+1XXXXXXXXXX',
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Transfer number is required';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Assistant ID Info (Read Only)
-                Text(
-                  'Vapi Assistant ID',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: widget.theme.colorScheme.onSurface),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: widget.theme.disabledColor.withOpacity(0.05),
-                    border: Border.all(color: widget.theme.dividerTheme.color ?? const Color(0xffCCCCCC)),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: SelectableText(
-                    assistantId,
-                    style: TextStyle(color: widget.theme.textTheme.bodyMedium?.color, fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Submit Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('Cancel', style: TextStyle(color: widget.theme.textTheme.bodyMedium?.color)),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: _submit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColor.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: const Text('Setup Twilio'),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
