@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/CRM/widget/custom_crm.dart';
 import 'package:roberto/features/CRM/widget/custom_addlead.dart';
 import 'package:roberto/features/Tenant%20Management%20/widget/custom_stat_card.dart';
 import 'package:roberto/common/user_role.dart';
+import 'package:roberto/features/CRM/bloc/crm_bloc.dart';
+import 'package:roberto/features/CRM/bloc/crm_state.dart';
 
 class CmrScreen extends StatefulWidget {
   final Function(String)? onNavigate;
@@ -15,6 +18,9 @@ class CmrScreen extends StatefulWidget {
 }
 
 class _CmrScreenState extends State<CmrScreen> {
+  int _totalLeads = 0;
+  int _totalBooked = 0;
+  int _callLead = 0;
 
   Widget _buildAddLeadButton(BuildContext context) {
     return InkWell(
@@ -53,17 +59,17 @@ class _CmrScreenState extends State<CmrScreen> {
     final cards = [
       CustomStatCard(
         label: 'Total Leads',
-        value: '248',
+        value: _totalLeads.toString(),
         iconPath: 'assets/lead.svg',
       ),
       CustomStatCard(
         label: 'Total Booked',
-        value: '89',
+        value: _totalBooked.toString(),
         iconPath: 'assets/book.svg',
       ),
       CustomStatCard(
-        label: 'Total Value',
-        value: '\$45.2K',
+        label: 'Call Leads',
+        value: _callLead.toString(),
         iconPath: 'assets/value.svg',
       ),
     ];
@@ -88,58 +94,68 @@ class _CmrScreenState extends State<CmrScreen> {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
 
-    return SingleChildScrollView(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-      width < 600 
-        ? Column(
+    return BlocConsumer<CrmBloc, CrmState>(
+      listener: (context, state) {
+        if (state is CrmLeadsLoaded) {
+          setState(() {
+            final meta = state.meta;
+            _totalLeads = int.tryParse(meta?['totalCount']?.toString() ?? '') ?? 0;
+            _totalBooked = int.tryParse(meta?['totalBooked']?.toString() ?? '') ?? 0;
+            _callLead = int.tryParse(meta?['callLead']?.toString() ?? '') ?? 0;
+          });
+        }
+      },
+      builder: (context, state) {
+        return SingleChildScrollView(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                Text(
-                  'CRM & Leads',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-              const SizedBox(height: 12),
-              _buildAddLeadButton(context),
-            ],
-          )
-        : Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-                  Text(
-                    'CRM & Leads',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
+              width < 600
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'CRM & Leads',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildAddLeadButton(context),
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'CRM & Leads',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        _buildAddLeadButton(context),
+                      ],
                     ),
-                  ),
-              const SizedBox(width: 16),
-              _buildAddLeadButton(context),
+              const SizedBox(height: 6),
+              Text(
+                'Manage leads and customer relationships',
+                style: TextStyle(
+                    fontSize: 15,
+                    color: Theme.of(context).textTheme.bodyMedium?.color),
+              ),
+              const SizedBox(height: 20),
+              _buildStatCards(width),
+              const SizedBox(height: 25),
+              CustomCrm(onNavigate: widget.onNavigate, role: widget.role),
             ],
           ),
-
-    const SizedBox(height: 6),
-
-    Text(
-      'Manage leads and customer relationships',
-      style: TextStyle(fontSize: 15, color: Theme.of(context).textTheme.bodyMedium?.color),),
-
-        const SizedBox(height: 20),
-
-        _buildStatCards(width),
-
-        const SizedBox(height: 25),
-        CustomCrm(onNavigate: widget.onNavigate, role: widget.role),
-
-      ],
-    ),
-
-      );
+        );
+      },
+    );
   }
 }

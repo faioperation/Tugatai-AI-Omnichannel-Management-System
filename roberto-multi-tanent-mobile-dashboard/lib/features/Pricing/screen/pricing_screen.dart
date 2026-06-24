@@ -27,6 +27,9 @@ class _PricingScreenState extends State<PricingScreen> {
   int _selectedTab = 0;
   List<PricingRuleMod> _rules = [];
   bool _isLoading = true;
+  int _totalRules = 0;
+  int _activeRules = 0;
+  int _typeCounts = 0;
 
   @override
   void initState() {
@@ -110,19 +113,19 @@ class _PricingScreenState extends State<PricingScreen> {
 
   Widget _buildStatCards(double width) {
     final cards = [
-      const CustomStatCard(
-        label: 'Base Rate',
-        value: '\$15/kg',
+      CustomStatCard(
+        label: 'Total Rules',
+        value: _totalRules.toString(),
         iconPath: 'assets/rate.svg',
       ),
       CustomStatCard(
         label: 'Active Rules',
-        value: _rules.length.toString(),
+        value: _activeRules.toString(),
         iconPath: 'assets/rule.svg',
       ),
-      const CustomStatCard(
+      CustomStatCard(
         label: 'Categories',
-        value: '5',
+        value: _typeCounts.toString(),
         iconPath: 'assets/categori.svg',
       ),
     ];
@@ -153,6 +156,9 @@ class _PricingScreenState extends State<PricingScreen> {
           setState(() {
             _rules = state.rules;
             _isLoading = false;
+            _totalRules = state.total;
+            _activeRules = state.activeCount;
+            _typeCounts = state.typeCounts;
           });
         } else if (state is PricingLoading) {
           setState(() {

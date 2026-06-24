@@ -27,7 +27,18 @@ class PricingBloc extends Bloc<PricingEvent, PricingState> {
       if (response['success'] == true) {
         final data = response['data']['data'] as List?;
         final rules = (data ?? []).map((e) => PricingRuleMod.fromJson(e)).toList();
-        emit(PricingLoaded(rules: rules));
+        
+        final meta = response['data']['meta'] as Map<String, dynamic>?;
+        final total = int.tryParse(meta?['total']?.toString() ?? '') ?? 0;
+        final activeCount = int.tryParse(meta?['activeCount']?.toString() ?? '') ?? 0;
+        final typeCounts = int.tryParse(meta?['typeCounts']?.toString() ?? '') ?? 0;
+
+        emit(PricingLoaded(
+          rules: rules,
+          total: total,
+          activeCount: activeCount,
+          typeCounts: typeCounts,
+        ));
       } else {
         emit(PricingError(message: response['message'] ?? 'Failed to load pricing rules'));
       }

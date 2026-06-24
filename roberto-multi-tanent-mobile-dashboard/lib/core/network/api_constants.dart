@@ -35,6 +35,12 @@ class ApiConstants {
   static const String systemOwnerAgentTrainingsCreate = '$baseUrl/system-owner/agent-trainings/create';
   static const String systemOwnerAgentTrainingsSingle = '$baseUrl/system-owner/agent-trainings'; // + /:id
 
+  // Agent Management endpoints
+  static const String systemOwnerAgentManagementAll = '$baseUrl/system-owner/agent-management/all';
+  static const String systemOwnerAgentManagementCreate = '$baseUrl/system-owner/agent-management/create';
+  static const String systemOwnerAgentManagementSingle = '$baseUrl/system-owner/agent-management'; // + /:id
+  static const String systemOwnerSetupTwilio = '$baseUrl/system-owner/telephony/setup-twilio';
+
   // Management endpoints
   static const String businessOwnerBranchManagers = '$baseUrl/business-owner/branch-managers/all';
   static const String businessOwnerBranchManagersCreate = '$baseUrl/business-owner/branch-managers/create';

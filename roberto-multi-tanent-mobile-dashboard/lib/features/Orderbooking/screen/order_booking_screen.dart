@@ -665,7 +665,10 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                   onPressed: () {
                     showDialog(
                       context: context,
-                      builder: (context) => CustomViewdetails(order: order),
+                      builder: (context) => CustomViewdetails(
+                        order: order,
+                        displayId: '#$index',
+                      ),
                     );
                   },
                   style: OutlinedButton.styleFrom(
@@ -784,10 +787,13 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       children: [
         GestureDetector(
           onTap: () {
+            final int idx = _filteredOrders.indexOf(order);
+            final String displayId = idx != -1 ? '#${idx + 1}' : order.orderId;
             showDialog(
               context: context,
               builder: (context) => CustomViewdetails(
                 order: order,
+                displayId: displayId,
                 onUpdatePressed: () => _showStatusUpdateDialog(order),
               ),
             );
@@ -1318,10 +1324,14 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                     (o) => o.orderId.replaceAll('#', '') == orderId,
                     orElse: () => _orders.first);
 
+                final int idx = _orders.indexOf(order);
+                final String displayId = idx != -1 ? '#${idx + 1}' : order.orderId;
+
                 showDialog(
                   context: context,
                   builder: (context) => CustomViewdetails(
                     order: order,
+                    displayId: displayId,
                     onUpdatePressed: () => _showStatusUpdateDialog(order),
                   ),
                 );

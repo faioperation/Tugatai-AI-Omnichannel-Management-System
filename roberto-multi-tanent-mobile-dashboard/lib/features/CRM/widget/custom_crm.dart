@@ -47,11 +47,13 @@ class _CustomCrmState extends State<CustomCrm> {
   }
 
   String _getSocialIcon(String? source) {
-    if (source == null) return 'assets/whatsapp.svg';
+    if (source == null) return 'assets/msg.svg';
     final lSource = source.toLowerCase();
     if (lSource.contains('facebook')) return 'assets/facebook.svg';
     if (lSource.contains('insta')) return 'assets/instagram.svg';
-    return 'assets/whatsapp.svg'; // fallback
+    if (lSource.contains('whatsapp')) return 'assets/whatsapp.svg';
+    if (lSource.contains('cold') || lSource.contains('call')) return 'assets/person.svg';
+    return 'assets/msg.svg'; // fallback for other / others
   }
 
   String _formatDate(String? dateStr) {

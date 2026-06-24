@@ -28,6 +28,9 @@ import 'package:roberto/features/Tenant Management /data/repositories/tenant_rep
 import 'package:roberto/features/Tenant Management /bloc/tenant_bloc.dart';
 import 'package:roberto/features/AiAgent/data/repositories/agent_training_repository.dart';
 import 'package:roberto/features/AiAgent/bloc/agent_training_bloc.dart';
+import 'package:roberto/features/AiAgent/data/repositories/agent_repository.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_management_bloc.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_management_event.dart';
 import 'package:roberto/features/Pricing/data/repositories/pricing_repository.dart';
 import 'package:roberto/features/Pricing/bloc/pricing_bloc.dart';
 import 'package:roberto/features/Inbox/data/repositories/inbox_repository.dart';
@@ -105,6 +108,11 @@ class Roberto extends StatelessWidget {
             RepositoryProvider<AgentTrainingRepository>(
               create: (context) => AgentTrainingRepository(),
             ),
+            RepositoryProvider<AgentRepository>(
+              create: (context) => AgentRepository(
+                networkClient: context.read<NetworkClient>(),
+              ),
+            ),
             RepositoryProvider<CrmRepository>(
               create: (context) => CrmRepository(
                 networkClient: context.read<NetworkClient>(),
@@ -177,6 +185,11 @@ class Roberto extends StatelessWidget {
                 create: (context) => AgentTrainingBloc(
                   repository: context.read<AgentTrainingRepository>(),
                 ),
+              ),
+              BlocProvider<AgentManagementBloc>(
+                create: (context) => AgentManagementBloc(
+                  repository: context.read<AgentRepository>(),
+                )..add(const FetchAgentsRequested()),
               ),
               BlocProvider<CrmBloc>(
                 create: (context) => CrmBloc(

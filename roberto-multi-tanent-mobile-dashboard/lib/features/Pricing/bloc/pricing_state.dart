@@ -14,11 +14,19 @@ class PricingLoading extends PricingState {}
 
 class PricingLoaded extends PricingState {
   final List<PricingRuleMod> rules;
+  final int total;
+  final int activeCount;
+  final int typeCounts;
 
-  const PricingLoaded({required this.rules});
+  const PricingLoaded({
+    required this.rules,
+    this.total = 0,
+    this.activeCount = 0,
+    this.typeCounts = 0,
+  });
 
   @override
-  List<Object> get props => [rules];
+  List<Object> get props => [rules, total, activeCount, typeCounts];
 }
 
 class PricingError extends PricingState {

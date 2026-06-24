@@ -13,6 +13,7 @@ import 'package:roberto/features/Orderbooking/bloc/booking_event.dart';
 import 'package:roberto/features/Orderbooking/data/repositories/booking_repository.dart';
 import 'package:roberto/features/Inbox/screen/inbox_screen.dart';
 import 'package:roberto/features/AiAgent/screen/aiagent_screen.dart';
+import 'package:roberto/features/AiAgent/screen/agent_management_screen.dart';
 import 'package:roberto/features/Pricing/screen/pricing_screen.dart';
 import 'package:roberto/features/CRM/screen/cmr_screen.dart';
 import 'package:roberto/features/notification/screen/notification_screen.dart';
@@ -176,7 +177,9 @@ class _DashboardShellState extends State<DashboardShell> {
             ? TenantScreen(
                 onNavigateToAiAgent: (String businessId) {
                   _selectedTenantBusinessId = businessId;
-                  _navigateTo('AI Agent');
+                  setState(() {
+                    _activeItem = 'AI Agent Training';
+                  });
                 },
               )
             : const ManagementScreen();
@@ -211,8 +214,13 @@ class _DashboardShellState extends State<DashboardShell> {
           child: OrderBookingScreen(onNavigate: _selectItem),
         );
 
-      case 'AI Agent':
+      case 'AI Agent Training':
         return AiagentScreen(businessId: _selectedTenantBusinessId);
+
+      case 'AI Agent':
+        return widget.role == UserRole.systemOwner
+            ? AgentManagementScreen(businessId: _selectedTenantBusinessId)
+            : AiagentScreen(businessId: _selectedTenantBusinessId);
 
       case 'Pricing':
         return PricingScreen(role: widget.role);
@@ -248,9 +256,9 @@ class _DashboardShellState extends State<DashboardShell> {
   static const List<Map<String, dynamic>> _systemOwnerItems = [
     {'icon': 'assets/overview.svg', 'label': 'Overview'},
     // {'icon': 'assets/inbox.svg', 'label': 'Demo Bookings'},
-    {'icon': 'assets/subscription.svg', 'label': 'Tenant Management'},
+    {'icon': Icons.business, 'label': 'Tenant Management'},
     {'icon': 'assets/subscription.svg', 'label': 'Subscriptions'},
-    {'icon': 'assets/aiagent.svg', 'label': 'AI Agent'},
+    {'icon': 'assets/agent.svg', 'label': 'AI Agent'},
     {'icon': 'assets/setting.svg', 'label': 'Settings'},
   ];
 
