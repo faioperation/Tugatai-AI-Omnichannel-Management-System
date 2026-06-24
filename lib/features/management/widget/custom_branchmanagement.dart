@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/management/widget/custom_branch_row.dart';
 import 'package:roberto/features/Tenant%20Management%20/widget/custom_headder.dart';
+import 'package:roberto/features/management/bloc/management_bloc.dart';
+import 'package:roberto/features/management/bloc/management_event.dart';
+import 'package:roberto/features/management/bloc/management_state.dart';
+import 'package:roberto/features/management/data/models/branch_model.dart';
 
 class CustomBranchmanagement extends StatefulWidget {
   const CustomBranchmanagement({super.key});
@@ -11,6 +16,13 @@ class CustomBranchmanagement extends StatefulWidget {
 }
 
 class _CustomBranchmanagementState extends State<CustomBranchmanagement> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<ManagementBloc>().add(FetchBranchesRequested());
+    context.read<ManagementBloc>().add(FetchBranchManagersRequested());
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -45,13 +57,52 @@ class _CustomBranchmanagementState extends State<CustomBranchmanagement> {
             ),
           ),
           const SizedBox(height: 24),
-          isDesktop ? _buildDesktopTable(context) : _buildMobileList(),
+          BlocConsumer<ManagementBloc, ManagementState>(
+            listener: (context, state) {
+              if (state is ManagementOperationSuccess) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(state.message)),
+                );
+              } else if (state is ManagementError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message, style: const TextStyle(color: Colors.white)),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            builder: (context, state) {
+              if (state is ManagementLoading) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              } else if (state is ManagementLoaded) {
+                if (state.branches.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(40.0),
+                      child: Text(
+                        "No branches found. Click 'Add Branch' to create one.",
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  );
+                }
+                return isDesktop ? _buildDesktopTable(context, state.branches) : _buildMobileList(state.branches);
+              }
+              return const SizedBox();
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDesktopTable(BuildContext context) {
+  Widget _buildDesktopTable(BuildContext context, List<BranchModel> branches) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
@@ -70,69 +121,37 @@ class _CustomBranchmanagementState extends State<CustomBranchmanagement> {
               color: isDark ? theme.colorScheme.surface : AppColor.secondary,
               child: const Row(
                 children: [
-                   Expanded(flex: 1, child: CustomHeadder(label: 'Sr.')),
-                   Expanded(flex: 2, child: CustomHeadder(label: 'Branch Name')),
-                   Expanded(flex: 2, child: CustomHeadder(label: 'Location')),
-                   Expanded(flex: 2, child: CustomHeadder(label: 'Manager')),
-                   Expanded(flex: 2, child: CustomHeadder(label: 'Status', textAlign: TextAlign.center)),
-                   Expanded(flex: 1, child: CustomHeadder(label: 'Actions', textAlign: TextAlign.center)),
+                  Expanded(flex: 1, child: CustomHeadder(label: 'Sr.')),
+                  Expanded(flex: 2, child: CustomHeadder(label: 'Branch Name')),
+                  Expanded(flex: 3, child: CustomHeadder(label: 'Location')),
+                  Expanded(flex: 2, child: CustomHeadder(label: 'Manager')),
+                  Expanded(flex: 2, child: CustomHeadder(label: 'Phone')),
+                  Expanded(flex: 1, child: CustomHeadder(label: 'Actions', textAlign: TextAlign.center)),
                 ],
               ),
             ),
-            _buildRows(),
+            _buildRows(branches: branches),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMobileList() {
-    return _buildRows(isMobile: true);
+  Widget _buildMobileList(List<BranchModel> branches) {
+    return _buildRows(branches: branches, isMobile: true);
   }
 
-  Widget _buildRows({bool isMobile = false}) {
-    final branches = [
-      {
-        "slNo": "001",
-        "businessname": "Tugatai",
-        "location": "New York, NY",
-        "name": "John Smith",
-        "status": "active"
-      },
-      {
-        "slNo": "002",
-        "businessname": "Tugatai",
-        "location": "New York, NY",
-        "name": "John Smith",
-        "status": "active"
-      },
-      {
-        "slNo": "003",
-        "businessname": "Tugatai",
-        "location": "New York, NY",
-        "name": "John Smith",
-        "status": "active"
-      },
-      {
-        "slNo": "004",
-        "businessname": "Tugatai",
-        "location": "New York, NY",
-        "name": "John Smith",
-        "status": "inactive"
-      },
-    ];
-
+  Widget _buildRows({required List<BranchModel> branches, bool isMobile = false}) {
     return Column(
-      children: branches
-          .map((b) => CustomBranchRow(
-                slNo: b["slNo"]!,
-                businessname: b["businessname"]!,
-                location: b["location"]!,
-                name: b["name"]!,
-                status: b["status"]!,
-                isMobile: isMobile,
-              ))
-          .toList(),
+      children: branches.asMap().entries.map((entry) {
+        final index = entry.key;
+        final branch = entry.value;
+        return CustomBranchRow(
+          slNo: (index + 1).toString().padLeft(3, '0'),
+          branch: branch,
+          isMobile: isMobile,
+        );
+      }).toList(),
     );
   }
 }

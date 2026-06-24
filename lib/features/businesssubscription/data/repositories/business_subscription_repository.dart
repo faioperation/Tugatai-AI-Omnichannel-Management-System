@@ -17,4 +17,24 @@ class BusinessSubscriptionRepository {
       throw Exception(response.errorMassage ?? 'Failed to load subscriptions');
     }
   }
+
+  Future<String> createCheckoutSession({
+    required String planId,
+    required String billingCycle,
+  }) async {
+    final response = await networkClient.postRequest(
+      ApiConstants.createCheckoutSession,
+      body: {
+        'planId': planId,
+        'billingCycle': billingCycle.toLowerCase(),
+      },
+    );
+
+    if (response.isSuccess) {
+      final data = response.responseData['data'] ?? {};
+      return data['url'] ?? '';
+    } else {
+      throw Exception(response.errorMassage ?? 'Failed to create checkout session');
+    }
+  }
 }

@@ -141,7 +141,6 @@ class _ManagementScreenState extends State<ManagementScreen> {
   }) {
     final theme = Theme.of(context);
     final isActive = _selectedTab == index;
-    final isDark = theme.brightness == Brightness.dark;
 
     return GestureDetector(
       onTap: () => setState(() => _selectedTab = index),

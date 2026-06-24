@@ -180,19 +180,45 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
         List<TenantBusiness> businesses = [];
         if (state is TenantLoaded) {
           businesses = state.tenantResponse.businesses;
-          // Set initial selected business based on widget.businessId or default to first business
-          if (_selectedBusiness == null && businesses.isNotEmpty) {
-            if (widget.businessId != null) {
+          if (businesses.isNotEmpty) {
+            if (_selectedBusiness == null) {
+              if (widget.businessId != null) {
+                _selectedBusiness = businesses.firstWhere(
+                  (b) => b.id == widget.businessId,
+                  orElse: () => businesses.first,
+                );
+              } else {
+                _selectedBusiness = businesses.first;
+              }
+              if (_selectedBusiness != null && _selectedBusiness!.branches.isNotEmpty) {
+                _selectedBranch = _selectedBusiness!.branches.first;
+              }
+            } else {
+              // Resolve _selectedBusiness to the new instance in the list by matching ID
               _selectedBusiness = businesses.firstWhere(
-                (b) => b.id == widget.businessId,
+                (b) => b.id == _selectedBusiness!.id,
                 orElse: () => businesses.first,
               );
-            } else {
-              _selectedBusiness = businesses.first;
+              if (_selectedBranch != null && _selectedBusiness != null) {
+                TenantBranch? foundBranch;
+                for (final branch in _selectedBusiness!.branches) {
+                  if (branch.id == _selectedBranch!.id) {
+                    foundBranch = branch;
+                    break;
+                  }
+                }
+                if (foundBranch != null) {
+                  _selectedBranch = foundBranch;
+                } else {
+                  _selectedBranch = _selectedBusiness!.branches.isNotEmpty
+                      ? _selectedBusiness!.branches.first
+                      : null;
+                }
+              }
             }
-            if (_selectedBusiness != null && _selectedBusiness!.branches.isNotEmpty) {
-              _selectedBranch = _selectedBusiness!.branches.first;
-            }
+          } else {
+            _selectedBusiness = null;
+            _selectedBranch = null;
           }
         }
 
@@ -639,16 +665,9 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
             child: ElevatedButton.icon(
               onPressed: () => _showTwilioSetupDialog(context, agent),
               icon: const Icon(Icons.phone_in_talk_outlined, size: 16),
-              label: Text(
-                agent.twilioNumber != null && agent.twilioNumber!.isNotEmpty
-                    ? 'Update Twilio Details'
-                    : 'Add Twilio Number',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              ),
+              label: const Text('Add Twilio Number', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: agent.twilioNumber != null && agent.twilioNumber!.isNotEmpty
-                    ? Colors.indigo
-                    : Colors.teal,
+                backgroundColor: Colors.indigo,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),

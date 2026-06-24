@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:roberto/features/management/data/models/branch_manager_model.dart';
+import 'package:roberto/features/management/data/models/branch_model.dart';
 
 abstract class ManagementState extends Equatable {
   const ManagementState();
@@ -14,11 +15,12 @@ class ManagementLoading extends ManagementState {}
 
 class ManagementLoaded extends ManagementState {
   final List<BranchManagerModel> managers;
+  final List<BranchModel> branches;
 
-  const ManagementLoaded({required this.managers});
+  const ManagementLoaded({required this.managers, required this.branches});
 
   @override
-  List<Object?> get props => [managers];
+  List<Object?> get props => [managers, branches];
 }
 
 class ManagementOperationSuccess extends ManagementState {
