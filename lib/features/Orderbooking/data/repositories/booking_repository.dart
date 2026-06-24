@@ -3,8 +3,9 @@ import 'package:roberto/core/network/network_client.dart';
 
 class BookingRepository {
   final NetworkClient _networkClient;
+  final bool isBranchManager;
 
-  BookingRepository({required NetworkClient networkClient})
+  BookingRepository({required NetworkClient networkClient, this.isBranchManager = false})
       : _networkClient = networkClient;
 
   Future<Map<String, dynamic>> getBookings({
@@ -24,7 +25,8 @@ class BookingRepository {
       };
 
       final queryString = Uri(queryParameters: queryParams).query;
-      final url = '${ApiConstants.branchManagerBookingsAll}?$queryString';
+      final baseUrl = isBranchManager ? ApiConstants.branchManagerBookingsAll : '${ApiConstants.baseUrl}/business-owner/bookings/all';
+      final url = '$baseUrl?$queryString';
 
       final response = await _networkClient.getRequest(url);
 
@@ -48,8 +50,9 @@ class BookingRepository {
 
   Future<Map<String, dynamic>> createBooking(Map<String, dynamic> payload) async {
     try {
+      final baseUrl = isBranchManager ? ApiConstants.branchManagerBookingsCreate : '${ApiConstants.baseUrl}/business-owner/bookings/create';
       final response = await _networkClient.postRequest(
-        ApiConstants.branchManagerBookingsCreate,
+        baseUrl,
         body: payload,
       );
       if (response.isSuccess) {
@@ -72,8 +75,9 @@ class BookingRepository {
 
   Future<Map<String, dynamic>> updateBooking(String id, Map<String, dynamic> payload) async {
     try {
+      final baseUrl = isBranchManager ? ApiConstants.branchManagerBookingsSingle : '${ApiConstants.baseUrl}/business-owner/bookings';
       final response = await _networkClient.patchRequest(
-        '${ApiConstants.branchManagerBookingsSingle}/$id',
+        '$baseUrl/$id',
         body: payload,
       );
       if (response.isSuccess) {
@@ -96,8 +100,9 @@ class BookingRepository {
 
   Future<void> deleteBooking(String id) async {
     try {
+      final baseUrl = isBranchManager ? ApiConstants.branchManagerBookingsSingle : '${ApiConstants.baseUrl}/business-owner/bookings';
       final response = await _networkClient.deleteRequest(
-        '${ApiConstants.branchManagerBookingsSingle}/$id',
+        '$baseUrl/$id',
       );
       if (!response.isSuccess) {
         throw Exception(response.errorMassage ?? 'Failed to delete booking');

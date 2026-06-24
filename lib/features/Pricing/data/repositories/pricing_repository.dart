@@ -10,10 +10,11 @@ class PricingRepository {
     int page = 1,
     int limit = 10,
     bool isBranchManager = false,
+    String? branchId,
   }) async {
     // Assuming standard Business Owner endpoint for future implementation if needed
-    final baseUrl = isBranchManager ? ApiConstants.branchManagerPricingAll : '${ApiConstants.baseUrl}/business-owner/pricing/all';
-    final url = '$baseUrl?page=$page&limit=$limit';
+    final baseUrl = isBranchManager ? ApiConstants.branchManagerPricingAll : '${ApiConstants.baseUrl}/business-owner/pricings/all';
+    final url = branchId != null ? '$baseUrl?page=$page&limit=$limit&branchId=$branchId' : '$baseUrl?page=$page&limit=$limit';
 
     final response = await networkClient.getRequest(url);
 
@@ -48,7 +49,7 @@ class PricingRepository {
       body['branchId'] = branchId;
     }
 
-    final baseUrl = isBranchManager ? ApiConstants.branchManagerPricingCreate : '${ApiConstants.baseUrl}/business-owner/pricing/create';
+    final baseUrl = isBranchManager ? ApiConstants.branchManagerPricingCreate : '${ApiConstants.baseUrl}/business-owner/pricings/create';
     final response = await networkClient.postRequest(
       baseUrl,
       body: body,
@@ -77,7 +78,7 @@ class PricingRepository {
     String? branchId,
     bool isBranchManager = false,
   }) async {
-    final baseUrl = isBranchManager ? ApiConstants.branchManagerPricingSingle : '${ApiConstants.baseUrl}/business-owner/pricing';
+    final baseUrl = isBranchManager ? ApiConstants.branchManagerPricingSingle : '${ApiConstants.baseUrl}/business-owner/pricings';
     final url = '$baseUrl/$id';
     
     final body = <String, dynamic>{};
@@ -107,7 +108,7 @@ class PricingRepository {
   }
 
   Future<Map<String, dynamic>> deletePricingRule({required String id, bool isBranchManager = false}) async {
-    final baseUrl = isBranchManager ? ApiConstants.branchManagerPricingSingle : '${ApiConstants.baseUrl}/business-owner/pricing';
+    final baseUrl = isBranchManager ? ApiConstants.branchManagerPricingSingle : '${ApiConstants.baseUrl}/business-owner/pricings';
     final url = '$baseUrl/$id';
     final response = await networkClient.deleteRequest(url);
 

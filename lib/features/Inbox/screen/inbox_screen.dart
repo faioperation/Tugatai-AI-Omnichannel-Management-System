@@ -13,7 +13,11 @@ const double _kTablet = 650;
 
 class InboxScreen extends StatefulWidget {
   final bool isSystemOwner;
-  const InboxScreen({super.key, this.isSystemOwner = false});
+  final String? branchId;
+  final String? initialCustomerPhone;
+  final String? initialCustomerName;
+  final String? initialConversationId;
+  const InboxScreen({super.key, this.isSystemOwner = false, this.branchId, this.initialCustomerPhone, this.initialCustomerName, this.initialConversationId});
 
   @override
   State<InboxScreen> createState() => _InboxScreenState();
@@ -46,6 +50,14 @@ class _InboxScreenState extends State<InboxScreen> {
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(covariant InboxScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.branchId != widget.branchId) {
+      _fetchConversations();
+    }
+  }
+
   Future<void> _fetchConversations() async {
     if (!mounted) return;
     setState(() {
@@ -54,7 +66,7 @@ class _InboxScreenState extends State<InboxScreen> {
 
     try {
       final inboxRepo = context.read<InboxRepository>();
-      final res = await inboxRepo.getConversations('all');
+      final res = await inboxRepo.getConversations('all', branchId: widget.branchId);
 
       if (res['success'] == true && mounted) {
         setState(() {
@@ -69,6 +81,34 @@ class _InboxScreenState extends State<InboxScreen> {
               _selectedConversation = null;
               _messages.clear();
               _messagePollTimer?.cancel();
+            }
+          } else if (widget.initialConversationId != null) {
+            final match = _conversations.where((c) => c.id == widget.initialConversationId);
+            if (match.isNotEmpty) {
+              _selectedConversation = match.first;
+              _showChatViewOnMobile = true;
+              _fetchMessages(_selectedConversation!);
+              _fetchChatbotStatus(_selectedConversation!.id);
+            }
+          } else if (widget.initialCustomerPhone != null || widget.initialCustomerName != null) {
+            final match = _conversations.where((c) {
+              if (widget.initialCustomerPhone != null && c.customerPhone == widget.initialCustomerPhone) {
+                return true;
+              }
+              if (widget.initialCustomerName != null) {
+                final cName = c.customerName.toLowerCase();
+                final iName = widget.initialCustomerName!.toLowerCase();
+                if (cName.contains(iName) || iName.contains(cName)) {
+                  return true;
+                }
+              }
+              return false;
+            });
+            if (match.isNotEmpty) {
+              _selectedConversation = match.first;
+              _showChatViewOnMobile = true;
+              _fetchMessages(_selectedConversation!);
+              _fetchChatbotStatus(_selectedConversation!.id);
             }
           }
         });

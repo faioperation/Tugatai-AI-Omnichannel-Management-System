@@ -7,6 +7,7 @@ class BusinessOverviewModel {
   final ActiveUsersModel activeUsers;
   final List<WeeklySalesModel> weeklySales;
   final List<OverviewActivityModel> recentActivity;
+  final List<BranchPerformanceModel> branchPerformance;
 
   BusinessOverviewModel({
     required this.todayOrders,
@@ -15,6 +16,7 @@ class BusinessOverviewModel {
     required this.activeUsers,
     required this.weeklySales,
     required this.recentActivity,
+    required this.branchPerformance,
   });
 
   factory BusinessOverviewModel.fromJson(Map<String, dynamic> json) {
@@ -31,6 +33,33 @@ class BusinessOverviewModel {
               ?.map((e) => OverviewActivityModel.fromJson(e))
               .toList() ??
           [],
+      branchPerformance: (json['branchPerformance'] as List?)
+              ?.map((e) => BranchPerformanceModel.fromJson(e))
+              .toList() ??
+          [],
+    );
+  }
+}
+
+class BranchPerformanceModel {
+  final String branchId;
+  final String branchName;
+  final int totalOrders;
+  final double totalSales;
+
+  BranchPerformanceModel({
+    required this.branchId,
+    required this.branchName,
+    required this.totalOrders,
+    required this.totalSales,
+  });
+
+  factory BranchPerformanceModel.fromJson(Map<String, dynamic> json) {
+    return BranchPerformanceModel(
+      branchId: json['branchId'] ?? '',
+      branchName: json['branchName'] ?? '',
+      totalOrders: json['totalOrders'] ?? 0,
+      totalSales: (json['totalSales'] ?? 0).toDouble(),
     );
   }
 }

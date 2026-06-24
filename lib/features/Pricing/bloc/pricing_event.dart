@@ -13,15 +13,17 @@ class FetchPricingRules extends PricingEvent {
   final int page;
   final int limit;
   final UserRole role;
+  final String? branchId;
 
   const FetchPricingRules({
     this.page = 1,
     this.limit = 10,
     this.role = UserRole.businessOwner,
+    this.branchId,
   });
 
   @override
-  List<Object> get props => [page, limit, role];
+  List<Object?> get props => [page, limit, role, branchId];
 }
 
 class CreatePricingRule extends PricingEvent {

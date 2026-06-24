@@ -17,16 +17,25 @@ class BookingLoaded extends BookingState {
   final int total;
   final int totalPages;
   final int currentPage;
+  
+  final int totalBookings;
+  final int pending;
+  final int confirmed;
+  final int delivered;
 
   const BookingLoaded({
     required this.bookings,
     required this.total,
     required this.totalPages,
     required this.currentPage,
+    this.totalBookings = 0,
+    this.pending = 0,
+    this.confirmed = 0,
+    this.delivered = 0,
   });
 
   @override
-  List<Object?> get props => [bookings, total, totalPages, currentPage];
+  List<Object?> get props => [bookings, total, totalPages, currentPage, totalBookings, pending, confirmed, delivered];
 }
 
 class BookingError extends BookingState {

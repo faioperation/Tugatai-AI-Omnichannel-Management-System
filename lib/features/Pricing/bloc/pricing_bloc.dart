@@ -22,6 +22,7 @@ class PricingBloc extends Bloc<PricingEvent, PricingState> {
         page: event.page,
         limit: event.limit,
         isBranchManager: event.role == UserRole.branchManager,
+        branchId: event.branchId,
       );
 
       if (response['success'] == true) {

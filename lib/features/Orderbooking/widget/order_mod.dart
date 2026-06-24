@@ -17,6 +17,7 @@ class OrderMod {
   final String? note;
   final OrderStatus status;
   final DateTime? createdAt;
+  final String? conversationId;
   
   // Payment Details
   final String? paymentMethod;
@@ -64,6 +65,7 @@ class OrderMod {
     this.note,
     required this.status,
     this.createdAt,
+    this.conversationId,
     this.paymentMethod,
     this.paymentStatus,
     this.transactionId,
@@ -127,13 +129,18 @@ class OrderMod {
 
     final payment = json['paymentDetails'] as Map<String, dynamic>?;
     
-    // Parse additional details
     final detailsList = json['additionalDetails'] as List<dynamic>? ?? [];
     final detailsMap = <String, dynamic>{};
     for (var detail in detailsList) {
       if (detail is Map<String, dynamic> && detail['key'] != null) {
         detailsMap[detail['key']] = detail['value'];
       }
+    }
+    
+    // Also include parcelDetails if available
+    final parcelDetails = json['parcelDetails'] as Map<String, dynamic>?;
+    if (parcelDetails != null) {
+      detailsMap.addAll(parcelDetails);
     }
 
     return OrderMod(
@@ -145,6 +152,7 @@ class OrderMod {
       note: json['note'],
       status: parsedStatus,
       createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null,
+      conversationId: json['conversationId'],
       
       paymentMethod: payment?['paymentMethod'],
       paymentStatus: payment?['paymentStatus'],
