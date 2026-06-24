@@ -8,6 +8,7 @@ import 'package:roberto/features/AiAgent/bloc/agent_management_event.dart';
 import 'package:roberto/features/AiAgent/bloc/agent_management_state.dart';
 import 'package:roberto/features/AiAgent/data/models/agent_model.dart';
 import 'package:roberto/features/Tenant Management /bloc/tenant_bloc.dart';
+import 'package:roberto/features/Tenant Management /bloc/tenant_event.dart';
 import 'package:roberto/features/Tenant Management /bloc/tenant_state.dart';
 import 'package:roberto/features/Tenant Management /data/models/tenant_model.dart';
 
@@ -26,8 +27,9 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
   @override
   void initState() {
     super.initState();
-    // Load agents list globally
+    // Load agents and tenants/businesses list globally
     context.read<AgentManagementBloc>().add(const FetchAgentsRequested());
+    context.read<TenantBloc>().add(const FetchTenantsRequested());
   }
 
   void _onBusinessChanged(TenantBusiness? business) {
@@ -135,6 +137,46 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
   Widget _buildBusinessSelectorCard(ThemeData theme, bool isDark) {
     return BlocBuilder<TenantBloc, TenantState>(
       builder: (context, state) {
+        if (state is TenantLoading) {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: theme.cardTheme.color,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: theme.dividerTheme.color ?? const Color(0xffEEEEEE)),
+            ),
+            child: const Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        if (state is TenantError) {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: theme.cardTheme.color,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: theme.dividerTheme.color ?? const Color(0xffEEEEEE)),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  Text(
+                    'Failed to load businesses: ${state.message}',
+                    style: const TextStyle(color: Colors.red, fontSize: 14),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () => context.read<TenantBloc>().add(const FetchTenantsRequested()),
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
         List<TenantBusiness> businesses = [];
         if (state is TenantLoaded) {
           businesses = state.tenantResponse.businesses;
