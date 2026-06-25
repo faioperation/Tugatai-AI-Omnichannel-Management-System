@@ -16,13 +16,13 @@ const page = () => {
         </Link>
 
         <span className="text-[#DBDBDB]">
-          Hello!! Welcome to Tufatai Cargo logistics
+          Hello!! Welcome to Matrix Cargo logistics
         </span>
 
         <div className="flex items-center gap-2 sm:gap-6">
           <span className="flex items-center gap-1 text-[#DBDBDB]">
             <MdOutlineEmail className="w-4 h-4" />
-            <span className="">tugatai@gmail.com</span>
+            <span className="">matrix@gmail.com</span>
           </span>
           <span className="flex items-center gap-1 text-[#DBDBDB]">
             <MdOutlinePhone className="w-4 h-4" />

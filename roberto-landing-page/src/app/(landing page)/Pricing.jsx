@@ -1,9 +1,12 @@
 "use client"
-import React from 'react'
+import React, { useState } from 'react'
 import Header from '../component/Header'
 import Container from '../component/Container'
 import { FiCheck } from 'react-icons/fi'
 import { motion } from 'framer-motion'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import Cookies from 'js-cookie'
+import { toast } from 'react-hot-toast'
 
 const HalfMoonIcon = () => (
   <div className="transition-all duration-500 drop-shadow-none group-hover:drop-shadow-[0_0_15px_rgba(152,16,250,0.6)]">
@@ -71,67 +74,72 @@ const FullMoonIcon = () => (
   </div>
 )
 
-const pricingPlans = [
-  {
-    name: "CONNECT",
-    description: "Best for businesses getting started with AI automation",
-    price: "700",
-    icon: <HalfMoonIcon />,
-    features: [
-      "2 Channels",
-      "Up to 1,000 chats/month",
-      "Shared inbox",
-      "Basic AI instant replies",
-      "Basic lead capture",
-      "Basic booking form",
-      "Limited analytics",
-      "No advanced automation",
-      "No campaigns",
-      "No voice AI",
-    ]
-  },
-  {
-    name: "CONVERT",
-    description: "Best for growing businesses that need more leads, bookings, and automation",
-    price: "1250",
-    icon: <FullMoonIcon />,
-    features: [
-      "Multi-channel",
-      "Up to 5,000 chats/month",
-      "Everything in CONNECT, plus:",
-      "Advanced AI assistant",
-      "CRM pipeline",
-      "Full booking workflow",
-      "Pricing engine",
-      "Quote generation",
-      "Workflow automation",
-      "Chat summaries",
-      "WhatsApp campaigns (basic)",
-      "Analytics dashboard",
-      "AI assist for agents",
-    ]
-  },
-  {
-    name: "CONTROL",
-    description: "Best for high-volume teams and serious businesses",
-    price: "2050",
-    icon: <FullMoonIcon />,
-    features: [
-      "Unlimited or high-volume chats",
-      "Everything in CONVERT, plus:",
-      "Multi-branch / multi-country",
-      "Advanced workflow automation",
-      "Advanced campaigns",
-      "API integrations",
-      "Advanced analytics",
-      "Dedicated onboarding",
-      "Priority support",
-      "Voice AI included or as premium add-on",
-    ]
-  }
-]
+// Mock data removed in favor of API
 
 const Pricing = () => {
+  const [processingPlanId, setProcessingPlanId] = useState(null);
+
+  const { data: plans, isLoading, error } = useQuery({
+    queryKey: ['subscriptionPlans'],
+    queryFn: async () => {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+      const res = await fetch(`${baseUrl}/public/subscription-plans`, {
+        headers: {
+          'ngrok-skip-browser-warning': 'true'
+        }
+      });
+      if (!res.ok) {
+        throw new Error('Failed to fetch plans');
+      }
+      const json = await res.json();
+      return json.data;
+    }
+  });
+
+  const checkoutMutation = useMutation({
+    mutationFn: async (data) => {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      const token = Cookies.get("accessToken");
+      if (!token) throw new Error("Please log in to upgrade your plan.");
+
+      const res = await fetch(`${baseUrl}/payment/create-checkout-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
+        },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+      return res.json();
+    },
+    onSuccess: (response) => {
+      if (response.data && response.data.url) {
+         window.location.href = response.data.url;
+      } else if (response.url) {
+         window.location.href = response.url;
+      } else {
+         toast.error("Checkout URL not found");
+      }
+    },
+    onError: (err) => {
+      toast.error(err.message);
+      setProcessingPlanId(null);
+    },
+    onSettled: () => {
+      // Re-enable if there is a failure or if redirect takes time
+      // But if successful redirect happens, it doesn't matter
+    }
+  });
+
+  const getIcon = (idx) => idx === 0 ? <HalfMoonIcon /> : <FullMoonIcon />;
+
+  // Sort plans if needed based on sortOrder, though API already returns sorted likely
+  const sortedPlans = plans?.slice().sort((a, b) => a.sortOrder - b.sortOrder) || [];
+
   return (
     <section id='pricing' className="py-20 ">
       <Container>
@@ -140,54 +148,70 @@ const Pricing = () => {
           subtitleText={`Choose the plan that fits your business. Upgrade or downgrade anytime`}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-25 mt-35  mx-auto">
-          {pricingPlans.map((plan, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: false, margin: "-50px" }}
-              transition={{ duration: 0.6, delay: idx * 0.15 }}
-              className={`group relative flex flex-col px-8 py-8 rounded-4xl bg-[#12131C] border transition-all duration-500 hover:bg-gradient-to-r from-[#9810FA]/35  to-[#AD46FF]/35 hover:border-[#9810FA]/90 hover:shadow-[0_0_40px_rgba(173,70,255,0.2)] hover:-translate-y-10  border-white/5 ${idx === 1
-                  ? "z-10 md:-mt-20"
-                  : "border-white/5 z-0"
-                }`}
-            >
-              <div className="flex flex-col items-center text-center mb-8">
-                <div className="mb-4">
-                  {plan.icon}
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64 mt-10">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9810FA]"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center text-red-500 mt-10">
+            Error loading plans: {error.message}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-25 mt-35  mx-auto">
+            {sortedPlans.map((plan, idx) => (
+              <motion.div
+                key={plan.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: false, margin: "-50px" }}
+                transition={{ duration: 0.6, delay: idx * 0.15 }}
+                className={`group relative flex flex-col px-8 py-8 rounded-4xl bg-[#12131C] border transition-all duration-500 hover:bg-gradient-to-r from-[#9810FA]/35  to-[#AD46FF]/35 hover:border-[#9810FA]/90 hover:shadow-[0_0_40px_rgba(173,70,255,0.2)] hover:-translate-y-10  border-white/5 ${idx === 1
+                    ? "z-10 md:-mt-20"
+                    : "border-white/5 z-0"
+                  }`}
+              >
+                <div className="flex flex-col items-center text-center mb-8">
+                  <div className="mb-4">
+                    {getIcon(idx)}
+                  </div>
+                  <h3 className="text-2xl font-semibold text-white font-inter mb-2">
+                    {plan.name}
+                  </h3>
+                  <p className="text-[#9CA3AF] text-sm font-inter group-hover:text-white/70 transition-colors">
+                    {plan.description}
+                  </p>
+                  <div className="mt-6 flex items-baseline justify-center gap-1">
+                    <span className="text-white text-5xl font-bold font-inter">${plan.monthlyPrice}</span>
+                    <span className="text-[#9CA3AF] text-sm font-inter">/month</span>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-semibold text-white font-inter mb-2">
-                  {plan.name}
-                </h3>
-                <p className="text-[#9CA3AF] text-sm font-inter group-hover:text-white/70 transition-colors">
-                  {plan.description}
-                </p>
-                <div className="mt-6 flex items-baseline justify-center gap-1">
-                  <span className="text-white text-5xl font-bold font-inter">${plan.price}</span>
-                  <span className="text-[#9CA3AF] text-sm font-inter">/month</span>
+
+                <div className="flex-1">
+                  <ul className="space-y-4 mt-8">
+                    {plan.features.map((feature) => (
+                      <li key={feature.id} className="flex items-center gap-3">
+                        <FiCheck className="text-[#6A7282] text-lg shrink-0 group-hover:text-[#AD46FF] transition-colors" />
+                        <span className="text-[#D1D5DC] text-sm font-inter group-hover:text-[#E5E7EB] transition-colors">
+                          {feature.value}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              </div>
 
-              <div className="flex-1">
-                <ul className="space-y-4 mt-8">
-                  {plan.features.map((feature, featureIdx) => (
-                    <li key={featureIdx} className="flex items-center gap-3">
-                      <FiCheck className="text-[#6A7282] text-lg shrink-0 group-hover:text-[#AD46FF] transition-colors" />
-                      <span className="text-[#D1D5DC] text-smfont-inter group-hover:text-[#E5E7EB] transition-colors">
-                        {feature}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <button className="mt-5 w-full py-4 rounded-xl text-white font-inter font-semibold bg-white/5 border border-white/10 group-hover:bg-gradient-to-r group-hover:from-[#9810FA] group-hover:to-[#AD46FF] group-hover:border-transparent transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(173,70,255,0.4)] ">
-                Upgrade
-              </button>
-            </motion.div>
-          ))}
-        </div>
+                <button 
+                  onClick={() => {
+                    setProcessingPlanId(plan.id);
+                    checkoutMutation.mutate({ planId: plan.id, billingCycle: "monthly" });
+                  }}
+                  disabled={checkoutMutation.isPending && processingPlanId === plan.id}
+                  className={`mt-5 w-full py-4 rounded-xl text-white font-inter font-semibold bg-white/5 border border-white/10 group-hover:bg-gradient-to-r group-hover:from-[#9810FA] group-hover:to-[#AD46FF] group-hover:border-transparent transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(173,70,255,0.4)] ${(checkoutMutation.isPending && processingPlanId === plan.id) ? 'opacity-70 cursor-not-allowed' : ''}`}>
+                  {(checkoutMutation.isPending && processingPlanId === plan.id) ? 'Processing...' : 'Upgrade'}
+                </button>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </Container>
     </section>
   )

@@ -32,7 +32,7 @@ const Footer = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-[#EB232D] font-inter uppercase">
-                      Tugatai
+                      Matrix
                   </p>
                   {/* <span className="text-xs font-inter text-[#1E8380]">
                       Cargo Logistics
@@ -94,7 +94,7 @@ const Footer = () => {
           className="py-8 border-t border-white/10"
         >
           <p className="text-sm font-inter text-[#99A1AF]">
-            © {new Date().getFullYear()} Tugatai. All rights reserved.
+            © {new Date().getFullYear()} Matrix. All rights reserved.
           </p>
         </motion.div>
       </Container>
