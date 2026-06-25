@@ -76,10 +76,10 @@ class AuthRepository {
         // Assume verify might also return an access token for reset password
         final data = response.responseData['data'];
         if (data != null && data is Map) {
-          final accessToken = data['accessToken'];
-          if (accessToken != null) {
+          final resetToken = data['resetToken'];
+          if (resetToken != null) {
             await LocalStorageService.saveTokens(
-              accessToken: accessToken,
+              accessToken: resetToken,
               refreshToken: LocalStorageService.refreshToken ?? '',
             );
           }
@@ -101,6 +101,8 @@ class AuthRepository {
     if (response.isSuccess && response.responseData != null) {
       if (response.responseData['success'] != true) {
         throw Exception(response.responseData['message'] ?? 'Failed to reset password.');
+      } else {
+        await LocalStorageService.clearTokens();
       }
     } else {
       throw Exception(response.errorMassage ?? 'Network error occurred.');
