@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/management/widget/custom_user_row.dart';
 import 'package:roberto/features/Tenant%20Management%20/widget/custom_headder.dart';
+import 'package:roberto/features/management/bloc/management_bloc.dart';
+import 'package:roberto/features/management/bloc/management_event.dart';
+import 'package:roberto/features/management/bloc/management_state.dart';
+import 'package:roberto/features/management/data/models/branch_manager_model.dart';
 
 class CustomUsermanagement extends StatefulWidget {
   const CustomUsermanagement({super.key});
@@ -11,6 +16,12 @@ class CustomUsermanagement extends StatefulWidget {
 }
 
 class _CustomUsermanagementState extends State<CustomUsermanagement> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<ManagementBloc>().add(FetchBranchManagersRequested());
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -45,13 +56,41 @@ class _CustomUsermanagementState extends State<CustomUsermanagement> {
             ),
           ),
           const SizedBox(height: 24),
-          isDesktop ? _buildDesktopTable(context) : _buildMobileList(),
+          BlocConsumer<ManagementBloc, ManagementState>(
+            listener: (context, state) {
+              if (state is ManagementOperationSuccess) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(state.message)),
+                );
+              } else if (state is ManagementError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(state.message, style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red),
+                );
+              }
+            },
+            builder: (context, state) {
+              if (state is ManagementLoading) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (state is ManagementLoaded) {
+                if (state.managers.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: Text("No Branch Managers found"),
+                    ),
+                  );
+                }
+                return isDesktop ? _buildDesktopTable(context, state.managers) : _buildMobileList(state.managers);
+              }
+              return const SizedBox();
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDesktopTable(BuildContext context) {
+  Widget _buildDesktopTable(BuildContext context, List<BranchManagerModel> managers) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
@@ -73,66 +112,33 @@ class _CustomUsermanagementState extends State<CustomUsermanagement> {
                   Expanded(flex: 1, child: CustomHeadder(label: 'Sr.')),
                   Expanded(flex: 2, child: CustomHeadder(label: 'User Name')),
                   Expanded(flex: 2, child: CustomHeadder(label: 'Email')),
-                  // Expanded(flex: 2, child: CustomHeadder(label: 'Address')),
                   Expanded(flex: 2, child: CustomHeadder(label: 'Status', textAlign: TextAlign.center)),
                   Expanded(flex: 1, child: CustomHeadder(label: 'Actions', textAlign: TextAlign.center)),
                 ],
               ),
             ),
-            _buildRows(),
+            _buildRows(managers: managers),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMobileList() {
-    return _buildRows(isMobile: true);
+  Widget _buildMobileList(List<BranchManagerModel> managers) {
+    return _buildRows(managers: managers, isMobile: true);
   }
 
-  Widget _buildRows({bool isMobile = false}) {
-    final users = [
-      {
-        "slNo": "001",
-        "username": "John Smith",
-        "mail": "john@gmail.com",
-        "location": "New York, NY",
-        "status": "active"
-      },
-      {
-        "slNo": "002",
-        "username": "John Smith",
-        "mail": "john@gmail.com",
-        "location": "New York, NY",
-        "status": "active"
-      },
-      {
-        "slNo": "003",
-        "username": "John Smith",
-        "mail": "john@gmail.com",
-        "location": "New York, NY",
-        "status": "active"
-      },
-      {
-        "slNo": "004",
-        "username": "John Smith",
-        "mail": "john@gmail.com",
-        "location": "New York, NY",
-        "status": "active"
-      },
-    ];
-
+  Widget _buildRows({required List<BranchManagerModel> managers, bool isMobile = false}) {
     return Column(
-      children: users
-          .map((u) => CustomUserRow(
-                slNo: u["slNo"]!,
-                username: u["username"]!,
-                mail: u["mail"]!,
-                location: u["location"]!,
-                status: u["status"]!,
-                isMobile: isMobile,
-              ))
-          .toList(),
+      children: managers.asMap().entries.map((entry) {
+        final index = entry.key;
+        final manager = entry.value;
+        return CustomUserRow(
+          slNo: (index + 1).toString().padLeft(3, '0'),
+          manager: manager,
+          isMobile: isMobile,
+        );
+      }).toList(),
     );
   }
 }

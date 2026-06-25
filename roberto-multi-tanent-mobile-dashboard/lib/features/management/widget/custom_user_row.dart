@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/features/management/widget/custom_adduser.dart';
+import 'package:roberto/features/management/data/models/branch_manager_model.dart';
+import 'package:roberto/features/management/bloc/management_bloc.dart';
+import 'package:roberto/features/management/bloc/management_event.dart';
 
 class CustomUserRow extends StatefulWidget {
   final String slNo;
-  final String username;
-  final String mail;
-  final String location;
-  final String status;
+  final BranchManagerModel manager;
   final bool isMobile;
 
   const CustomUserRow({
     super.key,
     required this.slNo,
-    required this.username,
-    required this.mail,
-    required this.location,
-    required this.status,
+    required this.manager,
     this.isMobile = false,
   });
 
@@ -29,7 +27,7 @@ class _CustomUserRowState extends State<CustomUserRow> {
   @override
   void initState() {
     super.initState();
-    _currentStatus = widget.status;
+    _currentStatus = widget.manager.status;
   }
 
   bool get _isActive => _currentStatus.toLowerCase() == 'active';
@@ -60,14 +58,14 @@ class _CustomUserRowState extends State<CustomUserRow> {
           // Name
           Expanded(
             flex: 2,
-            child: Text(widget.username,
+            child: Text(widget.manager.name,
                 style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: theme.colorScheme.onSurface)),
           ),
 
           // Contact
           Expanded(
             flex: 2,
-            child: Text(widget.mail,
+            child: Text(widget.manager.email,
                 style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13)),
           ),
 
@@ -107,18 +105,16 @@ class _CustomUserRowState extends State<CustomUserRow> {
                     context: context,
                     builder: (context) => CustomAdduser(
                       isEdit: true,
-                      username: widget.username,
-                      mail: widget.mail,
-                      // location: widget.location,
+                      username: widget.manager.name,
+                      mail: widget.manager.email,
                       status: _currentStatus,
                     ),
                   );
                 }),
                 const SizedBox(width: 8),
-                // _buildActionIcon(Icons.remove_red_eye_outlined,
-                //     theme.textTheme.bodySmall?.color ?? Colors.grey, () {}),
-                // const SizedBox(width: 8),
-                _buildActionIcon(Icons.delete_outline, Colors.red, () {}),
+                _buildActionIcon(Icons.delete_outline, Colors.red, () {
+                  context.read<ManagementBloc>().add(DeleteBranchManagerRequested(id: widget.manager.id));
+                }),
               ],
             ),
           ),
@@ -165,7 +161,7 @@ class _CustomUserRowState extends State<CustomUserRow> {
           ),
           const SizedBox(height: 12),
           Text(
-            widget.username,
+            widget.manager.name,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -177,15 +173,7 @@ class _CustomUserRowState extends State<CustomUserRow> {
             children: [
               Icon(Icons.email_outlined, size: 14, color: theme.textTheme.bodySmall?.color),
               const SizedBox(width: 4),
-              Text(widget.mail, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.location_on_outlined, size: 14, color: theme.textTheme.bodySmall?.color),
-              const SizedBox(width: 4),
-              Text(widget.location, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13)),
+              Text(widget.manager.email, style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13)),
             ],
           ),
           const SizedBox(height: 16),
@@ -199,18 +187,16 @@ class _CustomUserRowState extends State<CustomUserRow> {
                   context: context,
                   builder: (context) => CustomAdduser(
                     isEdit: true,
-                    username: widget.username,
-                    mail: widget.mail,
-                    location: widget.location,
+                    username: widget.manager.name,
+                    mail: widget.manager.email,
                     status: _currentStatus,
                   ),
                 );
               }),
               const SizedBox(width: 12),
-              _buildActionIcon(Icons.remove_red_eye_outlined,
-                  theme.textTheme.bodySmall?.color ?? Colors.grey, () {}),
-              const SizedBox(width: 12),
-              _buildActionIcon(Icons.delete_outline, Colors.red, () {}),
+              _buildActionIcon(Icons.delete_outline, Colors.red, () {
+                context.read<ManagementBloc>().add(DeleteBranchManagerRequested(id: widget.manager.id));
+              }),
             ],
           ),
         ],

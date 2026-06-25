@@ -51,6 +51,7 @@ class Routes {
       final args = settings.arguments as Map<String, dynamic>? ?? {};
       final role = routeRole ?? args['role'] as UserRole? ?? UserRole.businessOwner;
       final branch = args['assignedBranch'] as Map<String, String>?;
+      final businessId = args['businessId'] as String?;
       
       return PageRouteBuilder(
         settings: settings,
@@ -60,6 +61,7 @@ class Routes {
           role: role,
           assignedBranch: branch,
           initialItem: getDashboardItem(actualRoute, role: role),
+          initialBusinessId: businessId,
         ),
       );
     }

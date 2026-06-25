@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:roberto/features/businesssubscription/widget/subscription_row.dart';
 import 'package:roberto/features/Tenant%20Management%20/widget/custom_headder.dart';
+import 'package:roberto/features/businesssubscription/bloc/business_subscription_bloc.dart';
+import 'package:roberto/features/businesssubscription/bloc/business_subscription_event.dart';
+import 'package:roberto/features/businesssubscription/bloc/business_subscription_state.dart';
+import 'package:roberto/features/businesssubscription/data/models/business_subscription_model.dart';
+import 'package:intl/intl.dart';
 
 class CustomHistory extends StatefulWidget {
   const CustomHistory({super.key});
@@ -12,6 +17,12 @@ class CustomHistory extends StatefulWidget {
 }
 
 class _CustomHistoryState extends State<CustomHistory> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<BusinessSubscriptionBloc>().add(FetchMySubscriptionRequested());
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -97,13 +108,50 @@ class _CustomHistoryState extends State<CustomHistory> {
           ),
           const SizedBox(height: 26),
 
-          isDesktop ? _buildDesktopTable() : _buildMobileList(),
+          BlocBuilder<BusinessSubscriptionBloc, BusinessSubscriptionState>(
+            builder: (context, state) {
+              if (state is BusinessSubscriptionLoading) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (state is BusinessSubscriptionLoaded) {
+                // Flatten all invoices from all subscriptions
+                final allInvoices = <Map<String, dynamic>>[];
+                for (var sub in state.subscriptions) {
+                  for (var invoice in sub.invoices) {
+                    allInvoices.add({
+                      'invoice': invoice,
+                      'planName': sub.plan?.name ?? 'Unknown Plan',
+                      'expireDate': sub.endDate,
+                    });
+                  }
+                }
+
+                if (allInvoices.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: Text("No billing history found"),
+                    ),
+                  );
+                }
+
+                return isDesktop ? _buildDesktopTable(allInvoices) : _buildMobileList(allInvoices);
+              } else if (state is BusinessSubscriptionError) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Text(state.message, style: const TextStyle(color: Colors.red)),
+                  ),
+                );
+              }
+              return const SizedBox();
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDesktopTable() {
+  Widget _buildDesktopTable(List<Map<String, dynamic>> invoicesData) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
@@ -134,53 +182,55 @@ class _CustomHistoryState extends State<CustomHistory> {
                 ],
               ),
             ),
-            _buildRows(isMobile: false),
+            _buildRows(invoicesData: invoicesData, isMobile: false),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMobileList() {
-    return _buildRows(isMobile: true);
+  Widget _buildMobileList(List<Map<String, dynamic>> invoicesData) {
+    return _buildRows(invoicesData: invoicesData, isMobile: true);
   }
 
-  Widget _buildRows({required bool isMobile}) {
+  Widget _buildRows({required List<Map<String, dynamic>> invoicesData, required bool isMobile}) {
     return Column(
-      children: [
-        SubscriptionRow(
-          date: "Apr 1, 2026",
-          plan: "Half Moon",
-          price: "\$49/Monthly",
-          expireDate: "May 1, 2026",
-          status: "Paid",
+      children: invoicesData.map((data) {
+        final invoice = data['invoice'] as InvoiceModel;
+        final planName = data['planName'] as String;
+        final expireDate = data['expireDate'] as DateTime?;
+
+        String formattedDate = invoice.createdAt != null 
+            ? DateFormat('MMM d, yyyy').format(invoice.createdAt!) 
+            : 'N/A';
+        
+        String formattedExpireDate = expireDate != null 
+            ? DateFormat('MMM d, yyyy').format(expireDate) 
+            : 'N/A';
+
+        // Fix casing for Status to capitalize the first letter
+        String displayStatus = invoice.status;
+        if (displayStatus.isNotEmpty) {
+          displayStatus = displayStatus[0].toUpperCase() + displayStatus.substring(1).toLowerCase();
+        }
+
+        // Capitalize billing cycle and format price
+        String displayCycle = invoice.billingCycle;
+        if (displayCycle.isNotEmpty) {
+          displayCycle = displayCycle[0].toUpperCase() + displayCycle.substring(1).toLowerCase();
+        }
+        String displayPrice = "\$${invoice.amount}/$displayCycle";
+
+        return SubscriptionRow(
+          date: formattedDate,
+          plan: planName,
+          price: displayPrice,
+          expireDate: formattedExpireDate,
+          status: displayStatus,
+          invoiceUrl: invoice.invoiceUrl,
           isMobile: isMobile,
-        ),
-        SubscriptionRow(
-          date: "Mar 1, 2026",
-          plan: "Half Moon",
-          price: "\$49/Monthly",
-          expireDate: "Apr 1, 2026",
-          status: "Unpaid",
-          isMobile: isMobile,
-        ),
-        SubscriptionRow(
-          date: "Feb 1, 2026",
-          plan: "Half Moon",
-          price: "\$49/Monthly",
-          expireDate: "Mar 1, 2026",
-          status: "Paid",
-          isMobile: isMobile,
-        ),
-        SubscriptionRow(
-          date: "Jan 1, 2026",
-          plan: "Half Moon",
-          price: "\$49/Monthly",
-          expireDate: "Feb 1, 2026",
-          status: "Unpaid",
-          isMobile: isMobile,
-        ),
-      ],
+        );
+      }).toList(),
     );
   }
 }

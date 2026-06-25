@@ -1,15 +1,62 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/Auth/widget/custom_textfield.dart';
+import 'package:roberto/features/CRM/bloc/crm_bloc.dart';
+import 'package:roberto/features/CRM/bloc/crm_event.dart';
+import 'package:roberto/common/user_role.dart';
 
 class CustomAddlead extends StatefulWidget {
-  const CustomAddlead({super.key});
+  final UserRole role;
+  const CustomAddlead({super.key, this.role = UserRole.businessOwner});
 
   @override
   State<CustomAddlead> createState() => _CustomAddleadState();
 }
 
 class _CustomAddleadState extends State<CustomAddlead> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _sourceController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
+
+  final String _testBranchId = '5feaac7b-c436-4ecb-8a12-9632e4090205';
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _sourceController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  void _createLead() {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name is required'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    context.read<CrmBloc>().add(CreateLead(
+      branchId: _testBranchId,
+      name: name,
+      email: _emailController.text.trim(),
+      phone: _phoneController.text.trim(),
+      source: _sourceController.text.trim().isEmpty ? 'Direct' : _sourceController.text.trim(),
+      address: '', 
+      note: _noteController.text.trim(),
+      status: 'Warm', // default status
+      metadata: const {},
+      role: widget.role,
+    ));
+
+    Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +67,6 @@ class _CustomAddleadState extends State<CustomAddlead> {
       backgroundColor: Theme.of(context).cardTheme.color,
       surfaceTintColor: Colors.transparent,
 
-      //  Responsive width
       contentPadding: EdgeInsets.symmetric(
         horizontal: isDesktop ? 24 : 16,
         vertical: 20,
@@ -71,31 +117,46 @@ class _CustomAddleadState extends State<CustomAddlead> {
             children: [
               const Text("Name"),
               const SizedBox(height: 6),
-              const CustomTextfield(hintText: "Enter name"),
+              CustomTextfield(
+                controller: _nameController,
+                hintText: "Enter name",
+              ),
 
               const SizedBox(height: 15),
 
               const Text("Email"),
               const SizedBox(height: 6),
-              const CustomTextfield(hintText: "email@example.com"),
+              CustomTextfield(
+                controller: _emailController,
+                hintText: "email@example.com",
+              ),
 
               const SizedBox(height: 15),
 
               const Text("Phone"),
               const SizedBox(height: 6),
-              const CustomTextfield(hintText: "+1 234 567 8900"),
+              CustomTextfield(
+                controller: _phoneController,
+                hintText: "+1 234 567 8900",
+              ),
 
               const SizedBox(height: 15),
 
               const Text("Source"),
               const SizedBox(height: 6),
-              const CustomTextfield(hintText: "Facebook"),
+              CustomTextfield(
+                controller: _sourceController,
+                hintText: "Facebook",
+              ),
 
               const SizedBox(height: 15),
 
               const Text("Note"),
               const SizedBox(height: 6),
-              const CustomTextfield(hintText: "Add notes..."),
+              CustomTextfield(
+                controller: _noteController,
+                hintText: "Add notes...",
+              ),
 
               const SizedBox(height: 15),
             ],
@@ -143,9 +204,7 @@ class _CustomAddleadState extends State<CustomAddlead> {
           backgroundColor: AppColor.primary,
           foregroundColor: Colors.white,
         ),
-        onPressed: () {
-          Navigator.pop(context);
-        },
+        onPressed: _createLead,
         child: const Text(
           "Create",
           style: TextStyle(fontWeight: FontWeight.w600),

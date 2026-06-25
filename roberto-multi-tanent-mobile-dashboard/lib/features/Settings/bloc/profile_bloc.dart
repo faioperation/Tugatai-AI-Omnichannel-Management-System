@@ -34,10 +34,12 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     }
 
     try {
-      final name = "${event.firstName} ${event.lastName}".trim();
       final user = await profileRepository.updateProfile(
-        name: name,
+        firstName: event.firstName,
+        lastName: event.lastName,
         avatarPath: event.avatarPath,
+        avatarBytes: event.avatarBytes,
+        avatarName: event.avatarName,
       );
       emit(ProfileUpdateSuccess(user: user));
       emit(ProfileLoaded(user: user));

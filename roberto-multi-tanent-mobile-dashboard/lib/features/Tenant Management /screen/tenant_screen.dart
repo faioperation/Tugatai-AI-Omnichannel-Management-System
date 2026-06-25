@@ -12,7 +12,9 @@ import 'package:roberto/features/Tenant Management /data/models/tenant_model.dar
 import '../widget/custom_builditem.dart';
 
 class TenantScreen extends StatefulWidget {
-  const TenantScreen({super.key});
+  final Function(String businessId)? onNavigateToAiAgent;
+
+  const TenantScreen({super.key, this.onNavigateToAiAgent});
 
   @override
   State<TenantScreen> createState() => _TenantScreenState();
@@ -353,11 +355,22 @@ class _TenantScreenState extends State<TenantScreen> {
 
           Expanded(
             flex: 1,
-            child: Center(
-              child: IconButton(
-                icon: Icon(Icons.remove_red_eye, color: theme.textTheme.bodySmall?.color),
-                onPressed: () => _showClientDetailsDialog(tenant),
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.smart_toy_outlined, color: AppColor.primary, size: 20),
+                  onPressed: () {
+                    if (widget.onNavigateToAiAgent != null) {
+                      widget.onNavigateToAiAgent!(tenant.id);
+                    }
+                  },
+                ),
+                IconButton(
+                  icon: Icon(Icons.remove_red_eye, color: theme.textTheme.bodySmall?.color, size: 20),
+                  onPressed: () => _showClientDetailsDialog(tenant),
+                ),
+              ],
             ),
           ),
         ],
@@ -455,9 +468,21 @@ class _TenantScreenState extends State<TenantScreen> {
                   ),
                 ],
               ),
-              IconButton(
-                icon: Icon(Icons.visibility, color: theme.textTheme.bodySmall?.color, size: 20),
-                onPressed: () => _showClientDetailsDialog(tenant),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.smart_toy_outlined, color: AppColor.primary, size: 20),
+                    onPressed: () {
+                      if (widget.onNavigateToAiAgent != null) {
+                        widget.onNavigateToAiAgent!(tenant.id);
+                      }
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.visibility, color: theme.textTheme.bodySmall?.color, size: 20),
+                    onPressed: () => _showClientDetailsDialog(tenant),
+                  ),
+                ],
               ),
             ],
           ),

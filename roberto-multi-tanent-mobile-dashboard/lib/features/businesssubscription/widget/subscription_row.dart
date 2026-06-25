@@ -7,6 +7,7 @@ class SubscriptionRow extends StatelessWidget {
   final String price;
   final String expireDate;
   final String status;
+  final String? invoiceUrl;
   final bool isMobile;
 
   const SubscriptionRow({
@@ -16,6 +17,7 @@ class SubscriptionRow extends StatelessWidget {
     required this.price,
     required this.expireDate,
     required this.status,
+    this.invoiceUrl,
     this.isMobile = false,
   });
 
@@ -81,15 +83,17 @@ class SubscriptionRow extends StatelessWidget {
             ),
           ),
 
-          // Renew Button (ONLY for unpaid)
+          // Renew/Download Button
           Expanded(
             flex: 2,
-            child: isUnpaid
-                ? Align(
-                    alignment: Alignment.centerLeft,
-                    child: _buildRenewButton(context),
-                  )
-                : const SizedBox.shrink(),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: isUnpaid
+                  ? _buildRenewButton(context)
+                  : isPaid && invoiceUrl != null && invoiceUrl!.isNotEmpty
+                      ? _buildDownloadButton(context)
+                      : const SizedBox.shrink(),
+            ),
           ),
         ],
       ),
@@ -145,6 +149,7 @@ class SubscriptionRow extends StatelessWidget {
             children: [
               _buildInfoColumn(context, "Pricing", price),
               if (isUnpaid) _buildRenewButton(context),
+              if (isPaid && invoiceUrl != null && invoiceUrl!.isNotEmpty) _buildDownloadButton(context),
             ],
           ),
         ],
@@ -224,6 +229,43 @@ class SubscriptionRow extends StatelessWidget {
             fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDownloadButton(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: () {
+        // TODO: Open URL to download invoice
+        print("Download Invoice: $invoiceUrl");
+      },
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: theme.cardTheme.color,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: theme.dividerTheme.color ?? const Color(0xffEEEEEE),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.download, size: 14, color: theme.colorScheme.onSurface),
+            const SizedBox(width: 4),
+            Text(
+              "Download",
+              style: TextStyle(
+                color: theme.colorScheme.onSurface,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:roberto/app/app_color.dart';
+import 'package:roberto/features/CRM/data/models/crm_lead_model.dart';
+import 'package:roberto/features/CRM/widget/custom_updatelead.dart';
+import 'package:roberto/common/user_role.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:roberto/features/CRM/bloc/crm_bloc.dart';
+import 'package:roberto/features/CRM/bloc/crm_event.dart';
 
 class CustomLeadRow extends StatelessWidget {
   final String name;
@@ -14,6 +20,8 @@ class CustomLeadRow extends StatelessWidget {
 
   final String? notes;
   final Function(String)? onNavigate;
+  final CrmLeadModel? fullLeadData; // The actual data model
+  final UserRole role;
 
   const CustomLeadRow({
     super.key,
@@ -27,6 +35,8 @@ class CustomLeadRow extends StatelessWidget {
     required this.socialText,
     this.notes,
     this.onNavigate,
+    this.fullLeadData,
+    this.role = UserRole.businessOwner,
   });
 
   @override
@@ -284,11 +294,41 @@ class CustomLeadRow extends StatelessWidget {
                         ],
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.close, color: theme.textTheme.bodySmall?.color),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                    Row(
+                      children: [
+                        if (fullLeadData != null)
+                          IconButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              showDialog(
+                                context: context,
+                                builder: (context) => CustomUpdateLead(lead: fullLeadData!, role: role),
+                              );
+                            },
+                            icon: Icon(Icons.edit, size: 20, color: theme.textTheme.bodySmall?.color),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        if (fullLeadData != null)
+                           const SizedBox(width: 8),
+                        if (fullLeadData != null)
+                          IconButton(
+                            onPressed: () {
+                              _showDeleteConfirmation(context);
+                            },
+                            icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        if (fullLeadData != null)
+                           const SizedBox(width: 12),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(Icons.close, color: theme.textTheme.bodySmall?.color),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -476,6 +516,46 @@ class CustomLeadRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        final theme = Theme.of(context);
+        return AlertDialog(
+          backgroundColor: theme.cardTheme.color,
+          title: Text(
+            'Delete Lead',
+            style: TextStyle(color: theme.colorScheme.onSurface),
+          ),
+          content: Text(
+            'Are you sure you want to delete this lead?',
+            style: TextStyle(color: theme.textTheme.bodySmall?.color),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text('Cancel', style: TextStyle(color: theme.colorScheme.onSurface)),
+            ),
+            TextButton(
+              onPressed: () {
+                if (fullLeadData?.id != null && fullLeadData?.branchId != null) {
+                  context.read<CrmBloc>().add(DeleteLead(
+                    id: fullLeadData!.id!,
+                    branchId: fullLeadData!.branchId!,
+                    role: role,
+                  ));
+                }
+                Navigator.pop(dialogContext); // Close confirmation
+                Navigator.pop(context); // Close details dialog
+              },
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
     );
   }
 }

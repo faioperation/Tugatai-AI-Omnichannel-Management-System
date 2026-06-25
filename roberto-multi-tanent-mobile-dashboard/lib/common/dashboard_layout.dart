@@ -2,12 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/common/sidebar_item.dart';
+import 'package:roberto/core/network/network_client.dart';
 import 'package:roberto/features/Tenant Management /screen/tenant_screen.dart';
 import 'package:roberto/features/Subscription/screen/subscription_screen.dart';
 import 'package:roberto/features/Settings/screen/setting_screen.dart';
 import 'package:roberto/features/Orderbooking/screen/order_booking_screen.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:roberto/features/Orderbooking/bloc/booking_bloc.dart';
+import 'package:roberto/features/Orderbooking/bloc/booking_event.dart';
+import 'package:roberto/features/Orderbooking/data/repositories/booking_repository.dart';
 import 'package:roberto/features/Inbox/screen/inbox_screen.dart';
 import 'package:roberto/features/AiAgent/screen/aiagent_screen.dart';
+import 'package:roberto/features/AiAgent/screen/agent_management_screen.dart';
 import 'package:roberto/features/Pricing/screen/pricing_screen.dart';
 import 'package:roberto/features/CRM/screen/cmr_screen.dart';
 import 'package:roberto/features/notification/screen/notification_screen.dart';
@@ -19,24 +25,29 @@ import 'package:roberto/features/DemoBooking/screen/demo_booking_screen.dart';
 import 'package:roberto/features/WhatsAppCampaigns/screen/whatsapp_campaigns_screen.dart';
 import 'package:roberto/app/app_routes.dart';
 import 'package:roberto/common/user_role.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:roberto/features/Settings/bloc/profile_bloc.dart';
 import 'package:roberto/features/Settings/bloc/profile_event.dart';
 import 'package:roberto/features/Settings/bloc/profile_state.dart';
 import 'package:roberto/features/notification/bloc/notification_bloc.dart';
 import 'package:roberto/features/notification/bloc/notification_event.dart';
 import 'package:roberto/features/notification/bloc/notification_state.dart';
+import 'package:roberto/features/management/bloc/management_bloc.dart';
+import 'package:roberto/features/management/bloc/management_event.dart';
+import 'package:roberto/features/management/bloc/management_state.dart';
 
 class DashboardShell extends StatefulWidget {
   final UserRole role;
   final Map<String, String>? assignedBranch;
   final String? initialItem;
+  final String? initialBusinessId;
 
   const DashboardShell({
     super.key,
     this.role = UserRole.businessOwner,
     this.assignedBranch,
     this.initialItem,
+    this.initialBusinessId,
   });
 
   @override
@@ -46,6 +57,10 @@ class DashboardShell extends StatefulWidget {
 class _DashboardShellState extends State<DashboardShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String _activeItem = 'Overview';
+  String? _selectedTenantBusinessId;
+  String? _inboxTargetPhone;
+  String? _inboxTargetName;
+  String? _inboxTargetConversationId;
   
   final List<Map<String, String>> _branches = [
     {"name": "Queens Center", "address": "719/B, Queens, NY"},
@@ -61,10 +76,16 @@ class _DashboardShellState extends State<DashboardShell> {
     if (widget.initialItem != null) {
       _activeItem = widget.initialItem!;
     }
+    if (widget.initialBusinessId != null) {
+      _selectedTenantBusinessId = widget.initialBusinessId;
+    }
     
     // Fetch initial data
     context.read<ProfileBloc>().add(FetchProfileRequested());
     context.read<NotificationBloc>().add(FetchNotificationsRequested());
+    if (widget.role == UserRole.businessOwner) {
+      context.read<ManagementBloc>().add(FetchBranchesRequested());
+    }
   }
 
   void _navigateTo(String item) {
@@ -104,6 +125,7 @@ class _DashboardShellState extends State<DashboardShell> {
         arguments: {
           'role': widget.role,
           'assignedBranch': _selectedBranch,
+          'businessId': _selectedTenantBusinessId,
         },
       );
     } else {
@@ -113,7 +135,16 @@ class _DashboardShellState extends State<DashboardShell> {
     }
   }
 
-  void _selectItem(String item) {
+  void _selectItem(String item, {String? targetPhone, String? targetName, String? conversationId}) {
+    if (targetPhone != null) {
+      _inboxTargetPhone = targetPhone;
+    }
+    if (targetName != null) {
+      _inboxTargetName = targetName;
+    }
+    if (conversationId != null) {
+      _inboxTargetConversationId = conversationId;
+    }
     _navigateTo(item);
   }
 
@@ -121,8 +152,29 @@ class _DashboardShellState extends State<DashboardShell> {
   Widget build(BuildContext context) {
     bool isDesktop = MediaQuery.of(context).size.width > 900;
 
-    return Scaffold(
-      key: _scaffoldKey,
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<ManagementBloc, ManagementState>(
+          listener: (context, state) {
+            if (widget.role == UserRole.businessOwner && state is ManagementLoaded && state.branches.isNotEmpty) {
+              final dynamicBranches = state.branches.map((b) => {
+                'id': b.id,
+                'name': b.name,
+                'address': b.address,
+              }).toList();
+              
+              bool found = dynamicBranches.any((b) => (b['id'] != null && b['id'] == _selectedBranch['id']) || (b['name'] != null && b['name'] == _selectedBranch['name']));
+              if (!found) {
+                setState(() {
+                  _selectedBranch = dynamicBranches.first;
+                });
+              }
+            }
+          },
+        ),
+      ],
+      child: Scaffold(
+        key: _scaffoldKey,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: isDesktop ? null : Drawer(child: _buildSidebar(context)),
       body: SafeArea(
@@ -148,20 +200,35 @@ class _DashboardShellState extends State<DashboardShell> {
           ],
         ),
       ),
+      ),
     );
   }
 
   Widget _buildContent(BuildContext context) {
+    String currentBranchId = _selectedBranch['id'] ?? '';
 
     switch (_activeItem) {
       case 'Inbox':
         return widget.role == UserRole.systemOwner
             ? const DemoBookingScreen() // System Owner's inbox is Demo Bookings
-            : InboxScreen(isSystemOwner: widget.role == UserRole.systemOwner);
+            : InboxScreen(
+                isSystemOwner: widget.role == UserRole.systemOwner, 
+                branchId: currentBranchId,
+                initialCustomerPhone: _inboxTargetPhone,
+                initialCustomerName: _inboxTargetName,
+                initialConversationId: _inboxTargetConversationId,
+              );
       case 'Tenant Management':
       case 'Management':
         return widget.role == UserRole.systemOwner
-            ? const TenantScreen()
+            ? TenantScreen(
+                onNavigateToAiAgent: (String businessId) {
+                  _selectedTenantBusinessId = businessId;
+                  setState(() {
+                    _activeItem = 'AI Agent Training';
+                  });
+                },
+              )
             : const ManagementScreen();
 
       case 'Subscriptions':
@@ -172,22 +239,34 @@ class _DashboardShellState extends State<DashboardShell> {
       case 'Settings':
         return widget.role == UserRole.systemOwner
             ? const SettingScreen()
-            : const BusinessownerSettings();
+            : BusinessownerSettings(branchId: currentBranchId);
 
       case 'Order Booking':
-        return OrderBookingScreen(onNavigate: _selectItem);
+        return BlocProvider(
+          create: (context) => BookingBloc(
+            repository: BookingRepository(
+              networkClient: context.read<NetworkClient>(),
+              isBranchManager: widget.role == UserRole.branchManager,
+            ),
+          )..add(GetBookings(branchId: currentBranchId)),
+          child: OrderBookingScreen(onNavigate: _selectItem, branchId: currentBranchId),
+        );
+
+      case 'AI Agent Training':
+        return AiagentScreen(businessId: _selectedTenantBusinessId);
 
       case 'AI Agent':
-        return const AiagentScreen();
+        return widget.role == UserRole.systemOwner
+            ? AgentManagementScreen(businessId: _selectedTenantBusinessId)
+            : AiagentScreen(businessId: _selectedTenantBusinessId);
 
       case 'Pricing':
-        return const PricingScreen();
+        return PricingScreen(role: widget.role, branchId: currentBranchId);
 
       case 'CRM & Leads':
-        return CmrScreen(onNavigate: _selectItem);
+        return CmrScreen(onNavigate: _selectItem, role: widget.role, branchId: currentBranchId);
 
-      case 'Management':
-        return const ManagementScreen();
+
 
       case 'Notifications':
         return const NotificationScreen();
@@ -199,23 +278,25 @@ class _DashboardShellState extends State<DashboardShell> {
         return const SettingScreen();
 
       case 'Campaigns':
-        return const WhatsAppCampaignsScreen();
+        return WhatsAppCampaignsScreen(branchId: currentBranchId);
 
       case 'Overview':
 
       default:
-        return OverviewScreen(role: widget.role);
+        return OverviewScreen(role: widget.role, branchId: currentBranchId);
     }
   }
 
 
   // ─── Sidebar ─────────────────────────────────────────────────────────────
   
+  
   static const List<Map<String, dynamic>> _systemOwnerItems = [
     {'icon': 'assets/overview.svg', 'label': 'Overview'},
     // {'icon': 'assets/inbox.svg', 'label': 'Demo Bookings'},
-    {'icon': 'assets/subscription.svg', 'label': 'Tenant Management'},
+    {'icon': Icons.business, 'label': 'Tenant Management'},
     {'icon': 'assets/subscription.svg', 'label': 'Subscriptions'},
+    {'icon': 'assets/agent.svg', 'label': 'AI Agent'},
     {'icon': 'assets/setting.svg', 'label': 'Settings'},
   ];
 
@@ -223,7 +304,6 @@ class _DashboardShellState extends State<DashboardShell> {
     {'icon': 'assets/overview.svg', 'label': 'Overview'},
     {'icon': 'assets/inbox.svg', 'label': 'Inbox'},
     {'icon': 'assets/order.svg', 'label': 'Order Booking'},
-    {'icon': 'assets/aiagent.svg', 'label': 'AI Agent'},
     {'icon': 'assets/pricing.svg', 'label': 'Pricing'},
     {'icon': Icons.send, 'label': 'Campaigns'},
     {'icon': 'assets/crm.svg', 'label': 'CRM & Leads'},
@@ -263,7 +343,7 @@ class _DashboardShellState extends State<DashboardShell> {
                 SvgPicture.asset('assets/logo.svg', height: 60),
                 const SizedBox(height: 10),
                 const Text(
-                  "TUGATAI",
+                  "MATRIX AI",
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -285,52 +365,65 @@ class _DashboardShellState extends State<DashboardShell> {
                 ),
                 child: widget.role == UserRole.branchManager
                     ? _buildStaticBranchInfo(context)
-                    : PopupMenuButton<Map<String, String>>(
-                        offset: const Offset(0, 50),
-                        position: PopupMenuPosition.under,
-                        color: Theme.of(context).cardTheme.color,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        onSelected: (Map<String, String> branch) {
-                          setState(() {
-                            _selectedBranch = branch;
-                          });
-                        },
-                        itemBuilder: (context) => _branches.map((branch) {
-                          return PopupMenuItem<Map<String, String>>(
-                            value: branch,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  branch['name']!,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: branch == _selectedBranch
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface,
-                                  ),
+                    : BlocBuilder<ManagementBloc, ManagementState>(
+                        builder: (context, state) {
+                          List<Map<String, String>> dynamicBranches = _branches;
+                          if (state is ManagementLoaded && state.branches.isNotEmpty) {
+                            dynamicBranches = state.branches.map((b) => {
+                                  'id': b.id,
+                                  'name': b.name,
+                                  'address': b.address,
+                                }).toList();
+                          }
+
+                          return PopupMenuButton<Map<String, String>>(
+                            offset: const Offset(0, 50),
+                            position: PopupMenuPosition.under,
+                            color: Theme.of(context).cardTheme.color,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            onSelected: (Map<String, String> branch) {
+                              setState(() {
+                                _selectedBranch = branch;
+                              });
+                            },
+                            itemBuilder: (context) => dynamicBranches.map((branch) {
+                              return PopupMenuItem<Map<String, String>>(
+                                value: branch,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      branch['name'] ?? '',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: branch['name'] == _selectedBranch['name']
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                      ),
+                                    ),
+                                    Text(
+                                      branch['address'] ?? '',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.color,
+                                      ),
+                                    ),
+                                    if (branch != dynamicBranches.last)
+                                      const Divider(height: 16),
+                                  ],
                                 ),
-                                Text(
-                                  branch['address']!,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.color,
-                                  ),
-                                ),
-                                if (branch != _branches.last)
-                                  const Divider(height: 16),
-                              ],
-                            ),
+                              );
+                            }).toList(),
+                            child: _buildBranchSelectorTrigger(context),
                           );
-                        }).toList(),
-                        child: _buildBranchSelectorTrigger(context),
+                        },
                       ),
               ),
             ),
@@ -510,7 +603,7 @@ class _DashboardShellState extends State<DashboardShell> {
                 CircleAvatar(
                   radius: 17.5,
                   backgroundColor: AppColor.mini,
-                  backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
+                  backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl.replaceFirst('http://', 'https://'), headers: const {'ngrok-skip-browser-warning': 'true'}) : null,
                   child: (avatarUrl == null || avatarUrl.isEmpty)
                       ? const Icon(Icons.person, color: AppColor.white, size: 18)
                       : null,
@@ -537,13 +630,32 @@ class _DashboardShellState extends State<DashboardShell> {
   }
 
   Widget _buildStaticBranchInfo(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
-      ),
-      child: _buildBranchInfoContent(context, showArrow: false),
+    return BlocBuilder<ProfileBloc, ProfileState>(
+      builder: (context, state) {
+        Map<String, String> branchData = _selectedBranch;
+
+        if (state is ProfileLoaded || state is ProfileUpdateSuccess || state is ProfileUpdating) {
+          final user = (state is ProfileLoaded)
+              ? state.user
+              : (state is ProfileUpdateSuccess) ? state.user : (state as ProfileUpdating).currentUser;
+          
+          if (user.branchName != null && user.branchName!.isNotEmpty) {
+            branchData = {
+              'name': user.branchName!,
+              'address': user.branchAddress ?? '',
+            };
+          }
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
+          ),
+          child: _buildBranchInfoContent(context, showArrow: false, overrideBranch: branchData),
+        );
+      },
     );
   }
 
@@ -559,7 +671,8 @@ class _DashboardShellState extends State<DashboardShell> {
   }
 
   Widget _buildBranchInfoContent(BuildContext context,
-      {required bool showArrow}) {
+      {required bool showArrow, Map<String, String>? overrideBranch}) {
+    final Map<String, String> branch = overrideBranch ?? _selectedBranch;
     return Row(
       children: [
         const Icon(Icons.location_on_outlined,
@@ -570,7 +683,7 @@ class _DashboardShellState extends State<DashboardShell> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _selectedBranch['name']!,
+                branch['name'] ?? '',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -579,7 +692,7 @@ class _DashboardShellState extends State<DashboardShell> {
               ),
               const SizedBox(height: 2),
               Text(
-                _selectedBranch['address']!,
+                branch['address'] ?? '',
                 style: TextStyle(
                   fontSize: 11,
                   color: Theme.of(context).textTheme.bodySmall?.color,

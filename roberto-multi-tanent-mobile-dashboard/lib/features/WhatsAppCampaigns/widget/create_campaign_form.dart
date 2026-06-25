@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:roberto/app/app_color.dart';
+import 'package:roberto/features/management/data/models/branch_model.dart';
+import 'package:intl/intl.dart';
 
 class CreateCampaignForm extends StatefulWidget {
   final VoidCallback onCancel;
-  final VoidCallback onCreate;
+  final void Function(Map<String, dynamic> data) onCreate;
   final bool isReadOnly;
-  final Map<String, dynamic>? initialData;
+  final dynamic initialData;
+  final List<BranchModel> branches;
+  final String? currentBranchId;
 
   const CreateCampaignForm({
     super.key,
@@ -13,6 +17,8 @@ class CreateCampaignForm extends StatefulWidget {
     required this.onCreate,
     this.isReadOnly = false,
     this.initialData,
+    this.branches = const [],
+    this.currentBranchId,
   });
 
   @override
@@ -21,23 +27,57 @@ class CreateCampaignForm extends StatefulWidget {
 
 class _CreateCampaignFormState extends State<CreateCampaignForm> {
   final _titleController = TextEditingController();
+  final _messageController = TextEditingController();
   String? _selectedAudience;
-  String? _selectedInbox;
-  String? _selectedTemplate;
+  String? _selectedBranch;
   DateTime? _scheduledTime;
+  DateTime? _endDate;
 
   @override
   void initState() {
     super.initState();
     if (widget.initialData != null) {
-      _titleController.text = widget.initialData!['title'] ?? '';
-      final initialAudience = widget.initialData!['audience'];
-      if (["Cold", "Warm", "Hot", "Booked", "Completed"].contains(initialAudience)) {
-        _selectedAudience = initialAudience;
+      _titleController.text = widget.initialData!.title;
+      _messageController.text = widget.initialData!.message ?? '';
+      _selectedBranch = widget.initialData!.branchId;
+      if (widget.initialData!.selectedPeople != null && widget.initialData!.selectedPeople!.isNotEmpty) {
+        String firstAudience = widget.initialData!.selectedPeople!.first;
+        _selectedAudience = ["Cold", "Warm", "Hot", "Booked", "Completed"].firstWhere(
+          (e) => e.toUpperCase() == firstAudience.toUpperCase(), 
+          orElse: () => "Cold"
+        );
       }
-      _selectedInbox = widget.initialData!['inbox'];
-      _selectedTemplate = widget.initialData!['template'];
-      // Handle date if present
+      _scheduledTime = widget.initialData!.scheduledTime;
+      _endDate = widget.initialData!.endDate;
+    } else {
+      _selectedBranch = widget.currentBranchId;
+      _scheduledTime = DateTime.now();
+      _endDate = DateTime.now().add(const Duration(days: 7));
+    }
+  }
+
+  Future<void> _pickDateTime(BuildContext context, bool isStart) async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: isStart ? (_scheduledTime ?? DateTime.now()) : (_endDate ?? DateTime.now()),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (date != null) {
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+      );
+      if (time != null && mounted) {
+        final combined = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+        setState(() {
+          if (isStart) {
+            _scheduledTime = combined;
+          } else {
+            _endDate = combined;
+          }
+        });
+      }
     }
   }
 
@@ -50,113 +90,138 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                widget.isReadOnly ? "View Campaign" : (widget.initialData != null ? "Edit Campaign" : "Create WhatsApp campaign"),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              IconButton(
-                onPressed: widget.onCancel,
-                icon: const Icon(Icons.close),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          _buildLabel("Title"),
-          TextFormField(
-            controller: _titleController,
-            readOnly: widget.isReadOnly,
-            decoration: _inputDecoration("Please enter the title of campaign"),
-          ),
-          const SizedBox(height: 20),
-          _buildLabel("Select Inbox"),
-          DropdownButtonFormField<String>(
-            value: _selectedInbox,
-            items: ["Select Inbox", "Inbox 1", "Inbox 2"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-            onChanged: widget.isReadOnly ? null : (v) => setState(() => _selectedInbox = v),
-            decoration: _inputDecoration("Select Inbox"),
-          ),
-          // const SizedBox(height: 20),
-          const SizedBox(height: 20),
-          _buildLabel("Audience"),
-          DropdownButtonFormField<String>(
-            value: _selectedAudience,
-            items: ["Cold", "Warm", "Hot", "Booked", "Completed"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-            onChanged: widget.isReadOnly ? null : (v) => setState(() => _selectedAudience = v),
-            decoration: _inputDecoration("Select the customer labels"),
-          ),
-          const SizedBox(height: 20),
-          _buildLabel("Scheduled time"),
-          TextFormField(
-            readOnly: true,
-            decoration: _inputDecoration("dd/mm/yyyy, --:-- --").copyWith(
-              suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
-            ),
-            onTap: widget.isReadOnly ? null : () async {
-              final date = await showDatePicker(
-                context: context,
-                initialDate: DateTime.now(),
-                firstDate: DateTime.now(),
-                lastDate: DateTime.now().add(const Duration(days: 365)),
-              );
-              if (date != null) {
-                setState(() => _scheduledTime = date);
-              }
-            },
-          ),
-          const SizedBox(height: 32),
-          if (!widget.isReadOnly)
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: widget.onCancel,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      side: const BorderSide(color: Colors.transparent),
-                      backgroundColor: Theme.of(context).hoverColor,
-                    ),
-                    child: Text("Cancel", style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
+                Text(
+                  widget.isReadOnly ? "View Campaign" : (widget.initialData != null ? "Edit Campaign" : "Create WhatsApp campaign"),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: widget.onCreate,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                    ),
-                    child: Text(widget.initialData != null ? "Update" : "Create", style: const TextStyle(color: Colors.white)),
-                  ),
+                IconButton(
+                  onPressed: widget.onCancel,
+                  icon: const Icon(Icons.close),
                 ),
               ],
             ),
-        ],
+            const SizedBox(height: 24),
+            _buildLabel("Title"),
+            TextFormField(
+              controller: _titleController,
+              readOnly: widget.isReadOnly,
+              decoration: _inputDecoration("Please enter the title of campaign"),
+            ),
+            const SizedBox(height: 20),
+            _buildLabel("Select Branch"),
+            DropdownButtonFormField<String>(
+              value: _selectedBranch,
+              items: widget.branches.map((b) => DropdownMenuItem(value: b.id, child: Text(b.name))).toList(),
+              onChanged: widget.isReadOnly ? null : (v) => setState(() => _selectedBranch = v),
+              decoration: _inputDecoration("Select Branch"),
+            ),
+            const SizedBox(height: 20),
+            _buildLabel("Audience"),
+            DropdownButtonFormField<String>(
+              value: _selectedAudience,
+              items: ["Cold", "Warm", "Hot", "Booked", "Completed"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+              onChanged: widget.isReadOnly ? null : (v) => setState(() => _selectedAudience = v),
+              decoration: _inputDecoration("Select the customer labels"),
+            ),
+            const SizedBox(height: 20),
+            _buildLabel("Message"),
+            TextFormField(
+              controller: _messageController,
+              readOnly: widget.isReadOnly,
+              maxLines: 3,
+              decoration: _inputDecoration("Please enter the campaign message"),
+            ),
+            const SizedBox(height: 20),
+            _buildLabel("Scheduled Time"),
+            TextFormField(
+              readOnly: true,
+              controller: TextEditingController(
+                text: _scheduledTime != null ? DateFormat('dd/MM/yyyy, HH:mm').format(_scheduledTime!) : '',
+              ),
+              decoration: _inputDecoration("dd/mm/yyyy, --:--").copyWith(
+                suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
+              ),
+              onTap: widget.isReadOnly ? null : () => _pickDateTime(context, true),
+            ),
+            const SizedBox(height: 20),
+            _buildLabel("End Date"),
+            TextFormField(
+              readOnly: true,
+              controller: TextEditingController(
+                text: _endDate != null ? DateFormat('dd/MM/yyyy, HH:mm').format(_endDate!) : '',
+              ),
+              decoration: _inputDecoration("dd/mm/yyyy, --:--").copyWith(
+                suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
+              ),
+              onTap: widget.isReadOnly ? null : () => _pickDateTime(context, false),
+            ),
+            const SizedBox(height: 32),
+            if (!widget.isReadOnly)
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: widget.onCancel,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        side: const BorderSide(color: Colors.transparent),
+                        backgroundColor: Theme.of(context).hoverColor,
+                      ),
+                      child: Text("Cancel", style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (_selectedBranch == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a branch')));
+                          return;
+                        }
+                        String aud = _selectedAudience?.toUpperCase() ?? 'COLD';
+                        widget.onCreate({
+                          'title': _titleController.text,
+                          'message': _messageController.text,
+                          'branchId': _selectedBranch,
+                          'selectedPeople': [aud],
+                          'scheduledTime': _scheduledTime ?? DateTime.now(),
+                          'endDate': _endDate ?? DateTime.now().add(const Duration(days: 7)),
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(widget.initialData != null ? "Update" : "Create", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildLabel(String label) {
+  Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
+        text,
+        style: const TextStyle(fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -164,15 +229,11 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 13),
+      hintStyle: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5), fontSize: 14),
       filled: true,
-      fillColor: Theme.of(context).brightness == Brightness.dark 
-          ? AppColor.backgroundDark.withValues(alpha: 0.5) 
-          : Colors.grey.withValues(alpha: 0.05),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      fillColor: Theme.of(context).hoverColor,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Theme.of(context).dividerTheme.color ?? AppColor.borderLight, width: 1),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),

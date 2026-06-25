@@ -25,6 +25,20 @@ class TenantResponse {
   }
 }
 
+class TenantBranch {
+  final String id;
+  final String name;
+
+  TenantBranch({required this.id, required this.name});
+
+  factory TenantBranch.fromJson(Map<String, dynamic> json) {
+    return TenantBranch(
+      id: json['id'] ?? '',
+      name: json['name'] ?? 'Default Branch',
+    );
+  }
+}
+
 class TenantBusiness {
   final String id;
   final String? ownerId;
@@ -38,6 +52,7 @@ class TenantBusiness {
   final String? businessType;
   final String? createdAt;
   final TenantOwner? owner;
+  final List<TenantBranch> branches;
 
   TenantBusiness({
     required this.id,
@@ -52,6 +67,7 @@ class TenantBusiness {
     this.businessType,
     this.createdAt,
     this.owner,
+    required this.branches,
   });
 
   factory TenantBusiness.fromJson(Map<String, dynamic> json) {
@@ -68,6 +84,10 @@ class TenantBusiness {
       businessType: json['businessType'],
       createdAt: json['createdAt'],
       owner: json['owner'] != null ? TenantOwner.fromJson(json['owner']) : null,
+      branches: (json['branches'] as List<dynamic>?)
+              ?.map((e) => TenantBranch.fromJson(e))
+              .toList() ??
+          [],
     );
   }
 }

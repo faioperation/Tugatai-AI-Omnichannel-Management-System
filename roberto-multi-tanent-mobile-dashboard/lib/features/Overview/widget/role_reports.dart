@@ -5,12 +5,14 @@ import 'package:roberto/common/user_role.dart';
 import 'package:roberto/features/Overview/widget/analytics_charts.dart';
 import 'package:roberto/features/Overview/widget/ai_analytics.dart';
 import 'package:roberto/features/Overview/data/models/system_overview_model.dart';
+import 'package:roberto/features/Overview/data/models/business_overview_model.dart';
 
 class RoleReports extends StatelessWidget {
   final UserRole role;
   final SystemOverviewModel? overviewData;
+  final BusinessOverviewModel? businessData;
 
-  const RoleReports({super.key, required this.role, this.overviewData});
+  const RoleReports({super.key, required this.role, this.overviewData, this.businessData});
 
   @override
   Widget build(BuildContext context) {
@@ -56,12 +58,7 @@ class RoleReports extends StatelessWidget {
         const RevenueLineChart(
           title: "Platform Revenue Trends",
           spots: [
-            FlSpot(0, 5000),
-            FlSpot(2, 7000),
-            FlSpot(4, 12000),
-            FlSpot(6, 15000),
-            FlSpot(8, 18000),
-            FlSpot(10, 25000),
+            FlSpot(0, 0),
           ],
         ),
         const SizedBox(height: 24),
@@ -90,47 +87,74 @@ class RoleReports extends StatelessWidget {
   }
 
   Widget _buildBusinessOwnerReports() {
+    final List<FlSpot> weeklySpots = [];
+    if (businessData != null && businessData!.weeklySales.isNotEmpty) {
+      for (int i = 0; i < businessData!.weeklySales.length; i++) {
+        weeklySpots.add(FlSpot(i.toDouble(), businessData!.weeklySales[i].sales));
+      }
+    } else {
+      // Fallback empty spot if no data
+      weeklySpots.add(const FlSpot(0, 0));
+    }
+
+    // Dynamic Order Sources from activeUsers
+    final List<PieChartSectionData> orderSources = [];
+    if (businessData != null) {
+      final total = businessData!.activeUsers.total;
+      if (total > 0) {
+        if (businessData!.activeUsers.whatsapp > 0) {
+          orderSources.add(PieChartSectionData(color: AppColor.primary, value: businessData!.activeUsers.whatsapp.toDouble(), title: 'WhatsApp', radius: 50, showTitle: false));
+        }
+        if (businessData!.activeUsers.messenger > 0) {
+          orderSources.add(PieChartSectionData(color: AppColor.mini, value: businessData!.activeUsers.messenger.toDouble(), title: 'Messenger', radius: 50, showTitle: false));
+        }
+        if (businessData!.activeUsers.instagram > 0) {
+          orderSources.add(PieChartSectionData(color: const Color(0xFFFF9800), value: businessData!.activeUsers.instagram.toDouble(), title: 'Instagram', radius: 50, showTitle: false));
+        }
+      }
+    }
+    if (orderSources.isEmpty) {
+      orderSources.add(PieChartSectionData(color: Colors.grey, value: 100, title: 'No Data', radius: 50, showTitle: false));
+    }
+
+    // Dynamic Branch Performance
+    final List<String> branchLabels = [];
+    final List<BarChartGroupData> branchBars = [];
+    if (businessData != null && businessData!.branchPerformance.isNotEmpty) {
+      for (int i = 0; i < businessData!.branchPerformance.length; i++) {
+        final branch = businessData!.branchPerformance[i];
+        branchLabels.add(branch.branchName);
+        branchBars.add(BarChartGroupData(x: i, barRods: [BarChartRodData(toY: branch.totalSales, color: AppColor.primary, width: 16)]));
+      }
+    } else {
+      branchLabels.add('No Data');
+      branchBars.add(BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 16)]));
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const RevenueLineChart(
-          title: "Business Growth (Last 12 Months)",
-          spots: [
-            FlSpot(0, 2000),
-            FlSpot(2, 3500),
-            FlSpot(4, 3000),
-            FlSpot(6, 4500),
-            FlSpot(8, 6000),
-            FlSpot(10, 8500),
-          ],
+        RevenueLineChart(
+          title: "Weekly Sales",
+          spots: weeklySpots,
         ),
         const SizedBox(height: 24),
-        const AiPerformanceSection(),
-        const SizedBox(height: 24),
+        // const AiPerformanceSection(),
+        // const SizedBox(height: 24),
         Row(
           children: [
             Expanded(
               child: OrderDistributionPieChart(
                 title: "Order Sources",
-                sections: [
-                  PieChartSectionData(color: AppColor.primary, value: 55, title: 'WhatsApp', radius: 50, showTitle: false),
-                  PieChartSectionData(color: AppColor.mini, value: 25, title: 'Web App', radius: 50, showTitle: false),
-                  PieChartSectionData(color: const Color(0xFFFF9800), value: 20, title: 'In-Store', radius: 50, showTitle: false),
-                ],
+                sections: orderSources,
               ),
             ),
             const SizedBox(width: 24),
             Expanded(
               child: PerformanceBarChart(
                 title: "Branch Performance",
-                labels: ['Queens', 'Brooklyn', 'Manhattan', 'Bronx', 'Staten'],
-                barGroups: [
-                  BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 1200, color: AppColor.primary, width: 16)]),
-                  BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 1500, color: AppColor.primary, width: 16)]),
-                  BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 800, color: AppColor.primary, width: 16)]),
-                  BarChartGroupData(x: 3, barRods: [BarChartRodData(toY: 1100, color: AppColor.primary, width: 16)]),
-                  BarChartGroupData(x: 4, barRods: [BarChartRodData(toY: 600, color: AppColor.primary, width: 16)]),
-                ],
+                labels: branchLabels,
+                barGroups: branchBars,
               ),
             ),
           ],
@@ -145,19 +169,19 @@ class RoleReports extends StatelessWidget {
       children: [
         PerformanceBarChart(
           title: "Branch Sales (Weekly)",
-          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          labels: const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
           barGroups: [
-            BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 800, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 1000, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 900, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 3, barRods: [BarChartRodData(toY: 1200, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 4, barRods: [BarChartRodData(toY: 1500, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 5, barRods: [BarChartRodData(toY: 1800, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 6, barRods: [BarChartRodData(toY: 1600, color: AppColor.primary, width: 12)]),
+            BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
+            BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
+            BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
+            BarChartGroupData(x: 3, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
+            BarChartGroupData(x: 4, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
+            BarChartGroupData(x: 5, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
+            BarChartGroupData(x: 6, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
           ],
         ),
-        const SizedBox(height: 24),
-        const AiPerformanceSection(),
+        // const SizedBox(height: 24),
+        // const AiPerformanceSection(),
       ],
     );
   }

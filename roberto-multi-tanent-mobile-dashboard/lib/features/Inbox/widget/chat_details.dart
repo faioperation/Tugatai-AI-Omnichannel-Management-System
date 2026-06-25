@@ -1,14 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:roberto/app/app_color.dart';
+import 'package:roberto/features/Inbox/data/models/inbox_models.dart';
 
 class ChatDetails extends StatelessWidget {
-  const ChatDetails({super.key});
+  final ConversationMod? conversation;
+
+  const ChatDetails({super.key, this.conversation});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    if (conversation == null) {
+      return Container(
+        color: theme.cardTheme.color,
+        child: Center(
+          child: Text(
+            "Select a chat to view summary details",
+            style: TextStyle(color: theme.hintColor, fontSize: 13),
+          ),
+        ),
+      );
+    }
+
+    final conv = conversation!;
+    final summary = conv.chatSummary;
+    final intent = summary?.intent?.toLowerCase() ?? 'cold';
     
+    // Intent badge color
+    Color intentBg = const Color(0xffFEE2E2);
+    Color intentFg = Colors.red;
+    if (intent == 'hot') {
+      intentBg = const Color(0xffFEF3C7);
+      intentFg = const Color(0xffD97706);
+    } else if (intent == 'warm') {
+      intentBg = const Color(0xffDBEAFE);
+      intentFg = const Color(0xff2563EB);
+    }
+
     return Container(
       color: theme.cardTheme.color,
       child: Column(
@@ -20,38 +50,43 @@ class ChatDetails extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Mrs Sarah",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                        color: theme.colorScheme.onSurface,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        conv.customerName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "+992371836",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: theme.textTheme.bodySmall?.color,
+                      const SizedBox(height: 4),
+                      Text(
+                        conv.customerPhone ?? "No Phone Number",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: theme.textTheme.bodySmall?.color,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.secondary,
+                    color: intentBg,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    "cold",
+                    intent.toUpperCase(),
                     style: TextStyle(
-                      color: isDark ? theme.colorScheme.onSecondary : AppColor.primary,
-                      fontWeight: FontWeight.w500,
+                      color: intentFg,
+                      fontWeight: FontWeight.w600,
                       fontSize: 12,
                     ),
                   ),
@@ -65,100 +100,109 @@ class ChatDetails extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               children: [
                 // Chat summary card
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: theme.dividerTheme.color ?? (isDark ? AppColor.borderDark : AppColor.borderLight)),
-                    borderRadius: BorderRadius.circular(12),
+                if (summary?.summary != null && summary!.summary!.isNotEmpty) ...[
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: theme.dividerTheme.color ?? (isDark ? AppColor.borderDark : AppColor.borderLight)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: const BoxDecoration(
+                            color: AppColor.primary,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(11),
+                              topRight: Radius.circular(11),
+                            ),
+                          ),
+                          child: const Text(
+                            "Chat summary",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            summary.summary!,
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface.withOpacity(0.8),
+                              fontSize: 14,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: const BoxDecoration(
-                          color: AppColor.primary,
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(11),
-                            topRight: Radius.circular(11),
-                          ),
-                        ),
-                        child: const Text(
-                          "Chat summary",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(
-                          "Customer booked a uganda pickup in Kampala for 30 kg of clothes to be collected Sunday 2026-04-08 around 9:20; location pin and item list were provided, rate explained (16 QAR/kg with a 30 kg minimum) driver will call before arrival.",
-                          style: TextStyle(
-                            color: theme.colorScheme.onSurface.withOpacity(0.8),
-                            fontSize: 14,
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
+                ],
 
                 // Recent Chat Details form
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: theme.dividerTheme.color ?? (isDark ? AppColor.borderDark : AppColor.borderLight)),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: const BoxDecoration(
-                          color: AppColor.primary,
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(11),
-                            topRight: Radius.circular(11),
+                if (summary != null) ...[
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: theme.dividerTheme.color ?? (isDark ? AppColor.borderDark : AppColor.borderLight)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: const BoxDecoration(
+                            color: AppColor.primary,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(11),
+                              topRight: Radius.circular(11),
+                            ),
+                          ),
+                          child: const Text(
+                            "Recent Chat Details",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                        child: const Text(
-                          "Recent Chat Details",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              _buildFormField(context, "Items", summary.items ?? "Not specified"),
+                              const SizedBox(height: 16),
+                              _buildFormField(context, "Pickup Area", summary.pickupArea ?? "Not specified"),
+                              const SizedBox(height: 16),
+                              _buildFormField(context, "Destination", summary.destination ?? "Not specified"),
+                              const SizedBox(height: 16),
+                              _buildFormField(context, "Weight", summary.weight ?? "Not specified"),
+                              const SizedBox(height: 16),
+                              _buildFormField(context, "Pickup Date & Time", summary.pickupDateTime ?? "Not specified"),
+                              const SizedBox(height: 16),
+                              _buildFormField(context, "Current status", summary.currentStatus),
+                              const SizedBox(height: 16),
+                              _buildFormField(context, "Recent summary", summary.recentSummary ?? "Not specified"),
+                              const SizedBox(height: 16),
+                              _buildFormField(
+                                context,
+                                "Booking info",
+                                summary.bookingInfo != null 
+                                    ? "Booked: ${summary.bookingInfo!.booked}, Reference: ${summary.bookingInfo!.reference ?? 'N/A'}${summary.bookingInfo!.price != null ? ', Price: \$${summary.bookingInfo!.price}' : ''}"
+                                    : "Not specified",
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            _buildFormField(context, "Items", "Clothes"),
-                            const SizedBox(height: 16),
-                            _buildFormField(context, "Pickup Area", "Banasreee, Dhaka, Bangladesh"),
-                            const SizedBox(height: 16),
-                            _buildFormField(context, "Destination", "Uganda, Kampala"),
-                            const SizedBox(height: 16),
-                            _buildFormField(context, "Weight", "16 kg"),
-                            const SizedBox(height: 16),
-                            _buildFormField(context, "Pickup Date & Time", "Sunday, April 5, 2026 at 9:00 AM"),
-                            const SizedBox(height: 16),
-                            _buildFormField(context, "Current status", "pending"),
-                            const SizedBox(height: 16),
-                            _buildFormField(context, "Recent summary", "summary...."),
-                            const SizedBox(height: 16),
-                            _buildFormField(context, "Booking info", "informa......"),
-                          ],
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
+                ],
               ],
             ),
           ),

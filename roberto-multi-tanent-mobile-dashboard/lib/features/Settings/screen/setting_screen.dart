@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
@@ -20,6 +21,8 @@ class _SettingScreenState extends State<SettingScreen> {
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   String? _selectedImagePath;
+  Uint8List? _selectedImageBytes;
+  String? _selectedImageName;
 
   @override
   void initState() {
@@ -152,12 +155,34 @@ class _SettingScreenState extends State<SettingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Title
-          const Text(
-            "Profile Information",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Profile Information",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (user.branchName != null && user.branchName.toString().isNotEmpty)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.location_on_outlined, color: Colors.red, size: 20),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(user.branchName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        if (user.branchAddress != null)
+                          Text(user.branchAddress, style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 12)),
+                      ],
+                    ),
+                  ],
+                ),
+            ],
           ),
 
           const SizedBox(height: 19),
@@ -169,10 +194,10 @@ class _SettingScreenState extends State<SettingScreen> {
                 radius: 28,
                 backgroundColor: AppColor.secondary,
                 backgroundImage: _selectedImagePath != null
-                    ? FileImage(File(_selectedImagePath!))
+                    ? (kIsWeb ? NetworkImage(_selectedImagePath!) : FileImage(File(_selectedImagePath!))) as ImageProvider
                     : (user.profilePicture != null && user.profilePicture!.isNotEmpty)
-                        ? NetworkImage(user.profilePicture!)
-                        : null as ImageProvider?,
+                        ? NetworkImage(user.profilePicture!.replaceFirst('http://', 'https://'), headers: const {'ngrok-skip-browser-warning': 'true'})
+                        : null,
                 child: (_selectedImagePath == null && (user.profilePicture == null || user.profilePicture!.isEmpty))
                     ? const Icon(Icons.person, color: Colors.grey, size: 36)
                     : null,
@@ -194,8 +219,11 @@ class _SettingScreenState extends State<SettingScreen> {
                           source: ImageSource.gallery,
                         );
                         if (image != null) {
+                          final bytes = await image.readAsBytes();
                           setState(() {
                             _selectedImagePath = image.path;
+                            _selectedImageBytes = bytes;
+                            _selectedImageName = image.name;
                           });
                         }
                       },
@@ -294,6 +322,8 @@ class _SettingScreenState extends State<SettingScreen> {
                                 firstName: _firstNameController.text,
                                 lastName: _lastNameController.text,
                                 avatarPath: _selectedImagePath,
+                                avatarBytes: _selectedImageBytes,
+                                avatarName: _selectedImageName,
                               ),
                             );
                       },

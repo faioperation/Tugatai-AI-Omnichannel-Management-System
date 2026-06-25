@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:roberto/features/Overview/data/models/system_overview_model.dart';
+import 'package:roberto/features/Overview/data/models/business_overview_model.dart';
 import 'package:intl/intl.dart';
 
 class ActivityList extends StatelessWidget {
   final SystemOverviewModel? overviewData;
+  final BusinessOverviewModel? businessData;
 
-  const ActivityList({super.key, this.overviewData});
+  const ActivityList({super.key, this.overviewData, this.businessData});
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +38,18 @@ class ActivityList extends StatelessWidget {
           const SizedBox(height: 24),
           if (overviewData != null && overviewData!.recentActivity.isNotEmpty)
             ...overviewData!.recentActivity.map((activity) {
+              final timeString = activity.createdAt != null 
+                  ? DateFormat('dd MMM yyyy, hh:mm a').format(activity.createdAt!) 
+                  : 'Just now';
+              return _buildActivityItem(
+                context,
+                activity.activityTitle,
+                timeString,
+                !activity.markAsRead,
+              );
+            }).toList()
+          else if (businessData != null && businessData!.recentActivity.isNotEmpty)
+            ...businessData!.recentActivity.map((activity) {
               final timeString = activity.createdAt != null 
                   ? DateFormat('dd MMM yyyy, hh:mm a').format(activity.createdAt!) 
                   : 'Just now';

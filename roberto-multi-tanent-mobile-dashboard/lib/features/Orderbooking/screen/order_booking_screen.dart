@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/Tenant%20Management%20/widget/custom_stat_card.dart';
 import 'package:roberto/features/Orderbooking/widget/order_mod.dart';
@@ -6,22 +7,72 @@ import 'package:roberto/features/Orderbooking/widget/custom_orders.dart';
 import 'package:roberto/features/Orderbooking/widget/custom_viewdetails.dart';
 import 'package:roberto/features/Tenant%20Management%20/widget/custom_headder.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:roberto/features/Auth/widget/custom_textfield.dart';
 import 'package:roberto/features/Orderbooking/widget/create_order_dialog.dart';
 import 'package:roberto/common/custom_pagination.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:roberto/features/Settings/bloc/profile_bloc.dart';
+import 'package:roberto/features/Settings/bloc/profile_state.dart';
+import 'package:roberto/features/Orderbooking/bloc/booking_bloc.dart';
+import 'package:roberto/features/Orderbooking/bloc/booking_event.dart';
+import 'package:roberto/features/Orderbooking/bloc/booking_state.dart';
 
 // Breakpoint
 const double _kDesktop = 700;
 
 class OrderBookingScreen extends StatefulWidget {
-  final Function(String)? onNavigate;
-  const OrderBookingScreen({super.key, this.onNavigate});
+  final void Function(String, {String? targetPhone, String? conversationId})? onNavigate;
+  final String? branchId;
+  const OrderBookingScreen({super.key, this.onNavigate, this.branchId});
 
   @override
   State<OrderBookingScreen> createState() => _OrderBookingScreenState();
 }
 
 class _OrderBookingScreenState extends State<OrderBookingScreen> {
+
+  String _getBranchId() {
+    return widget.branchId ?? '';
+  }
+
+  DateTime? _parseDateString(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return null;
+    
+    // First try standard ISO parsing (e.g. 2026-06-24)
+    final parsed = DateTime.tryParse(dateStr);
+    if (parsed != null) return parsed;
+    
+    // Then try 'dd MMMM yyyy' (e.g. 22 June 2026)
+    try {
+      return DateFormat('dd MMMM yyyy').parse(dateStr);
+    } catch (_) {}
+    
+    // Then try 'MMMM dd, yyyy' (e.g. June 22, 2026)
+    try {
+      return DateFormat('MMMM dd, yyyy').parse(dateStr);
+    } catch (_) {}
+    
+    return null;
+  }
+
+  String _formatDeliveryDate(OrderMod order) {
+    if (order.deliveryDate != null && order.deliveryDate!.isNotEmpty) {
+      final parsed = _parseDateString(order.deliveryDate);
+      if (parsed != null) {
+        return DateFormat('dd MMM yyyy').format(parsed);
+      }
+      return order.deliveryDate!;
+    }
+    final appt = "${order.appointmentDate ?? ''} ${order.appointmentTime ?? ''}".trim();
+    return appt.isNotEmpty ? appt : "N/A";
+  }
+
+  @override
+  void didUpdateWidget(covariant OrderBookingScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.branchId != widget.branchId) {
+      context.read<BookingBloc>().add(GetBookings(branchId: widget.branchId ?? ''));
+    }
+  }
   int selectedIndex = 0;
 
   String _searchQuery = '';
@@ -38,100 +89,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     _selectedDay = _focusedDay;
   }
 
-  final List<OrderMod> _orders = [
-    OrderMod(
-      orderId: '#ORD-001',
-      customerName: 'Sarah Johnson',
-      phone: '+1 (555) 123-4567',
-      address: 'Texas to New York',
-      status: OrderStatus.pending,
-      shippingCharge: 45.00,
-      deliveryTime: '10 Apr, 9:00 AM',
-      avatarInitials: 'SJ',
-      avatarColor: const Color(0xFF3B6D11),
-      quantity: 1,
-      deliveryDate: DateTime(2026, 4, 10),
-    ),
-    OrderMod(
-      orderId: '#ORD-002',
-      customerName: 'Emma Wilson',
-      phone: '+1 (555) 123-4567',
-      address: 'Texas to New York',
-      status: OrderStatus.confirmed,
-      shippingCharge: 19.50,
-      deliveryTime: '10 Apr, 10:30 AM',
-      avatarInitials: 'EW',
-      avatarColor: const Color(0xFF185FA5),
-      quantity: 1,
-      deliveryDate: DateTime(2026, 4, 10),
-    ),
-    OrderMod(
-      orderId: '#ORD-003',
-      customerName: 'David Brown',
-      phone: '+1 (555) 123-4567',
-      address: 'Texas to New York',
-      status: OrderStatus.delivered,
-      shippingCharge: 67.00,
-      deliveryTime: '01 Apr, 2:00 PM',
-      avatarInitials: 'DB',
-      avatarColor: const Color(0xFF72243E),
-      quantity: 1,
-      deliveryDate: DateTime(2026, 4, 1),
-    ),
-    OrderMod(
-      orderId: '#ORD-004',
-      customerName: 'Sarah Johnson',
-      phone: '+1 (555) 123-4567',
-      address: 'Texas to New York',
-      status: OrderStatus.confirmed,
-      shippingCharge: 23.99,
-      deliveryTime: '03 Apr, 4:00 PM',
-      avatarInitials: 'SJ',
-      avatarColor: const Color(0xFF3B6D11),
-      quantity: 1,
-      deliveryDate: DateTime(2026, 4, 3),
-    ),
-    OrderMod(
-      orderId: '#ORD-005',
-      customerName: 'Emma Wilson',
-      phone: '+1 (555) 123-4567',
-      address: 'Texas to New York',
-      status: OrderStatus.pending,
-      shippingCharge: 80.00,
-      deliveryTime: '07 Apr, 11:00 AM',
-      avatarInitials: 'EW',
-      avatarColor: const Color(0xFF185FA5),
-      quantity: 1,
-      deliveryDate: DateTime(2026, 4, 7),
-    ),
-    ...List.generate(
-      25,
-      (index) => OrderMod(
-        orderId: '#ORD-${(index + 1).toString().padLeft(3, '0')}',
-        customerName: [
-          'John Doe',
-          'Jane Smith',
-          'Sarah Wilson',
-          'Michael Brown',
-          'Emily Davis'
-        ][index % 5],
-        phone: '+1 (555) ${100 + index}-${2000 + index}',
-        address: 'New York to California',
-        status: [
-          OrderStatus.pending,
-          OrderStatus.confirmed,
-          OrderStatus.delivered
-        ][index % 3],
-        shippingCharge: 20.0 + index,
-        deliveryTime: 'Today, 10:00 AM',
-        avatarInitials: 'JD',
-        avatarColor: Colors.blue,
-        quantity: (index % 5) + 1,
-        productName: 'Product ${index + 1}',
-        deliveryDate: DateTime.now().add(Duration(days: index)),
-      ),
-    ),
-  ];
+  List<OrderMod> _orders = [];
 
   int _currentPage = 1;
   static const int _itemsPerPage = 20;
@@ -172,8 +130,25 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
+    return BlocConsumer<BookingBloc, BookingState>(
+      listener: (context, state) {
+        if (state is BookingActionSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message, style: TextStyle(color: Colors.white)), backgroundColor: Colors.green));
+        } else if (state is BookingError) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message, style: TextStyle(color: Colors.white)), backgroundColor: Colors.red));
+        }
+      },
+      builder: (context, state) {
+        if (state is BookingLoaded) {
+          _orders = state.bookings;
+        }
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            if (state is BookingLoading && _orders.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
         final isMobile = constraints.maxWidth < _kDesktop;
         return SingleChildScrollView(
           padding: EdgeInsets.all(isMobile ? 16 : 24),
@@ -182,7 +157,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
             children: [
               _buildHeader(isMobile, theme, isDark),
               SizedBox(height: isMobile ? 16 : 24),
-              _buildStatCards(isMobile),
+              _buildStatCards(isMobile, state),
               SizedBox(height: isMobile ? 14 : 20),
               if (selectedIndex == 0) ...[
                 _buildFilterBar(isMobile, theme, isDark),
@@ -192,6 +167,8 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 _buildCalendarContent(isMobile, theme, isDark),
             ],
           ),
+        );
+          },
         );
       },
     );
@@ -289,16 +266,28 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   }
 
   // ─── STAT CARDS ─────────────────────────────────────────────────────
-  Widget _buildStatCards(bool isMobile) {
+  Widget _buildStatCards(bool isMobile, BookingState state) {
+    int total = 0;
+    int pending = 0;
+    int confirmed = 0;
+    int delivered = 0;
+
+    if (state is BookingLoaded) {
+      total = state.totalBookings;
+      pending = state.pending;
+      confirmed = state.confirmed;
+      delivered = state.delivered;
+    }
+
     final cards = [
       CustomStatCard(
-          label: 'Total Orders', value: '856', iconPath: 'assets/order1.svg'),
+          label: 'Total Orders', value: '$total', iconPath: 'assets/order1.svg'),
       CustomStatCard(
-          label: 'Pending', value: '124', iconPath: 'assets/pending.svg'),
+          label: 'Pending', value: '$pending', iconPath: 'assets/pending.svg'),
       CustomStatCard(
-          label: 'Confirmed', value: '89', iconPath: 'assets/confirm.svg'),
+          label: 'Confirmed', value: '$confirmed', iconPath: 'assets/confirm.svg'),
       CustomStatCard(
-          label: 'Delivered', value: '643', iconPath: 'assets/deliver.svg'),
+          label: 'Delivered', value: '$delivered', iconPath: 'assets/deliver.svg'),
     ];
 
     if (!isMobile) {
@@ -479,7 +468,10 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 ),
               )
             else
-              ..._paginatedOrders.map((order) => _buildDesktopRow(order, theme, isDark)),
+              ..._paginatedOrders.asMap().entries.map((entry) {
+                final int globalIndex = (_currentPage - 1) * _itemsPerPage + entry.key + 1;
+                return _buildDesktopRow(entry.value, globalIndex, theme, isDark);
+              }),
             if (_filteredOrders.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -496,7 +488,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     );
   }
 
-  Widget _buildDesktopRow(OrderMod order, ThemeData theme, bool isDark) {
+  Widget _buildDesktopRow(OrderMod order, int index, ThemeData theme, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
@@ -510,7 +502,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
           Expanded(
             flex: 2,
             child: Center(
-              child: Text(order.orderId,
+              child: Text('#$index',
                   style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: theme.colorScheme.onSurface,
@@ -532,7 +524,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                     size: 14, color: theme.hintColor),
                 const SizedBox(width: 4),
                 Flexible(
-                  child: Text(order.address,
+                  child: Text(order.platform ?? order.source ?? "N/A",
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                           color: theme.textTheme.bodyMedium?.color, fontSize: 13)),
@@ -546,7 +538,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
           Expanded(
             flex: 2,
             child: Center(
-              child: Text('\$${order.shippingCharge.toStringAsFixed(2)}',
+              child: Text('\$${order.price}',
                   style: TextStyle(
                       fontWeight: FontWeight.w500,
                       color: theme.colorScheme.onSurface,
@@ -557,7 +549,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
           Expanded(
             flex: 2,
             child: Center(
-              child: Text(order.deliveryTime,
+              child: Text(_formatDeliveryDate(order),
                   style: TextStyle(
                       color: theme.hintColor, fontSize: 13)),
             ),
@@ -586,7 +578,10 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
 
     return Column(
       children: [
-        ..._paginatedOrders.map((order) => _buildMobileCard(order, theme, isDark)),
+        ..._paginatedOrders.asMap().entries.map((entry) {
+          final int globalIndex = (_currentPage - 1) * _itemsPerPage + entry.key + 1;
+          return _buildMobileCard(entry.value, globalIndex, theme, isDark);
+        }),
         if (_filteredOrders.isNotEmpty)
           CustomPagination(
             totalItems: _filteredOrders.length,
@@ -598,7 +593,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     );
   }
 
-  Widget _buildMobileCard(OrderMod order, ThemeData theme, bool isDark) {
+  Widget _buildMobileCard(OrderMod order, int index, ThemeData theme, bool isDark) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -621,7 +616,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                order.orderId,
+                '#$index',
                 style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: theme.colorScheme.onSurface,
@@ -676,7 +671,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 child: _buildCardDetail(
                   icon: Icons.location_on_outlined,
                   label: 'Address',
-                  value: order.address,
+                  value: order.platform ?? order.source ?? "N/A",
                   theme: theme,
                 ),
               ),
@@ -689,7 +684,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 child: _buildCardDetail(
                   icon: Icons.attach_money,
                   label: 'Shipping',
-                  value: '\$${order.shippingCharge.toStringAsFixed(2)}',
+                  value: '\$${order.price}',
                   theme: theme,
                 ),
               ),
@@ -697,7 +692,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 child: _buildCardDetail(
                   icon: Icons.access_time,
                   label: 'Delivery',
-                  value: order.deliveryTime,
+                  value: _formatDeliveryDate(order),
                   theme: theme,
                 ),
               ),
@@ -716,7 +711,10 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                   onPressed: () {
                     showDialog(
                       context: context,
-                      builder: (context) => CustomViewdetails(order: order),
+                      builder: (context) => CustomViewdetails(
+                        order: order,
+                        displayId: '#$index',
+                      ),
                     );
                   },
                   style: OutlinedButton.styleFrom(
@@ -835,11 +833,14 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       children: [
         GestureDetector(
           onTap: () {
+            final int idx = _filteredOrders.indexOf(order);
+            final String displayId = idx != -1 ? '#${idx + 1}' : order.orderId;
             showDialog(
               context: context,
               builder: (context) => CustomViewdetails(
                 order: order,
-                onUpdatePressed: () => _showStatusUpdateDialog(order),
+                displayId: displayId,
+                onUpdatePressed: () => _showStatusUpdateDialog(order, displayId),
               ),
             );
           },
@@ -965,11 +966,23 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
         label = 'Confirmed';
         icon = Icons.local_shipping_outlined;
         break;
+      case OrderStatus.completed:
+        bg = isDark ? Colors.green.withOpacity(0.1) : const Color(0xffD1FAE5);
+        fg = isDark ? Colors.green.shade400 : const Color(0xff059669);
+        label = 'Completed';
+        icon = Icons.check_circle;
+        break;
       case OrderStatus.delivered:
         bg = isDark ? Colors.green.withOpacity(0.1) : const Color(0xffD1FAE5);
         fg = isDark ? Colors.green.shade400 : const Color(0xff059669);
         label = 'Delivered';
         icon = Icons.check_circle_outline;
+        break;
+      case OrderStatus.cancelled:
+        bg = isDark ? Colors.red.withOpacity(0.1) : const Color(0xffFEE2E2);
+        fg = isDark ? Colors.red.shade400 : const Color(0xffDC2626);
+        label = 'Cancelled';
+        icon = Icons.cancel_outlined;
         break;
     }
 
@@ -1107,12 +1120,10 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   Widget _buildCalendarCell(DateTime day, ThemeData theme, bool isDark,
       {bool isSelected = false, bool isToday = false}) {
     // Count orders dynamically for this day
-    final dayOrders = _orders.where((o) => 
-      o.deliveryDate != null && 
-      o.deliveryDate!.year == day.year && 
-      o.deliveryDate!.month == day.month && 
-      o.deliveryDate!.day == day.day
-    ).toList();
+    final dayOrders = _orders.where((o) {
+      final orderDate = _parseDateString(o.deliveryDate) ?? _parseDateString(o.appointmentDate);
+      return orderDate != null && orderDate.year == day.year && orderDate.month == day.month && orderDate.day == day.day;
+    }).toList();
     
     int eventCount = dayOrders.length;
     final hasEvent = eventCount > 0;
@@ -1242,12 +1253,10 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     final selectedDay = _selectedDay ?? DateTime.now();
     final dayStr = '${_getMonthYear(selectedDay).split(' ')[0]} ${selectedDay.day}';
 
-    final filteredOrders = _orders.where((o) => 
-      o.deliveryDate != null && 
-      o.deliveryDate!.year == selectedDay.year && 
-      o.deliveryDate!.month == selectedDay.month && 
-      o.deliveryDate!.day == selectedDay.day
-    ).toList();
+    final filteredOrders = _orders.where((o) {
+      final orderDate = _parseDateString(o.deliveryDate) ?? _parseDateString(o.appointmentDate);
+      return orderDate != null && orderDate.year == selectedDay.year && orderDate.month == selectedDay.month && orderDate.day == selectedDay.day;
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1258,7 +1267,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 fontWeight: FontWeight.bold,
                 color: theme.colorScheme.onSurface)),
         const SizedBox(height: 4),
-        Text('${filteredOrders.length} deliverys scheduled',
+        Text('${filteredOrders.length} deliveries scheduled',
             style: TextStyle(fontSize: 13, color: theme.textTheme.bodySmall?.color ?? const Color(0xff6B7280))),
         const SizedBox(height: 16),
         
@@ -1300,10 +1309,11 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     required bool isDark,
   }) {
     final status = order.status;
-    final orderId = order.orderId;
-    final time = order.deliveryTime;
+    final int idx = _orders.indexOf(order);
+    final String displayId = idx != -1 ? '#${idx + 1}' : order.orderId;
+    final time = _formatDeliveryDate(order);
     final name = order.customerName;
-    final items = '${order.productName ?? "Items"} x${order.quantity}';
+    final items = '${order.note ?? "Booking"} x1';
     final actionText = status == OrderStatus.pending ? 'Mark as Confirmed' : 'Mark as Delivered';
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1322,7 +1332,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(orderId,
+                  Text(displayId,
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: theme.colorScheme.onSurface,
@@ -1353,15 +1363,15 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                final order = _orders.firstWhere(
-                    (o) => o.orderId.replaceAll('#', '') == orderId,
-                    orElse: () => _orders.first);
+                final int idx = _orders.indexOf(order);
+                final String displayId = idx != -1 ? '#${idx + 1}' : order.orderId;
 
                 showDialog(
                   context: context,
                   builder: (context) => CustomViewdetails(
                     order: order,
-                    onUpdatePressed: () => _showStatusUpdateDialog(order),
+                    displayId: displayId,
+                    onUpdatePressed: () => _showStatusUpdateDialog(order, displayId),
                   ),
                 );
               },
@@ -1382,19 +1392,19 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: () {
-                widget.onNavigate?.call('Inbox');
-              },
+              onPressed: order.conversationId != null ? () {
+                widget.onNavigate?.call('Inbox', targetPhone: order.phone, conversationId: order.conversationId);
+              } : null,
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColor.primary,
-                side: const BorderSide(color: AppColor.primary),
+                foregroundColor: order.conversationId != null ? AppColor.primary : Colors.grey,
+                side: BorderSide(color: order.conversationId != null ? AppColor.primary : Colors.grey.shade300),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8)),
               ),
-              icon: const Icon(Icons.chat_outlined, size: 16),
-              label: const Text('See Latest Chat',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              icon: Icon(order.conversationId != null ? Icons.chat_outlined : Icons.phone_callback_outlined, size: 16),
+              label: Text(order.conversationId != null ? 'See Latest Chat' : 'Order from calls',
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
             ),
           )
         ],
@@ -1405,38 +1415,62 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
 
 
   void _updateOrderStatus(String orderId, OrderStatus newStatus) {
-    setState(() {
-      final index = _orders.indexWhere((o) => o.orderId == orderId);
-      if (index != -1) {
-        _orders[index] = _orders[index].copyWith(status: newStatus);
-      }
-    });
+    // Determine string status
+    String statusStr = 'PENDING';
+    if (newStatus == OrderStatus.confirmed) {
+      statusStr = 'CONFIRMED';
+    } else if (newStatus == OrderStatus.completed) {
+      statusStr = 'COMPLETED';
+    } else if (newStatus == OrderStatus.delivered) {
+      statusStr = 'DELIVERED';
+    } else if (newStatus == OrderStatus.cancelled) {
+      statusStr = 'CANCELLED';
+    }
+    
+    context.read<BookingBloc>().add(UpdateBooking(id: orderId, payload: {'status': statusStr}, branchId: _getBranchId()));
+  }
+
+  String? _getBusinessType() {
+    final profileState = context.read<ProfileBloc>().state;
+    if (profileState is ProfileLoaded) {
+      return profileState.user.businessType;
+    } else if (profileState is ProfileUpdateSuccess) {
+      return profileState.user.businessType;
+    }
+    return null;
   }
 
   void _openOrderDialog({OrderMod? order}) {
-    showDialog<OrderMod>(
+    showDialog<dynamic>(
       context: context,
-      builder: (context) => CreateOrderDialog(order: order),
+      builder: (context) => CreateOrderDialog(
+        order: order,
+        businessType: _getBusinessType(),
+      ),
     ).then((result) {
-      if (result != null) {
-        setState(() {
-          if (order != null) {
-            final index = _orders.indexWhere((o) => o.orderId == order.orderId);
-            if (index != -1) {
-              _orders[index] = result;
-            }
-          } else {
-            _orders.insert(0, result);
-          }
-        });
+      if (!mounted) return;
+      if (result != null && result is Map<String, dynamic>) {
+        if (order != null) {
+          context.read<BookingBloc>().add(UpdateBooking(
+                id: order.orderId,
+                payload: result,
+                branchId: _getBranchId(),
+              ));
+        } else {
+          context.read<BookingBloc>().add(CreateBooking(
+                payload: result,
+                branchId: _getBranchId(),
+              ));
+        }
       }
     });
   }
 
-  void _showStatusUpdateDialog(OrderMod order) {
+  void _showStatusUpdateDialog(OrderMod order, [String? displayId]) {
     const CustomOrders().showUpdateStatusDialog(
       context: context,
       order: order,
+      displayId: displayId,
       onUpdate: (status) {
         _updateOrderStatus(order.orderId, status);
       },

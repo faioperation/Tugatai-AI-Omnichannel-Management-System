@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:roberto/features/Pricing/widget/custom_addrule.dart';
@@ -6,11 +8,17 @@ import 'package:roberto/features/Pricing/widget/custom_pricingrule.dart';
 import 'package:roberto/features/Pricing/widget/custom_pricingcalculator.dart';
 import 'package:roberto/features/Tenant%20Management%20/widget/custom_headder.dart';
 import 'package:roberto/features/Tenant%20Management%20/widget/custom_stat_card.dart';
-
 import 'package:roberto/features/Pricing/widget/pricing_rule_mod.dart';
+import 'package:roberto/features/Pricing/bloc/pricing_bloc.dart';
+import 'package:roberto/features/Pricing/bloc/pricing_event.dart';
+import 'package:roberto/features/Pricing/bloc/pricing_state.dart';
+import 'package:roberto/common/user_role.dart';
 
 class PricingScreen extends StatefulWidget {
-  const PricingScreen({super.key});
+  final UserRole role;
+  final String? branchId;
+
+  const PricingScreen({super.key, this.role = UserRole.businessOwner, this.branchId});
 
   @override
   State<PricingScreen> createState() => _PricingScreenState();
@@ -18,35 +26,70 @@ class PricingScreen extends StatefulWidget {
 
 class _PricingScreenState extends State<PricingScreen> {
   int _selectedTab = 0;
+  List<PricingRuleMod> _rules = [];
+  bool _isLoading = true;
+  int _totalRules = 0;
+  int _activeRules = 0;
+  int _typeCounts = 0;
 
-  final List<PricingRuleMod> _rules = [
-    ...List.generate(
-      25,
-      (index) => PricingRuleMod(
-        id: '${index + 1}',
-        name: "Pricing Rule ${index + 1}",
-        type: ["weight", "product type", "custom"][index % 3],
-        value: "Value ${index + 1}",
-      ),
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  @override
+  void didUpdateWidget(covariant PricingScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.branchId != widget.branchId) {
+      _fetchData();
+    }
+  }
+
+  void _fetchData() {
+    context.read<PricingBloc>().add(FetchPricingRules(role: widget.role, branchId: widget.branchId));
+  }
 
   void _openAddRuleDialog({PricingRuleMod? rule}) {
+    final currentBranchId = widget.branchId ?? '';
+    
     showDialog(
       context: context,
       builder: (context) => CustomAddrule(
         rule: rule,
         onSave: (newRule) {
-          setState(() {
-            if (rule != null) {
-              final index = _rules.indexWhere((r) => r.id == rule.id);
-              if (index != -1) {
-                _rules[index] = newRule;
-              }
+          Map<String, dynamic> configMap;
+          try {
+            final decoded = jsonDecode(newRule.value);
+            if (decoded is Map<String, dynamic>) {
+              configMap = decoded;
             } else {
-              _rules.add(newRule);
+              configMap = {'value': newRule.value};
             }
-          });
+          } catch (_) {
+            configMap = {'value': newRule.value};
+          }
+
+          if (rule != null) {
+            context.read<PricingBloc>().add(UpdatePricingRule(
+                  id: rule.id,
+                  ruleName: newRule.name,
+                  type: newRule.type,
+                  configuration: configMap,
+                  status: newRule.isActive,
+                  branchId: rule.branchId ?? currentBranchId,
+                  role: widget.role,
+                ));
+          } else {
+            context.read<PricingBloc>().add(CreatePricingRule(
+                  ruleName: newRule.name,
+                  type: newRule.type,
+                  configuration: configMap,
+                  status: newRule.isActive,
+                  branchId: currentBranchId,
+                  role: widget.role,
+                ));
+          }
         },
       ),
     );
@@ -65,8 +108,8 @@ class _PricingScreenState extends State<PricingScreen> {
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.add, color: Colors.white, size: 18),
-            const SizedBox(width: 6),
+            Icon(Icons.add, color: Colors.white, size: 18),
+            SizedBox(width: 6),
             Text(
               "Add Rule",
               style: TextStyle(
@@ -83,18 +126,18 @@ class _PricingScreenState extends State<PricingScreen> {
   Widget _buildStatCards(double width) {
     final cards = [
       CustomStatCard(
-        label: 'Base Rate',
-        value: '\$15/kg',
+        label: 'Total Rules',
+        value: _totalRules.toString(),
         iconPath: 'assets/rate.svg',
       ),
       CustomStatCard(
         label: 'Active Rules',
-        value: _rules.length.toString(),
+        value: _activeRules.toString(),
         iconPath: 'assets/rule.svg',
       ),
       CustomStatCard(
         label: 'Categories',
-        value: '5',
+        value: _typeCounts.toString(),
         iconPath: 'assets/categori.svg',
       ),
     ];
@@ -119,77 +162,109 @@ class _PricingScreenState extends State<PricingScreen> {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          width < 600
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Pricing Management',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildAddRuleButton(context),
-                  ],
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Pricing Management',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
+    return BlocConsumer<PricingBloc, PricingState>(
+      listener: (context, state) {
+        if (state is PricingLoaded) {
+          setState(() {
+            _rules = state.rules;
+            _isLoading = false;
+            _totalRules = state.total;
+            _activeRules = state.activeCount;
+            _typeCounts = state.typeCounts;
+          });
+        } else if (state is PricingLoading) {
+          setState(() {
+            _isLoading = true;
+          });
+        } else if (state is PricingError) {
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        } else if (state is PricingActionSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+          );
+        }
+      },
+      builder: (context, state) {
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              width < 600
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pricing Management',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 12),
+                        _buildAddRuleButton(context),
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Pricing Management',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        _buildAddRuleButton(context),
+                      ],
                     ),
-                    const SizedBox(width: 16),
-                    _buildAddRuleButton(context),
-                  ],
+              const SizedBox(height: 6),
+              Text(
+                'Manage pricing rules and product categories',
+                style: TextStyle(
+                    fontSize: 15,
+                    color: Theme.of(context).textTheme.bodyMedium?.color),
+              ),
+              const SizedBox(height: 20),
+              _buildStatCards(width),
+              const SizedBox(height: 25),
+              _buildToggleTabs(),
+              const SizedBox(height: 25),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: child,
                 ),
-          const SizedBox(height: 6),
-          Text(
-            'Manage pricing rules and product categories',
-            style: TextStyle(
-                fontSize: 15,
-                color: Theme.of(context).textTheme.bodyMedium?.color),
+                child: _selectedTab == 0
+                    ? _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : CustomPricingrule(
+                            key: const ValueKey('Pricing Rules'),
+                            rules: _rules,
+                            onEdit: (rule) => _openAddRuleDialog(rule: rule),
+                            onDelete: (id) {
+                              context.read<PricingBloc>().add(DeletePricingRule(id: id, role: widget.role));
+                            },
+                          )
+                    : CustomPricingcalculator(
+                        key: const ValueKey('Price Calculator'),
+                        rules: _rules,
+                      ),
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
-          _buildStatCards(width),
-          const SizedBox(height: 25),
-          _buildToggleTabs(),
-          const SizedBox(height: 25),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 250),
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: child,
-            ),
-            child: _selectedTab == 0
-                ? CustomPricingrule(
-                    key: const ValueKey('Pricing Rules'),
-                    rules: _rules,
-                    onEdit: (rule) => _openAddRuleDialog(rule: rule),
-                    onDelete: (id) {
-                      setState(() {
-                        _rules.removeWhere((r) => r.id == id);
-                      });
-                    },
-                  )
-                : const CustomPricingcalculator(
-                    key: ValueKey('Price Calculator')),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
