@@ -139,8 +139,8 @@ class RoleReports extends StatelessWidget {
           spots: weeklySpots,
         ),
         const SizedBox(height: 24),
-        const AiPerformanceSection(),
-        const SizedBox(height: 24),
+        // const AiPerformanceSection(),
+        // const SizedBox(height: 24),
         Row(
           children: [
             Expanded(
@@ -180,8 +180,8 @@ class RoleReports extends StatelessWidget {
             BarChartGroupData(x: 6, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
           ],
         ),
-        const SizedBox(height: 24),
-        const AiPerformanceSection(),
+        // const SizedBox(height: 24),
+        // const AiPerformanceSection(),
       ],
     );
   }

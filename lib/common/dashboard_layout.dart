@@ -239,7 +239,7 @@ class _DashboardShellState extends State<DashboardShell> {
       case 'Settings':
         return widget.role == UserRole.systemOwner
             ? const SettingScreen()
-            : const BusinessownerSettings();
+            : BusinessownerSettings(branchId: currentBranchId);
 
       case 'Order Booking':
         return BlocProvider(

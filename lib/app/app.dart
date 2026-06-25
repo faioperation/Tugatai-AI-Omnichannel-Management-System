@@ -10,6 +10,8 @@ import 'package:roberto/features/WhatsAppCampaigns/bloc/campaign_bloc.dart';
 import 'package:roberto/features/management/data/repositories/management_repository.dart';
 import 'package:roberto/features/management/bloc/management_bloc.dart';
 import 'package:roberto/features/businesssubscription/data/repositories/business_subscription_repository.dart';
+import 'package:roberto/features/businesssetting/bloc/social_media_bloc.dart';
+import 'package:roberto/features/businesssetting/data/repositories/social_media_repository.dart';
 import 'package:roberto/features/businesssubscription/bloc/business_subscription_bloc.dart';
 import 'package:roberto/features/CRM/data/repositories/crm_repository.dart';
 import 'package:roberto/features/CRM/bloc/crm_bloc.dart';
@@ -128,6 +130,11 @@ class Roberto extends StatelessWidget {
                 networkClient: context.read<NetworkClient>(),
               ),
             ),
+            RepositoryProvider<SocialMediaRepository>(
+              create: (context) => SocialMediaRepository(
+                networkClient: context.read<NetworkClient>(),
+              ),
+            ),
           ],
           child: MultiBlocProvider(
             providers: [
@@ -199,6 +206,11 @@ class Roberto extends StatelessWidget {
               BlocProvider<PricingBloc>(
                 create: (context) => PricingBloc(
                   pricingRepository: context.read<PricingRepository>(),
+                ),
+              ),
+              BlocProvider<SocialMediaBloc>(
+                create: (context) => SocialMediaBloc(
+                  repository: context.read<SocialMediaRepository>(),
                 ),
               ),
             ],

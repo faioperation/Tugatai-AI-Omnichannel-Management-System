@@ -6,6 +6,8 @@ class CustomMedia extends StatefulWidget {
   final String iconPath;
   final String title;
   final String subtitle;
+  final VoidCallback onActionPressed;
+  final bool isLoading;
   final bool isConnected;
 
   const CustomMedia({
@@ -14,6 +16,8 @@ class CustomMedia extends StatefulWidget {
     required this.title,
     required this.subtitle,
     required this.isConnected,
+    required this.onActionPressed,
+    this.isLoading = false,
   });
 
   @override
@@ -21,12 +25,9 @@ class CustomMedia extends StatefulWidget {
 }
 
 class _CustomMediaState extends State<CustomMedia> {
-  late bool _isConnected;
-
   @override
   void initState() {
     super.initState();
-    _isConnected = widget.isConnected;
   }
 
   @override
@@ -82,7 +83,7 @@ class _CustomMediaState extends State<CustomMedia> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    if (_isConnected) ...[
+                    if (widget.isConnected) ...[
                       _buildConnectedButton(),
                       const SizedBox(width: 8),
                     ],
@@ -131,7 +132,7 @@ class _CustomMediaState extends State<CustomMedia> {
                 // BUTTONS (same line)
                 Row(
                   children: [
-                    if (_isConnected) ...[
+                    if (widget.isConnected) ...[
                       _buildConnectedButton(),
                       const SizedBox(width: 10),
                     ],
@@ -170,28 +171,26 @@ class _CustomMediaState extends State<CustomMedia> {
 
   Widget _buildActionButton() {
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _isConnected = !_isConnected;
-        });
-      },
+      onTap: widget.isLoading ? null : widget.onActionPressed,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: Theme.of(context).brightness == Brightness.dark ? Theme.of(context).colorScheme.surface : Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: _isConnected ? AppColor.primary : Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE),
+            color: widget.isConnected ? AppColor.primary : Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE),
           ),
         ),
-        child: Text(
-          _isConnected ? 'Disconnect' : 'Connect',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: _isConnected ? AppColor.primary : Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
+        child: widget.isLoading 
+            ? SizedBox(width: 13, height: 13, child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.onSurface))
+            : Text(
+                widget.isConnected ? 'Disconnect' : 'Connect',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: widget.isConnected ? AppColor.primary : Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
       ),
     );
   }
