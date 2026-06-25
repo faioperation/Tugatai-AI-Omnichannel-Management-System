@@ -97,4 +97,17 @@ class ApiConstants {
   // AI Chatbot status toggle
   static const String conversationOff = '$baseUrl/conversation-off'; // + /:conversationId
   static const String conversationOffHandoff = '$baseUrl/conversation-off/handoff';
+
+  // Social Media Connection endpoints
+  static const String facebookAuth = '$baseUrl/v1/messenger/auth/facebook';
+  static const String facebookStatus = '$baseUrl/v1/messenger/status';
+  static const String facebookDisconnect = '$baseUrl/v1/messenger/disconnect';
+  
+  static const String instagramAuth = '$baseUrl/v1/instagram/auth/facebook';
+  static const String instagramStatus = '$baseUrl/v1/instagram/status';
+  static const String instagramDisconnect = '$baseUrl/v1/instagram/disconnect';
+  
+  static const String whatsappConnect = '$baseUrl/v1/whatsapp/connect';
+  static const String whatsappStatus = '$baseUrl/v1/whatsapp/status';
+  static const String whatsappDisconnect = '$baseUrl/v1/whatsapp/disconnect';
 }
