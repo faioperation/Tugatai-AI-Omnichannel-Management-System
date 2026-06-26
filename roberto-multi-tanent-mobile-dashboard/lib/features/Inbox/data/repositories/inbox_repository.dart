@@ -64,7 +64,7 @@ class InboxRepository {
     }
   }
 
-  Future<Map<String, dynamic>> sendTextMessage(String platform, String recipientId, String message) async {
+  Future<Map<String, dynamic>> sendTextMessage(String platform, String recipientId, String message, {String? conversationId}) async {
     String url = ApiConstants.messengerSendText;
     if (platform == 'whatsapp') {
       url = ApiConstants.whatsappSendText;
@@ -75,7 +75,7 @@ class InboxRepository {
     final response = await networkClient.postRequest(
       url,
       body: {
-        'recipientId': recipientId,
+        if (platform == 'whatsapp') 'conversationId': conversationId ?? recipientId else 'recipientId': recipientId,
         'message': message,
       },
     );
@@ -99,6 +99,7 @@ class InboxRepository {
     String imagePath, {
     List<int>? fileBytes,
     String? fileName,
+    String? conversationId,
   }) async {
     String url = ApiConstants.messengerSendMedia;
     if (platform == 'whatsapp') {
@@ -110,7 +111,7 @@ class InboxRepository {
     final response = await networkClient.postMultipartRequest(
       url,
       body: {
-        'recipientId': recipientId,
+        if (platform == 'whatsapp') 'conversationId': conversationId ?? recipientId else 'recipientId': recipientId,
         'type': 'image',
       },
       files: fileBytes == null ? {'file': imagePath} : null,

@@ -437,17 +437,42 @@ class _DashboardShellState extends State<DashboardShell> {
               children: items.map((item) {
                 final label = item['label']! as String;
                 final iconData = item['icon'];
-                return SidebarItem(
-                  iconPath: iconData is String ? iconData : null,
-                  icon: iconData is IconData ? iconData : null,
-                  label: label,
-                  isActive: _activeItem == label,
-                  onTap: () {
-                    _selectItem(label);
-                    // Close drawer on mobile after selection
-                    if (MediaQuery.of(context).size.width <= 900) {
-                      Navigator.pop(context);
+                return BlocBuilder<ProfileBloc, ProfileState>(
+                  builder: (context, profileState) {
+                    String displayLabel = label;
+                    if (label == 'Order Booking') {
+                      String? bType;
+                      if (profileState is ProfileLoaded) {
+                        bType = profileState.user.businessType;
+                      } else if (profileState is ProfileUpdateSuccess) {
+                        bType = profileState.user.businessType;
+                      } else if (profileState is ProfileUpdating) {
+                        bType = profileState.currentUser.businessType;
+                      }
+                      
+                      if (bType != null) {
+                        final normalized = bType.toUpperCase().replaceAll(' ', '_');
+                        if (normalized == 'APPOINTMENT_BOOKING') {
+                          displayLabel = 'Appointment Booking';
+                        } else if (normalized == 'PERCEL_BOOKING' || normalized == 'PARCEL_BOOKING') {
+                          displayLabel = 'Parcel Booking';
+                        }
+                      }
                     }
+
+                    return SidebarItem(
+                      iconPath: iconData is String ? iconData : null,
+                      icon: iconData is IconData ? iconData : null,
+                      label: displayLabel,
+                      isActive: _activeItem == label,
+                      onTap: () {
+                        _selectItem(label);
+                        // Close drawer on mobile after selection
+                        if (MediaQuery.of(context).size.width <= 900) {
+                          Navigator.pop(context);
+                        }
+                      },
+                    );
                   },
                 );
               }).toList(),

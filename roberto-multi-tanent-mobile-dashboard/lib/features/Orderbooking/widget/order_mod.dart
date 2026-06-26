@@ -142,6 +142,12 @@ class OrderMod {
     if (parcelDetails != null) {
       detailsMap.addAll(parcelDetails);
     }
+    
+    // Also include appointmentDetails if available
+    final appointmentDetails = json['appointmentDetails'] as Map<String, dynamic>?;
+    if (appointmentDetails != null) {
+      detailsMap.addAll(appointmentDetails);
+    }
 
     return OrderMod(
       orderId: json['id'] ?? '',

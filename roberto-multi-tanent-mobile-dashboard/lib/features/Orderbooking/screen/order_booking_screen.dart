@@ -15,6 +15,7 @@ import 'package:roberto/features/Settings/bloc/profile_state.dart';
 import 'package:roberto/features/Orderbooking/bloc/booking_bloc.dart';
 import 'package:roberto/features/Orderbooking/bloc/booking_event.dart';
 import 'package:roberto/features/Orderbooking/bloc/booking_state.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // Breakpoint
 const double _kDesktop = 700;
@@ -32,6 +33,140 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
 
   String _getBranchId() {
     return widget.branchId ?? '';
+  }
+
+  Future<void> _checkGoogleCalendarStatus() async {
+    final branchId = _getBranchId();
+    if (branchId.isEmpty) return;
+
+    setState(() {
+      _isLoadingCalendarStatus = true;
+    });
+
+    try {
+      final res = await context.read<BookingBloc>().repository.getGoogleCalendarStatus(branchId);
+      if (res['success'] == true && res['data'] != null) {
+        final data = res['data'];
+        setState(() {
+          _isGoogleCalendarConnected = data['isConnected'] == true;
+          _connectedEmail = data['email'];
+        });
+      } else {
+        setState(() {
+          _isGoogleCalendarConnected = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isGoogleCalendarConnected = false;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingCalendarStatus = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _connectGoogleCalendar() async {
+    final branchId = _getBranchId();
+    if (branchId.isEmpty) return;
+
+    try {
+      final res = await context.read<BookingBloc>().repository.connectGoogleCalendar(branchId);
+      if (res['success'] == true && res['data'] != null && res['data']['url'] != null) {
+        final urlStr = res['data']['url'] as String;
+        final uri = Uri.parse(urlStr);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch URL'), backgroundColor: Colors.red));
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? 'Failed to connect Google Calendar'), backgroundColor: Colors.red));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+      }
+    }
+  }
+
+  Future<void> _disconnectGoogleCalendar() async {
+    final branchId = _getBranchId();
+    if (branchId.isEmpty) return;
+
+    try {
+      final res = await context.read<BookingBloc>().repository.disconnectGoogleCalendar(branchId);
+      if (res['success'] == true) {
+        setState(() {
+          _isGoogleCalendarConnected = false;
+          _connectedEmail = null;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Google Calendar disconnected'), backgroundColor: Colors.green));
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? 'Failed to disconnect'), backgroundColor: Colors.red));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+      }
+    }
+  }
+
+  Future<void> _createGoogleCalendarEvent({
+    required String date,
+    required String time,
+    required String durationStr,
+    required String platform,
+    required String customerName,
+  }) async {
+    final branchId = _getBranchId();
+    if (branchId.isEmpty) return;
+
+    try {
+      final dtStr = '$date $time'.trim();
+      DateTime startDt;
+      try {
+        startDt = DateFormat('yyyy-MM-dd HH:mm').parse(dtStr);
+      } catch (e) {
+        try {
+          startDt = DateFormat('yyyy-MM-dd hh:mm a').parse(dtStr);
+        } catch(e2) {
+          startDt = DateTime.parse(date);
+        }
+      }
+
+      int mins = 60;
+      final match = RegExp(r'\d+').firstMatch(durationStr);
+      if (match != null) {
+        mins = int.parse(match.group(0)!);
+      }
+
+      final endDt = startDt.add(Duration(minutes: mins));
+
+      final payload = {
+        "branchId": branchId,
+        "summary": "Appointment with $customerName",
+        "description": "Booking created via Roberto Dashboard",
+        "location": platform,
+        "startTime": startDt.toUtc().toIso8601String(),
+        "endTime": endDt.toUtc().toIso8601String(),
+      };
+
+      await context.read<BookingBloc>().repository.createGoogleCalendarEvent(payload);
+    } catch(e) {
+      debugPrint('Failed to create calendar event: $e');
+    }
   }
 
   DateTime? _parseDateString(String? dateStr) {
@@ -71,8 +206,14 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.branchId != widget.branchId) {
       context.read<BookingBloc>().add(GetBookings(branchId: widget.branchId ?? ''));
+      _checkGoogleCalendarStatus();
     }
   }
+  
+  bool _isGoogleCalendarConnected = false;
+  String? _connectedEmail;
+  bool _isLoadingCalendarStatus = false;
+
   int selectedIndex = 0;
 
   String _searchQuery = '';
@@ -87,6 +228,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
+    _checkGoogleCalendarStatus();
   }
 
   List<OrderMod> _orders = [];
@@ -143,31 +285,66 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
           _orders = state.bookings;
         }
 
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            if (state is BookingLoading && _orders.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
+        return BlocBuilder<ProfileBloc, ProfileState>(
+          builder: (context, profileState) {
+            String? bType;
+            if (profileState is ProfileLoaded) {
+              bType = profileState.user.businessType;
+            } else if (profileState is ProfileUpdateSuccess) {
+              bType = profileState.user.businessType;
+            } else if (profileState is ProfileUpdating) {
+              bType = profileState.currentUser.businessType;
             }
 
-        final isMobile = constraints.maxWidth < _kDesktop;
-        return SingleChildScrollView(
-          padding: EdgeInsets.all(isMobile ? 16 : 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(isMobile, theme, isDark),
-              SizedBox(height: isMobile ? 16 : 24),
-              _buildStatCards(isMobile, state),
-              SizedBox(height: isMobile ? 14 : 20),
-              if (selectedIndex == 0) ...[
-                _buildFilterBar(isMobile, theme, isDark),
-                SizedBox(height: isMobile ? 12 : 16),
-                isMobile ? _buildMobileCards(theme, isDark) : _buildDesktopTable(theme, isDark),
-              ] else
-                _buildCalendarContent(isMobile, theme, isDark),
-            ],
-          ),
-        );
+            String titleLabel = 'Order Booking (Debug: $bType)';
+            String columnAddressLabel = 'Address';
+            String columnPriceLabel = 'Shipping Charge';
+            String columnTimeLabel = 'Delivery Time';
+            String shortPriceLabel = 'Shipping';
+            String shortTimeLabel = 'Delivery';
+            
+            if (bType != null) {
+              final normalized = bType.toUpperCase().replaceAll(' ', '_');
+              if (normalized == 'APPOINTMENT_BOOKING') {
+                titleLabel = 'Appointment Booking';
+                columnAddressLabel = 'Platform';
+                columnPriceLabel = 'Price';
+                columnTimeLabel = 'Appointment Date';
+                shortPriceLabel = 'Price';
+                shortTimeLabel = 'Date';
+              } else if (normalized == 'PERCEL_BOOKING' || normalized == 'PARCEL_BOOKING') {
+                titleLabel = 'Parcel Booking';
+                columnAddressLabel = 'Pickup / Delivery';
+              }
+            }
+
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                if (state is BookingLoading && _orders.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final isMobile = constraints.maxWidth < _kDesktop;
+                return SingleChildScrollView(
+                  padding: EdgeInsets.all(isMobile ? 16 : 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(isMobile, theme, isDark, titleLabel, bType),
+                      SizedBox(height: isMobile ? 16 : 24),
+                      _buildStatCards(isMobile, state),
+                      SizedBox(height: isMobile ? 14 : 20),
+                      if (selectedIndex == 0) ...[
+                        _buildFilterBar(isMobile, theme, isDark),
+                        SizedBox(height: isMobile ? 12 : 16),
+                        isMobile ? _buildMobileCards(theme, isDark, columnAddressLabel, shortPriceLabel, shortTimeLabel, bType) : _buildDesktopTable(theme, isDark, columnAddressLabel, columnPriceLabel, columnTimeLabel, bType),
+                      ] else
+                        _buildCalendarContent(isMobile, theme, isDark, titleLabel),
+                    ],
+                  ),
+                );
+              },
+            );
           },
         );
       },
@@ -175,12 +352,12 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   }
 
   // HEADER
-  Widget _buildHeader(bool isMobile, ThemeData theme, bool isDark) {
+  Widget _buildHeader(bool isMobile, ThemeData theme, bool isDark, String title, String? bType) {
     final titleCol = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Order Booking',
+          title,
           style: TextStyle(
             fontSize: isMobile ? 20 : 26,
             fontWeight: FontWeight.bold,
@@ -198,30 +375,92 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       ],
     );
 
+    final isAppointmentBooking = bType != null && bType.toUpperCase().replaceAll(' ', '_') == 'APPOINTMENT_BOOKING';
+
     final actionRow = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         // Toggle
-        Container(
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: isDark ? theme.colorScheme.surface : Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(10),
+        if (!isAppointmentBooking) ...[
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: isDark ? theme.colorScheme.surface : Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildToggleTab(
+                    label: isMobile ? 'Table' : 'Table View', index: 0, theme: theme),
+                _buildToggleTab(
+                    label: isMobile ? 'Calendar' : 'Calendar View',
+                    index: 1,
+                    theme: theme,
+                    icon: Icons.calendar_today),
+              ],
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildToggleTab(
-                  label: isMobile ? 'Table' : 'Table View', index: 0, theme: theme),
-              _buildToggleTab(
-                  label: isMobile ? 'Calendar' : 'Calendar View',
-                  index: 1,
-                  theme: theme,
-                  icon: Icons.calendar_today),
-            ],
-          ),
-        ),
-        const SizedBox(width: 10),
+          const SizedBox(width: 10),
+        ],
+        if (isAppointmentBooking) ...[
+          if (_isLoadingCalendarStatus)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+            )
+          else if (!_isGoogleCalendarConnected)
+            ElevatedButton.icon(
+              onPressed: _connectGoogleCalendar,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDark ? theme.colorScheme.surface : Colors.white,
+                foregroundColor: AppColor.primary,
+                side: const BorderSide(color: AppColor.primary),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 12 : 16,
+                  vertical: isMobile ? 10 : 12,
+                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+              ),
+              icon: const Icon(Icons.calendar_month, size: 16),
+              label: Text(
+                isMobile ? 'Connect Calendar' : 'Connect Google Calendar',
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+            )
+          else ...[
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 10 : 14,
+                vertical: isMobile ? 8 : 10,
+              ),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.green.shade300),
+                borderRadius: BorderRadius.circular(10),
+                color: Colors.green.withOpacity(0.05),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    _connectedEmail != null ? _connectedEmail! : 'Connected',
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.green),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _disconnectGoogleCalendar,
+              icon: const Icon(Icons.link_off, color: Colors.red),
+              tooltip: 'Disconnect Google Calendar',
+            ),
+          ],
+          const SizedBox(width: 10),
+        ],
         // New Booking button
         ElevatedButton.icon(
           onPressed: () => _openOrderDialog(),
@@ -426,7 +665,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   }
 
   //DESKTOP TABLE
-  Widget _buildDesktopTable(ThemeData theme, bool isDark) {
+  Widget _buildDesktopTable(ThemeData theme, bool isDark, String addressLabel, String priceLabel, String timeLabel, String? bType) {
     return Container(
       decoration: BoxDecoration(
         color: theme.cardColor,
@@ -442,18 +681,18 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               color: isDark ? theme.colorScheme.surfaceVariant.withOpacity(0.5) : AppColor.secondary,
-              child: const Row(
+              child: Row(
                 children: [
-                  Expanded(flex: 2, child: CustomHeadder(label: 'Order ID', textAlign: TextAlign.center)),
-                  Expanded(flex: 3, child: CustomHeadder(label: 'Customer', textAlign: TextAlign.start)),
-                  Expanded(flex: 3, child: CustomHeadder(label: 'Address', textAlign: TextAlign.center)),
-                  Expanded(flex: 2, child: CustomHeadder(label: 'Status', textAlign: TextAlign.center)),
+                  const Expanded(flex: 2, child: CustomHeadder(label: 'Order ID', textAlign: TextAlign.center)),
+                  const Expanded(flex: 3, child: CustomHeadder(label: 'Customer', textAlign: TextAlign.start)),
+                  Expanded(flex: 3, child: CustomHeadder(label: addressLabel, textAlign: TextAlign.center)),
+                  const Expanded(flex: 2, child: CustomHeadder(label: 'Status', textAlign: TextAlign.center)),
                   Expanded(
                       flex: 2,
-                      child: CustomHeadder(label: 'Shipping Charge', textAlign: TextAlign.center)),
+                      child: CustomHeadder(label: priceLabel, textAlign: TextAlign.center)),
                   Expanded(
-                      flex: 2, child: CustomHeadder(label: 'Delivery Time', textAlign: TextAlign.center)),
-                  Expanded(flex: 3, child: CustomHeadder(label: 'Actions', textAlign: TextAlign.center)),
+                      flex: 2, child: CustomHeadder(label: timeLabel, textAlign: TextAlign.center)),
+                  const Expanded(flex: 3, child: CustomHeadder(label: 'Actions', textAlign: TextAlign.center)),
                 ],
               ),
             ),
@@ -470,7 +709,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
             else
               ..._paginatedOrders.asMap().entries.map((entry) {
                 final int globalIndex = (_currentPage - 1) * _itemsPerPage + entry.key + 1;
-                return _buildDesktopRow(entry.value, globalIndex, theme, isDark);
+                return _buildDesktopRow(entry.value, globalIndex, theme, isDark, bType);
               }),
             if (_filteredOrders.isNotEmpty)
               Padding(
@@ -488,7 +727,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     );
   }
 
-  Widget _buildDesktopRow(OrderMod order, int index, ThemeData theme, bool isDark) {
+  Widget _buildDesktopRow(OrderMod order, int index, ThemeData theme, bool isDark, String? bType) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
@@ -520,11 +759,16 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.location_on_outlined,
+                Icon((bType != null && bType.toUpperCase().replaceAll(' ', '_') == 'APPOINTMENT_BOOKING') ? Icons.computer : Icons.location_on_outlined,
                     size: 14, color: theme.hintColor),
                 const SizedBox(width: 4),
                 Flexible(
-                  child: Text(order.platform ?? order.source ?? "N/A",
+                  child: Text(
+                      (bType != null && bType.toUpperCase().replaceAll(' ', '_') == 'APPOINTMENT_BOOKING')
+                          ? (order.platform ?? order.source ?? "N/A")
+                          : (bType != null && (bType.toUpperCase().replaceAll(' ', '_') == 'PERCEL_BOOKING' || bType.toUpperCase().replaceAll(' ', '_') == 'PARCEL_BOOKING'))
+                              ? (order.pickupAddress ?? order.deliveryAddress ?? "N/A")
+                              : (order.deliveryAddress ?? order.platform ?? order.source ?? "N/A"),
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                           color: theme.textTheme.bodyMedium?.color, fontSize: 13)),
@@ -565,7 +809,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   }
 
   // ─── MOBILE CARDS ────────────────────────────────────────────────────
-  Widget _buildMobileCards(ThemeData theme, bool isDark) {
+  Widget _buildMobileCards(ThemeData theme, bool isDark, String addressLabel, String priceLabel, String timeLabel, String? bType) {
     if (_filteredOrders.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(40),
@@ -580,7 +824,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       children: [
         ..._paginatedOrders.asMap().entries.map((entry) {
           final int globalIndex = (_currentPage - 1) * _itemsPerPage + entry.key + 1;
-          return _buildMobileCard(entry.value, globalIndex, theme, isDark);
+          return _buildMobileCard(entry.value, globalIndex, theme, isDark, addressLabel, priceLabel, timeLabel, bType);
         }),
         if (_filteredOrders.isNotEmpty)
           CustomPagination(
@@ -593,7 +837,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     );
   }
 
-  Widget _buildMobileCard(OrderMod order, int index, ThemeData theme, bool isDark) {
+  Widget _buildMobileCard(OrderMod order, int index, ThemeData theme, bool isDark, String addressLabel, String priceLabel, String timeLabel, String? bType) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -669,9 +913,13 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
             children: [
               Expanded(
                 child: _buildCardDetail(
-                  icon: Icons.location_on_outlined,
-                  label: 'Address',
-                  value: order.platform ?? order.source ?? "N/A",
+                  icon: (bType != null && bType.toUpperCase().replaceAll(' ', '_') == 'APPOINTMENT_BOOKING') ? Icons.computer : Icons.location_on_outlined,
+                  label: addressLabel,
+                  value: (bType != null && bType.toUpperCase().replaceAll(' ', '_') == 'APPOINTMENT_BOOKING')
+                          ? (order.platform ?? order.source ?? "N/A")
+                          : (bType != null && (bType.toUpperCase().replaceAll(' ', '_') == 'PERCEL_BOOKING' || bType.toUpperCase().replaceAll(' ', '_') == 'PARCEL_BOOKING'))
+                              ? (order.pickupAddress ?? order.deliveryAddress ?? "N/A")
+                              : (order.deliveryAddress ?? order.platform ?? order.source ?? "N/A"),
                   theme: theme,
                 ),
               ),
@@ -683,7 +931,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
               Expanded(
                 child: _buildCardDetail(
                   icon: Icons.attach_money,
-                  label: 'Shipping',
+                  label: priceLabel,
                   value: '\$${order.price}',
                   theme: theme,
                 ),
@@ -691,7 +939,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
               Expanded(
                 child: _buildCardDetail(
                   icon: Icons.access_time,
-                  label: 'Delivery',
+                  label: timeLabel,
                   value: _formatDeliveryDate(order),
                   theme: theme,
                 ),
@@ -1004,11 +1252,11 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   }
 
   // ─── CALENDAR VIEW ──────────────────────────────────────────────────
-  Widget _buildCalendarContent(bool isMobile, ThemeData theme, bool isDark) {
+  Widget _buildCalendarContent(bool isMobile, ThemeData theme, bool isDark, String title) {
     if (isMobile) {
       return Column(
         children: [
-          _buildCalendarPane(theme, isDark),
+          _buildCalendarPane(theme, isDark, title),
           const SizedBox(height: 16),
           _buildCalendarSidebar(theme, isDark),
         ],
@@ -1018,14 +1266,14 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(flex: 7, child: _buildCalendarPane(theme, isDark)),
+        Expanded(flex: 7, child: _buildCalendarPane(theme, isDark, title)),
         const SizedBox(width: 24),
         Expanded(flex: 3, child: _buildCalendarSidebar(theme, isDark)),
       ],
     );
   }
 
-  Widget _buildCalendarPane(ThemeData theme, bool isDark) {
+  Widget _buildCalendarPane(ThemeData theme, bool isDark, String title) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -1044,7 +1292,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildCalendarTitle(theme),
+                        _buildCalendarTitle(theme, title),
                         const SizedBox(height: 16),
                         _buildCalendarNav(theme, isDark),
                       ],
@@ -1052,7 +1300,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildCalendarTitle(theme),
+                        _buildCalendarTitle(theme, title),
                         _buildCalendarNav(theme, isDark),
                       ],
                     );
@@ -1199,13 +1447,13 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     );
   }
 
-  Widget _buildCalendarTitle(ThemeData theme) {
+  Widget _buildCalendarTitle(ThemeData theme, String title) {
     return Row(
       children: [
         Icon(Icons.calendar_today_outlined,
             size: 20, color: theme.colorScheme.onSurface),
         const SizedBox(width: 8),
-        Text("Order Booking",
+        Text(title,
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -1457,6 +1705,30 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 branchId: _getBranchId(),
               ));
         } else {
+          // Check if appointment booking to create Google Calendar event
+          final addDetails = result['additionalDetails'] as List<Map<String, String>>?;
+          bool isAppt = false;
+          String? apptDate, apptTime, platform, duration;
+          if (addDetails != null) {
+            for (var d in addDetails) {
+              if (d['key'] == 'bookingType' && d['value'] == 'Appointment Booking') isAppt = true;
+              if (d['key'] == 'appointmentDate') apptDate = d['value'];
+              if (d['key'] == 'appointmentTime') apptTime = d['value'];
+              if (d['key'] == 'platform') platform = d['value'];
+              if (d['key'] == 'duration') duration = d['value'];
+            }
+          }
+
+          if (isAppt && apptDate != null && apptDate.isNotEmpty) {
+            _createGoogleCalendarEvent(
+              date: apptDate,
+              time: apptTime ?? '10:00', // fallback
+              durationStr: duration ?? '60 Minutes',
+              platform: platform ?? 'Zoom',
+              customerName: result['customerName']?.toString() ?? 'Customer',
+            );
+          }
+
           context.read<BookingBloc>().add(CreateBooking(
                 payload: result,
                 branchId: _getBranchId(),

@@ -257,7 +257,7 @@ class _InboxScreenState extends State<InboxScreen> {
 
     try {
       final inboxRepo = context.read<InboxRepository>();
-      final res = await inboxRepo.sendTextMessage(conv.platform, conv.customerId, text);
+      final res = await inboxRepo.sendTextMessage(conv.platform, conv.customerId, text, conversationId: conv.id);
 
       if (res['success'] == true) {
         _fetchConversations();
@@ -306,6 +306,7 @@ class _InboxScreenState extends State<InboxScreen> {
         imagePath,
         fileBytes: bytes,
         fileName: filename,
+        conversationId: conv.id,
       );
 
       if (res['success'] == true) {
