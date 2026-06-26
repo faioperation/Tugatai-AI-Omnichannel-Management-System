@@ -68,6 +68,8 @@ class _DashboardShellState extends State<DashboardShell> {
     {"name": "Manhattan Store", "address": "456, Manhattan, NY"},
   ];
   late Map<String, String> _selectedBranch;
+  bool _isBranchDropdownOpen = false;
+  String? _cachedBusinessType;
 
   @override
   void initState() {
@@ -376,52 +378,73 @@ class _DashboardShellState extends State<DashboardShell> {
                                 }).toList();
                           }
 
-                          return PopupMenuButton<Map<String, String>>(
-                            offset: const Offset(0, 50),
-                            position: PopupMenuPosition.under,
-                            color: Theme.of(context).cardTheme.color,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                            onSelected: (Map<String, String> branch) {
-                              setState(() {
-                                _selectedBranch = branch;
-                              });
-                            },
-                            itemBuilder: (context) => dynamicBranches.map((branch) {
-                              return PopupMenuItem<Map<String, String>>(
-                                value: branch,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      branch['name'] ?? '',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: branch['name'] == _selectedBranch['name']
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface,
-                                      ),
-                                    ),
-                                    Text(
-                                      branch['address'] ?? '',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.color,
-                                      ),
-                                    ),
-                                    if (branch != dynamicBranches.last)
-                                      const Divider(height: 16),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                            child: _buildBranchSelectorTrigger(context),
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _isBranchDropdownOpen = !_isBranchDropdownOpen;
+                                  });
+                                },
+                                borderRadius: BorderRadius.circular(12),
+                                child: _buildBranchSelectorTrigger(context),
+                              ),
+                              AnimatedSize(
+                                duration: const Duration(milliseconds: 200),
+                                curve: Curves.easeInOut,
+                                child: _isBranchDropdownOpen
+                                    ? Container(
+                                        margin: const EdgeInsets.only(top: 8),
+                                        padding: const EdgeInsets.symmetric(vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).cardTheme.color,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE),
+                                          ),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                                          children: dynamicBranches.map((branch) {
+                                            final isSelected = branch['name'] == _selectedBranch['name'];
+                                            return InkWell(
+                                              onTap: () {
+                                                setState(() {
+                                                  _selectedBranch = branch;
+                                                  _isBranchDropdownOpen = false;
+                                                });
+                                              },
+                                              child: Padding(
+                                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      branch['name'] ?? '',
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                                        color: Theme.of(context).colorScheme.onSurface,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      branch['address'] ?? '',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Theme.of(context).textTheme.bodySmall?.color,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      )
+                                    : const SizedBox.shrink(),
+                              ),
+                            ],
                           );
                         },
                       ),
@@ -440,23 +463,34 @@ class _DashboardShellState extends State<DashboardShell> {
                 return BlocBuilder<ProfileBloc, ProfileState>(
                   builder: (context, profileState) {
                     String displayLabel = label;
-                    if (label == 'Order Booking') {
-                      String? bType;
-                      if (profileState is ProfileLoaded) {
-                        bType = profileState.user.businessType;
-                      } else if (profileState is ProfileUpdateSuccess) {
-                        bType = profileState.user.businessType;
-                      } else if (profileState is ProfileUpdating) {
-                        bType = profileState.currentUser.businessType;
-                      }
-                      
-                      if (bType != null) {
-                        final normalized = bType.toUpperCase().replaceAll(' ', '_');
-                        if (normalized == 'APPOINTMENT_BOOKING') {
-                          displayLabel = 'Appointment Booking';
-                        } else if (normalized == 'PERCEL_BOOKING' || normalized == 'PARCEL_BOOKING') {
-                          displayLabel = 'Parcel Booking';
-                        }
+                    String? bType;
+                    if (profileState is ProfileLoaded) {
+                      bType = profileState.user.businessType;
+                      _cachedBusinessType = bType;
+                    } else if (profileState is ProfileUpdateSuccess) {
+                      bType = profileState.user.businessType;
+                      _cachedBusinessType = bType;
+                    } else if (profileState is ProfileUpdating) {
+                      bType = profileState.currentUser.businessType;
+                      _cachedBusinessType = bType;
+                    }
+                    
+                    final effectiveBType = bType ?? _cachedBusinessType;
+                    
+                    String normalizedBType = '';
+                    if (effectiveBType != null) {
+                      normalizedBType = effectiveBType.toUpperCase().replaceAll(' ', '_');
+                    }
+
+                    if (label == 'Pricing' && normalizedBType == 'APPOINTMENT_BOOKING') {
+                      return const SizedBox.shrink();
+                    }
+
+                    if (label == 'Order Booking' && effectiveBType != null) {
+                      if (normalizedBType == 'APPOINTMENT_BOOKING') {
+                        displayLabel = 'Appointment Booking';
+                      } else if (normalizedBType == 'PERCEL_BOOKING' || normalizedBType == 'PARCEL_BOOKING') {
+                        displayLabel = 'Parcel Booking';
                       }
                     }
 

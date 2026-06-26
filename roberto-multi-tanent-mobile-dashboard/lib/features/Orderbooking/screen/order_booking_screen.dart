@@ -8,6 +8,7 @@ import 'package:roberto/features/Orderbooking/widget/custom_viewdetails.dart';
 import 'package:roberto/features/Tenant%20Management%20/widget/custom_headder.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:roberto/features/Orderbooking/widget/create_order_dialog.dart';
+import 'package:roberto/features/Orderbooking/widget/create_google_event_dialog.dart';
 import 'package:roberto/common/custom_pagination.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/features/Settings/bloc/profile_bloc.dart';
@@ -51,6 +52,9 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
           _isGoogleCalendarConnected = data['isConnected'] == true;
           _connectedEmail = data['email'];
         });
+        if (_isGoogleCalendarConnected) {
+          _fetchGoogleEvents();
+        }
       } else {
         setState(() {
           _isGoogleCalendarConnected = false;
@@ -213,6 +217,25 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   bool _isGoogleCalendarConnected = false;
   String? _connectedEmail;
   bool _isLoadingCalendarStatus = false;
+  List<dynamic> _googleEvents = [];
+
+  Future<void> _fetchGoogleEvents() async {
+    final branchId = _getBranchId();
+    if (branchId.isEmpty || !_isGoogleCalendarConnected) return;
+
+    try {
+      final res = await context.read<BookingBloc>().repository.getGoogleCalendarEvents(branchId);
+      if (res['success'] == true && res['data'] != null && res['data'] is List) {
+        if (mounted) {
+          setState(() {
+            _googleEvents = res['data'];
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to fetch google calendar events: $e');
+    }
+  }
 
   int selectedIndex = 0;
 
@@ -381,29 +404,27 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         // Toggle
-        if (!isAppointmentBooking) ...[
-          Container(
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              color: isDark ? theme.colorScheme.surface : Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildToggleTab(
-                    label: isMobile ? 'Table' : 'Table View', index: 0, theme: theme),
-                _buildToggleTab(
-                    label: isMobile ? 'Calendar' : 'Calendar View',
-                    index: 1,
-                    theme: theme,
-                    icon: Icons.calendar_today),
-              ],
-            ),
+        Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: isDark ? theme.colorScheme.surface : Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(10),
           ),
-          const SizedBox(width: 10),
-        ],
-        if (isAppointmentBooking) ...[
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildToggleTab(
+                  label: isMobile ? 'Table' : 'Table View', index: 0, theme: theme),
+              _buildToggleTab(
+                  label: isMobile ? 'Calendar' : 'Calendar View',
+                  index: 1,
+                  theme: theme,
+                  icon: Icons.calendar_today),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        if (isAppointmentBooking && selectedIndex == 1) ...[
           if (_isLoadingCalendarStatus)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -460,6 +481,42 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
             ),
           ],
           const SizedBox(width: 10),
+        ],
+        if (isAppointmentBooking && selectedIndex == 1 && _isGoogleCalendarConnected) ...[
+          ElevatedButton.icon(
+            onPressed: () async {
+              final branchId = _getBranchId();
+              if (branchId.isEmpty) return;
+              final bookingBloc = context.read<BookingBloc>();
+              final result = await showDialog(
+                context: context,
+                builder: (context) => BlocProvider.value(
+                  value: bookingBloc,
+                  child: CreateGoogleEventDialog(branchId: branchId),
+                ),
+              );
+              if (result == true) {
+                _fetchGoogleEvents(); // Refresh events if created
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isDark ? theme.colorScheme.surface : Colors.white,
+              foregroundColor: Colors.blue,
+              side: const BorderSide(color: Colors.blue),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 12 : 16,
+                vertical: isMobile ? 10 : 12,
+              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+            ),
+            icon: const Icon(Icons.add_task, size: 16),
+            label: Text(
+              isMobile ? 'New Event' : 'New Event',
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+          ),
+          const SizedBox(width: 8),
         ],
         // New Booking button
         ElevatedButton.icon(
@@ -680,7 +737,11 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
             Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              color: isDark ? theme.colorScheme.surfaceVariant.withOpacity(0.5) : AppColor.secondary,
+              decoration: BoxDecoration(
+                color: isDark ? theme.colorScheme.surfaceVariant.withOpacity(0.5) : AppColor.secondary,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
+              ),
               child: Row(
                 children: [
                   const Expanded(flex: 2, child: CustomHeadder(label: 'Order ID', textAlign: TextAlign.center)),
@@ -1373,7 +1434,16 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       return orderDate != null && orderDate.year == day.year && orderDate.month == day.month && orderDate.day == day.day;
     }).toList();
     
-    int eventCount = dayOrders.length;
+    final googleDayEvents = _googleEvents.where((e) {
+      final start = e['start']?['dateTime'];
+      if (start != null) {
+        final eventDate = DateTime.tryParse(start)?.toLocal();
+        return eventDate != null && eventDate.year == day.year && eventDate.month == day.month && eventDate.day == day.day;
+      }
+      return false;
+    }).toList();
+    
+    int eventCount = dayOrders.length + googleDayEvents.length;
     final hasEvent = eventCount > 0;
     final isSelectedActive = isSelected;
 
@@ -1506,20 +1576,31 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       return orderDate != null && orderDate.year == selectedDay.year && orderDate.month == selectedDay.month && orderDate.day == selectedDay.day;
     }).toList();
 
+    final googleFilteredEvents = _googleEvents.where((e) {
+      final start = e['start']?['dateTime'];
+      if (start != null) {
+        final eventDate = DateTime.tryParse(start)?.toLocal();
+        return eventDate != null && eventDate.year == selectedDay.year && eventDate.month == selectedDay.month && eventDate.day == selectedDay.day;
+      }
+      return false;
+    }).toList();
+
+    final totalEvents = filteredOrders.length + googleFilteredEvents.length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Orders for $dayStr',
+        Text('Orders & Events for $dayStr',
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: theme.colorScheme.onSurface)),
         const SizedBox(height: 4),
-        Text('${filteredOrders.length} deliveries scheduled',
+        Text('$totalEvents scheduled items',
             style: TextStyle(fontSize: 13, color: theme.textTheme.bodySmall?.color ?? const Color(0xff6B7280))),
         const SizedBox(height: 16),
         
-        if (filteredOrders.isEmpty)
+        if (totalEvents == 0)
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -1532,21 +1613,81 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 children: [
                   Icon(Icons.calendar_today_outlined, size: 40, color: theme.hintColor.withOpacity(0.3)),
                   const SizedBox(height: 12),
-                  Text('No orders scheduled for this date',
+                  Text('No orders or events scheduled for this date',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: theme.hintColor, fontSize: 13)),
                 ],
               ),
             ),
           )
-        else
+        else ...[
           ...filteredOrders.map((order) => _buildSidebarOrderCard(
                 context: context,
                 order: order,
                 theme: theme,
                 isDark: isDark,
               )),
+          ...googleFilteredEvents.map((event) => _buildSidebarGoogleEventCard(
+                context: context,
+                event: event,
+                theme: theme,
+                isDark: isDark,
+              )),
+        ],
       ],
+    );
+  }
+
+  Widget _buildSidebarGoogleEventCard({
+    required BuildContext context,
+    required dynamic event,
+    required ThemeData theme,
+    required bool isDark,
+  }) {
+    final summary = event['summary'] ?? 'No Title';
+    final location = event['location'] ?? 'No Location';
+    final startDtStr = event['start']?['dateTime'];
+    final endDtStr = event['end']?['dateTime'];
+    
+    String timeStr = 'All Day';
+    if (startDtStr != null && endDtStr != null) {
+      final start = DateTime.tryParse(startDtStr)?.toLocal();
+      final end = DateTime.tryParse(endDtStr)?.toLocal();
+      if (start != null && end != null) {
+        final startF = DateFormat('hh:mm a').format(start);
+        final endF = DateFormat('hh:mm a').format(end);
+        timeStr = '$startF - $endF';
+      }
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(timeStr, style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.primary, fontSize: 13)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                child: const Text('Google Calendar', style: TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(summary, style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface, fontSize: 15)),
+          const SizedBox(height: 8),
+          _buildSidebarItemRow(Icons.location_on_outlined, location, theme),
+        ],
+      ),
     );
   }
 

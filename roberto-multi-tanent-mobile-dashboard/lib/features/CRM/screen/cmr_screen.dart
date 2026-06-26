@@ -28,7 +28,10 @@ class _CmrScreenState extends State<CmrScreen> {
       onTap: () {
         showDialog(
           context: context,
-          builder: (context) => CustomAddlead(role: widget.role),
+          builder: (context) => CustomAddlead(
+            role: widget.role,
+            branchId: widget.branchId,
+          ),
         );
       },
       borderRadius: BorderRadius.circular(12),

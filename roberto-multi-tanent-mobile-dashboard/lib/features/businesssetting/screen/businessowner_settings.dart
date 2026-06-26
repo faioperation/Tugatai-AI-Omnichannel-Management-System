@@ -12,6 +12,7 @@ import 'package:roberto/features/businesssetting/bloc/social_media_bloc.dart';
 import 'package:roberto/features/businesssetting/bloc/social_media_event.dart';
 import 'package:roberto/features/businesssetting/bloc/social_media_state.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:roberto/features/Auth/widget/custom_textfield.dart';
 
 class BusinessownerSettings extends StatefulWidget {
   final String branchId;
@@ -36,215 +37,166 @@ class _BusinessownerSettingsState extends State<BusinessownerSettings> {
     }
   }
 
-    void _showWhatsAppDialog(BuildContext context) {
+  void _showWhatsAppDialog(BuildContext context) {
+    final theme = Theme.of(context);
     final wabaIdController = TextEditingController();
     final phoneNumberIdController = TextEditingController();
     final phoneNumberController = TextEditingController();
     final accessTokenController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
 
-    showGeneralDialog(
+    showDialog(
       context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Dismiss',
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Center(
-              child: Material(
-                color: Colors.transparent,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                      child: Container(
-                        width: 420,
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E222D).withOpacity(0.85),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.08),
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 40,
-                              offset: const Offset(0, 15),
-                            ),
-                          ],
-                        ),
+      builder: (context) {
+        final theme = Theme.of(context);
+        final width = MediaQuery.of(context).size.width;
+        final isMobile = width < 600;
+
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: theme.cardColor,
+          child: Container(
+            width: isMobile ? width * 0.95 : 600,
+            height: MediaQuery.of(context).size.height * 0.85,
+            child: Column(
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Row(
+                    children: [
+                      Expanded(
                         child: Column(
-                          mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: AppColor.primary.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: SvgPicture.asset(
-                                    'assets/whatsapp.svg',
-                                    width: 24,
-                                    height: 24,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                const Text(
-                                  'Connect WhatsApp',
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                    letterSpacing: -0.5,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              'Connect WhatsApp',
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 4),
                             Text(
                               'Enter your WhatsApp Business credentials to sync conversations instantly.',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.white.withOpacity(0.6),
-                                height: 1.4,
-                              ),
-                            ),
-                            const SizedBox(height: 32),
-
-                            _buildTextField(context, wabaIdController, 'WABA ID', Icons.badge_outlined),
-                            const SizedBox(height: 16),
-                            _buildTextField(context, phoneNumberIdController, 'Phone Number ID', Icons.phone_android_outlined),
-                            const SizedBox(height: 16),
-                            _buildTextField(context, phoneNumberController, 'Phone Number', Icons.phone_outlined),
-                            const SizedBox(height: 16),
-                            _buildTextField(context, accessTokenController, 'WhatsApp Access Token', Icons.key_outlined),
-                            
-                            const SizedBox(height: 40),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'Cancel',
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.7),
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    if (widget.branchId.isEmpty) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Please select a branch first from the sidebar')),
-                                      );
-                                      return;
-                                    }
-
-                                    context.read<SocialMediaBloc>().add(
-                                          ConnectWhatsAppEvent(
-                                            branchId: widget.branchId,
-                                            wabaId: wabaIdController.text,
-                                            phoneNumberId: phoneNumberIdController.text,
-                                            phoneNumber: phoneNumberController.text,
-                                            accessToken: accessTokenController.text,
-                                          ),
-                                        );
-
-                                    Navigator.pop(context);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColor.primary,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Connect Account',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                              style: TextStyle(fontSize: 14, color: theme.hintColor),
                             ),
                           ],
                         ),
                       ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.close, color: theme.hintColor),
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(height: 1, color: theme.dividerColor.withOpacity(0.1)),
+                
+                // Form body
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Form(
+                      key: formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                        Text('WABA ID', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                        const SizedBox(height: 8),
+                        CustomTextfield(
+                          controller: wabaIdController, 
+                          hintText: 'Enter WABA ID',
+                          textInputAction: TextInputAction.next,
+                          validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        Text('Phone Number ID', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                        const SizedBox(height: 8),
+                        CustomTextfield(
+                          controller: phoneNumberIdController, 
+                          hintText: 'Enter Phone Number ID',
+                          textInputAction: TextInputAction.next,
+                          validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        Text('Phone Number', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                        const SizedBox(height: 8),
+                        CustomTextfield(
+                          controller: phoneNumberController, 
+                          hintText: 'Enter Phone Number',
+                          textInputAction: TextInputAction.next,
+                          validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        Text('WhatsApp Access Token', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                        const SizedBox(height: 8),
+                        CustomTextfield(
+                          controller: accessTokenController, 
+                          hintText: 'Enter Access Token',
+                          textInputAction: TextInputAction.done,
+                          validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                     ),
                   ),
                 ),
-              ),
-            );
-          },
-        );
-      },
-      transitionBuilder: (context, anim, secondaryAnim, child) {
-        return SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 0.05),
-            end: Offset.zero,
-          ).animate(CurvedAnimation(
-            parent: anim,
-            curve: Curves.easeOutCubic,
-          )),
-          child: FadeTransition(
-            opacity: anim,
-            child: child,
+                ),
+                Divider(height: 1, color: theme.dividerColor.withOpacity(0.1)),
+                // Footer
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text('Cancel', style: TextStyle(color: theme.hintColor)),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (!formKey.currentState!.validate()) return;
+                          
+                          if (widget.branchId.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please select a branch first from the sidebar')),
+                            );
+                            return;
+                          }
+
+                          context.read<SocialMediaBloc>().add(
+                            ConnectWhatsAppEvent(
+                              branchId: widget.branchId,
+                              wabaId: wabaIdController.text,
+                              phoneNumberId: phoneNumberIdController.text,
+                              phoneNumber: phoneNumberController.text,
+                              accessToken: accessTokenController.text,
+                            ),
+                          );
+
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColor.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Text('Connect Account', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildTextField(BuildContext context, TextEditingController controller, String label, IconData icon) {
-    return TextFormField(
-      controller: controller,
-      style: const TextStyle(color: Colors.white, fontSize: 15),
-      cursorColor: AppColor.primary,
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
-        floatingLabelStyle: const TextStyle(color: AppColor.primary, fontSize: 14, fontWeight: FontWeight.w500),
-        filled: true,
-        fillColor: const Color(0xFF151821),
-        prefixIcon: Icon(icon, color: Colors.white.withOpacity(0.4), size: 20),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColor.primary, width: 1.5),
-        ),
-      ),
-    );
-  }
 
 
   @override

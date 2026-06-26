@@ -34,6 +34,7 @@ class _CustomUpdateLeadState extends State<CustomUpdateLead> {
   late TextEditingController _interestedServiceController;
   late TextEditingController _preferredContactMethodController;
   late TextEditingController _followUpDateController;
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -77,15 +78,10 @@ class _CustomUpdateLeadState extends State<CustomUpdateLead> {
   }
 
   void _updateLead() {
+    if (!_formKey.currentState!.validate()) return;
     if (widget.lead.id == null) return;
 
     final name = _nameController.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Name is required'), backgroundColor: Colors.red),
-      );
-      return;
-    }
 
     final metadata = {
       if (_companyNameController.text.isNotEmpty) 'companyName': _companyNameController.text.trim(),
@@ -168,50 +164,80 @@ class _CustomUpdateLeadState extends State<CustomUpdateLead> {
 
       content: SizedBox(
         width: isDesktop ? 450 : double.infinity,
-        child: SingleChildScrollView(
-          child: Column(
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text("Name"),
               const SizedBox(height: 6),
-              CustomTextfield(controller: _nameController, hintText: "Name"),
+              CustomTextfield(
+                controller: _nameController, 
+                hintText: "Name",
+                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+              ),
 
               const SizedBox(height: 15),
 
               const Text("Email"),
               const SizedBox(height: 6),
-              CustomTextfield(controller: _emailController, hintText: "Email"),
+              CustomTextfield(
+                controller: _emailController, 
+                hintText: "Email",
+                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+              ),
 
               const SizedBox(height: 15),
 
               const Text("Phone"),
               const SizedBox(height: 6),
-              CustomTextfield(controller: _phoneController, hintText: "Phone"),
+              CustomTextfield(
+                controller: _phoneController, 
+                hintText: "Phone",
+                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+              ),
 
               const SizedBox(height: 15),
 
               const Text("Source (e.g. REFERRAL)"),
               const SizedBox(height: 6),
-              CustomTextfield(controller: _sourceController, hintText: "Source"),
+              CustomTextfield(
+                controller: _sourceController, 
+                hintText: "Source",
+                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+              ),
 
               const SizedBox(height: 15),
 
               const Text("Address"),
               const SizedBox(height: 6),
-              CustomTextfield(controller: _addressController, hintText: "Address"),
+              CustomTextfield(
+                controller: _addressController, 
+                hintText: "Address",
+                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+              ),
 
               const SizedBox(height: 15),
 
               const Text("Note"),
               const SizedBox(height: 6),
-              CustomTextfield(controller: _noteController, hintText: "Note"),
+              CustomTextfield(
+                controller: _noteController, 
+                hintText: "Note",
+                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+              ),
 
               const SizedBox(height: 15),
               
               const Text("Status (e.g. WARM)"),
               const SizedBox(height: 6),
-              CustomTextfield(controller: _statusController, hintText: "Status"),
+              CustomTextfield(
+                controller: _statusController, 
+                hintText: "Status",
+                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+              ),
 
               const SizedBox(height: 25),
               Text("Metadata", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
@@ -252,6 +278,7 @@ class _CustomUpdateLeadState extends State<CustomUpdateLead> {
               CustomTextfield(controller: _followUpDateController, hintText: "YYYY-MM-DD"),
             ],
           ),
+        ),
         ),
       ),
 

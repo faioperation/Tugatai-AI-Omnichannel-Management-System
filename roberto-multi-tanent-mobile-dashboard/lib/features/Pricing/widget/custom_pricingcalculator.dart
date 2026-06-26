@@ -22,6 +22,7 @@ class _CustomPricingcalculatorState extends State<CustomPricingcalculator> {
   PricingRuleMod? selectedRule;
   String selectedServiceType = "standard";
   Map<String, bool> extrasCheckboxes = {};
+  final _formKey = GlobalKey<FormState>();
   
   bool isLoading = false;
   Map<String, dynamic>? calculationResult;
@@ -81,6 +82,10 @@ class _CustomPricingcalculatorState extends State<CustomPricingcalculator> {
   }
 
   void _calculatePrice() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    
     if (selectedRule == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select a pricing rule first"), backgroundColor: Colors.red),
@@ -328,125 +333,54 @@ class _CustomPricingcalculatorState extends State<CustomPricingcalculator> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.dividerTheme.color ?? const Color(0xffEEEEEE)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Price Calculator",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w400,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            "Calculate final price based on current rules",
-            style: TextStyle(
-              fontSize: 15,
-              color: theme.textTheme.bodyMedium?.color,
-            ),
-          ),
-          const SizedBox(height: 26),
-
-          if (activeRules.isEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Center(
-                child: Text(
-                  "No active pricing rules found. Please add a pricing rule first to use the calculator.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: theme.hintColor, fontSize: 14),
-                ),
-              ),
-            ),
-          ] else ...[
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Text(
-              "Pricing Rule (Category)",
+              "Price Calculator",
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
                 color: theme.colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 6),
-            DropdownButtonFormField<PricingRuleMod>(
-              value: selectedRule,
-              isExpanded: true,
-              dropdownColor: theme.cardTheme.color,
-              decoration: InputDecoration(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: theme.dividerTheme.color ?? theme.dividerColor),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: theme.dividerTheme.color ?? theme.dividerColor),
-                ),
-              ),
-              items: activeRules
-                  .map((r) => DropdownMenuItem(value: r, child: Text(r.name, style: TextStyle(color: theme.colorScheme.onSurface))))
-                  .toList(),
-              onChanged: (newRule) {
-                if (newRule != null) {
-                  setState(() {
-                    selectedRule = newRule;
-                    _updateRuleFields(newRule);
-                  });
-                }
-              },
-            ),
-
-            const SizedBox(height: 15),
-
             Text(
-              "Weight (kg)",
+              "Calculate final price based on current rules",
               style: TextStyle(
-                fontSize: 14,
-                color: theme.colorScheme.onSurface,
+                fontSize: 15,
+                color: theme.textTheme.bodyMedium?.color,
               ),
             ),
-            const SizedBox(height: 6),
-            CustomTextfield(
-              controller: weightController,
-              hintText: "0.00",
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            ),
+            const SizedBox(height: 26),
 
-            const SizedBox(height: 15),
-
-            Text(
-              "Distance (km)",
-              style: TextStyle(
-                fontSize: 14,
-                color: theme.colorScheme.onSurface,
+            if (activeRules.isEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text(
+                    "No active pricing rules found. Please add a pricing rule first to use the calculator.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: theme.hintColor, fontSize: 14),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            CustomTextfield(
-              controller: distanceController,
-              hintText: "10.00",
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            ),
-
-            // Dynamic Service Type Dropdown
-            if (selectedRule != null &&
-                selectedRule!.rawConfiguration != null &&
-                selectedRule!.rawConfiguration!['serviceTypes'] is Map &&
-                (selectedRule!.rawConfiguration!['serviceTypes'] as Map).isNotEmpty) ...[
-              const SizedBox(height: 15),
+            ] else ...[
               Text(
-                "Service Type",
+                "Pricing Rule (Category)",
                 style: TextStyle(
                   fontSize: 14,
                   color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 6),
-              DropdownButtonFormField<String>(
-                value: selectedServiceType,
+              DropdownButtonFormField<PricingRuleMod>(
+                value: selectedRule,
                 isExpanded: true,
                 dropdownColor: theme.cardTheme.color,
+                validator: (v) => v == null ? 'Please select a rule' : null,
                 decoration: InputDecoration(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   border: OutlineInputBorder(
@@ -458,127 +392,214 @@ class _CustomPricingcalculatorState extends State<CustomPricingcalculator> {
                     borderSide: BorderSide(color: theme.dividerTheme.color ?? theme.dividerColor),
                   ),
                 ),
-                items: (selectedRule!.rawConfiguration!['serviceTypes'] as Map)
-                    .keys
-                    .map((k) => DropdownMenuItem(value: k.toString(), child: Text(k.toString().toUpperCase(), style: TextStyle(color: theme.colorScheme.onSurface))))
+                items: activeRules
+                    .map((r) => DropdownMenuItem(value: r, child: Text(r.name, style: TextStyle(color: theme.colorScheme.onSurface))))
                     .toList(),
-                onChanged: (val) {
-                  if (val != null) {
+                onChanged: (newRule) {
+                  if (newRule != null) {
                     setState(() {
-                      selectedServiceType = val;
+                      selectedRule = newRule;
+                      _updateRuleFields(newRule);
                     });
                   }
                 },
               ),
-            ],
 
-            // Dynamic Extras Checkboxes
-            if (extrasCheckboxes.isNotEmpty) ...[
               const SizedBox(height: 15),
+
               Text(
-                "Additional Extras",
+                "Weight (kg)",
                 style: TextStyle(
                   fontSize: 14,
                   color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 6),
-              Column(
-                children: extrasCheckboxes.keys.map((key) {
-                  return CheckboxListTile(
-                    title: Text(key[0].toUpperCase() + key.substring(1), style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface)),
-                    value: extrasCheckboxes[key],
-                    activeColor: AppColor.primary,
-                    onChanged: (val) {
-                      setState(() {
-                        extrasCheckboxes[key] = val ?? false;
-                      });
-                    },
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    controlAffinity: ListTileControlAffinity.leading,
-                  );
-                }).toList(),
+              CustomTextfield(
+                controller: weightController,
+                hintText: "0.00",
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'This field is required';
+                  if (double.tryParse(v) == null) return 'Enter a valid number';
+                  return null;
+                },
               ),
-            ],
 
-            const SizedBox(height: 15),
+              const SizedBox(height: 15),
 
-            Text(
-              "Quantity",
-              style: TextStyle(
-                fontSize: 14,
-                color: theme.colorScheme.onSurface,
+              Text(
+                "Distance (km)",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
-            ),
-
-            Container(
-              margin: const EdgeInsets.only(top: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              decoration: BoxDecoration(
-                border: Border.all(color: theme.dividerTheme.color ?? const Color(0xffEEEEEE)),
-                borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 6),
+              CustomTextfield(
+                controller: distanceController,
+                hintText: "10.00",
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'This field is required';
+                  if (double.tryParse(v) == null) return 'Enter a valid number';
+                  return null;
+                },
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: quantityController,
-                      keyboardType: TextInputType.number,
-                      style: TextStyle(color: theme.colorScheme.onSurface),
-                      textAlign: TextAlign.left,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                      ),
-                      onChanged: (val) {
-                        setState(() {});
-                      },
+
+              // Dynamic Service Type Dropdown
+              if (selectedRule != null &&
+                  selectedRule!.rawConfiguration != null &&
+                  selectedRule!.rawConfiguration!['serviceTypes'] is Map &&
+                  (selectedRule!.rawConfiguration!['serviceTypes'] as Map).isNotEmpty) ...[
+                const SizedBox(height: 15),
+                Text(
+                  "Service Type",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<String>(
+                  value: selectedServiceType,
+                  isExpanded: true,
+                  dropdownColor: theme.cardTheme.color,
+                  validator: (v) => v == null ? 'Required' : null,
+                  decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: theme.dividerTheme.color ?? theme.dividerColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: theme.dividerTheme.color ?? theme.dividerColor),
                     ),
                   ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      InkWell(
-                        onTap: increase,
-                        child: Icon(Icons.keyboard_arrow_up, size: 18, color: theme.colorScheme.onSurface),
-                      ),
-                      InkWell(
-                        onTap: decrease,
-                        child: Icon(Icons.keyboard_arrow_down, size: 18, color: theme.colorScheme.onSurface),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 25),
+                  items: (selectedRule!.rawConfiguration!['serviceTypes'] as Map)
+                      .keys
+                      .map((k) => DropdownMenuItem(value: k.toString(), child: Text(k.toString().toUpperCase(), style: TextStyle(color: theme.colorScheme.onSurface))))
+                      .toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        selectedServiceType = val;
+                      });
+                    }
+                  },
+                ),
+              ],
 
-            if (isLoading) ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Center(
-                  child: CircularProgressIndicator(color: AppColor.primary),
+              // Dynamic Extras Checkboxes
+              if (extrasCheckboxes.isNotEmpty) ...[
+                const SizedBox(height: 15),
+                Text(
+                  "Additional Extras",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Column(
+                  children: extrasCheckboxes.keys.map((key) {
+                    return CheckboxListTile(
+                      title: Text(key[0].toUpperCase() + key.substring(1), style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface)),
+                      value: extrasCheckboxes[key],
+                      activeColor: AppColor.primary,
+                      onChanged: (val) {
+                        setState(() {
+                          extrasCheckboxes[key] = val ?? false;
+                        });
+                      },
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      controlAffinity: ListTileControlAffinity.leading,
+                    );
+                  }).toList(),
+                ),
+              ],
+
+              const SizedBox(height: 15),
+
+              Text(
+                "Quantity",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
-            ] else if (calculationResult != null) ...[
-              _buildCalculationResultWidget(context, calculationResult!),
-            ] else if (errorMessage != null) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Text(
-                  errorMessage!,
-                  style: const TextStyle(color: Colors.red, fontSize: 13),
+
+              Container(
+                margin: const EdgeInsets.only(top: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  border: Border.all(color: theme.dividerTheme.color ?? const Color(0xffEEEEEE)),
+                  borderRadius: BorderRadius.circular(8),
                 ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: quantityController,
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: theme.colorScheme.onSurface),
+                        textAlign: TextAlign.left,
+                        validator: (v) => (v == null || int.tryParse(v) == null || int.parse(v) < 1) ? 'Invalid' : null,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                        ),
+                        onChanged: (val) {
+                          setState(() {});
+                        },
+                      ),
+                    ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        InkWell(
+                          onTap: increase,
+                          child: Icon(Icons.keyboard_arrow_up, size: 18, color: theme.colorScheme.onSurface),
+                        ),
+                        InkWell(
+                          onTap: decrease,
+                          child: Icon(Icons.keyboard_arrow_down, size: 18, color: theme.colorScheme.onSurface),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 25),
+
+              if (isLoading) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                    child: CircularProgressIndicator(color: AppColor.primary),
+                  ),
+                ),
+              ] else if (calculationResult != null) ...[
+                _buildCalculationResultWidget(context, calculationResult!),
+              ] else if (errorMessage != null) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Text(
+                    errorMessage!,
+                    style: const TextStyle(color: Colors.red, fontSize: 13),
+                  ),
+                ),
+              ],
+              
+              const SizedBox(height: 20),
+              CustomButton(
+                text: isLoading ? "Calculating..." : "\$ Calculate Price",
+                onTap: isLoading ? () {} : _calculatePrice,
               ),
             ],
-            
-            const SizedBox(height: 20),
-            CustomButton(
-              text: isLoading ? "Calculating..." : "\$ Calculate Price",
-              onTap: isLoading ? () {} : _calculatePrice,
-            ),
           ],
-        ],
+        ),
       ),
     );
   }

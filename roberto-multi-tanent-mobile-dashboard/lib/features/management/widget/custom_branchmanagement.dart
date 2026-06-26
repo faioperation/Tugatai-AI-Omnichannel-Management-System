@@ -118,7 +118,11 @@ class _CustomBranchmanagementState extends State<CustomBranchmanagement> {
           children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              color: isDark ? theme.colorScheme.surface : AppColor.secondary,
+              decoration: BoxDecoration(
+                color: isDark ? theme.colorScheme.surface : AppColor.secondary,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
+              ),
               child: const Row(
                 children: [
                   Expanded(flex: 1, child: CustomHeadder(label: 'Sr.')),

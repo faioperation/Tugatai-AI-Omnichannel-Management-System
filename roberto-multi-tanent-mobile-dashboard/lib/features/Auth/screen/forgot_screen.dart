@@ -19,6 +19,7 @@ class ForgotScreen extends StatefulWidget {
 
 class _ForgotScreenState extends State<ForgotScreen> {
   final TextEditingController _emailController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -46,10 +47,12 @@ class _ForgotScreenState extends State<ForgotScreen> {
         },
         builder: (context, state) {
           return CustomScreen(
-            child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
             Center(
               child: SvgPicture.asset(
                 'assets/logo.svg',
@@ -110,6 +113,7 @@ class _ForgotScreenState extends State<ForgotScreen> {
 
           ],
         ),
+      ),
       );
       },
       ),
@@ -117,13 +121,9 @@ class _ForgotScreenState extends State<ForgotScreen> {
   }
 
   void _handleSend() {
-    final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter your email"), backgroundColor: Colors.red),
-      );
-      return;
+    if (_formKey.currentState!.validate()) {
+      final email = _emailController.text.trim();
+      context.read<ForgotPasswordBloc>().add(ForgotPasswordRequested(email: email));
     }
-    context.read<ForgotPasswordBloc>().add(ForgotPasswordRequested(email: email));
   }
 }
