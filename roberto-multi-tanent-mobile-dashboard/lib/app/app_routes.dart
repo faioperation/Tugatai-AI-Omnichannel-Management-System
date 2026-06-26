@@ -17,7 +17,7 @@ class Routes {
   // Dashboard Routes
   static const String overview = '/overview';
   static const String inbox = '/inbox';
-  static const String orderBooking = '/order-booking';
+  static const String orderBooking = '/booking';
   static const String aiAgent = '/ai-agent';
   static const String pricing = '/pricing';
   static const String campaigns = '/campaigns';

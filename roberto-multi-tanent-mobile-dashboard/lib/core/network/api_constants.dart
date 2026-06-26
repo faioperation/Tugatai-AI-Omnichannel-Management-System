@@ -79,6 +79,12 @@ class ApiConstants {
   // Inbox & Conversations
   static const String allConversations = '$baseUrl/conversations/all-conversations';
   
+  // Google Calendar
+  static const String googleCalendarConnect = '$baseUrl/v1/google/calendar/connect';
+  static const String googleCalendarStatus = '$baseUrl/v1/google/calendar/status';
+  static const String googleCalendarDisconnect = '$baseUrl/v1/google/calendar/disconnect';
+  static const String googleCalendarEvents = '$baseUrl/v1/google/calendar/events';
+  
   static const String messengerConversations = '$baseUrl/v1/messenger/conversations';
   static const String messengerMessages = '$baseUrl/v1/messenger/messages'; // + /:conversationId
   static const String messengerSendText = '$baseUrl/v1/messenger/messages/send';

@@ -111,4 +111,123 @@ class BookingRepository {
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>> connectGoogleCalendar(String branchId) async {
+    try {
+      final url = '${ApiConstants.googleCalendarConnect}?branchId=$branchId';
+      final response = await _networkClient.getRequest(url);
+
+      if (response.isSuccess) {
+        return response.responseData is Map<String, dynamic>
+            ? response.responseData as Map<String, dynamic>
+            : {'success': true, 'data': response.responseData};
+      } else {
+        return {
+          'success': false,
+          'message': response.errorMassage ?? 'Failed to get Google Calendar connection URL',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> disconnectGoogleCalendar(String branchId) async {
+    try {
+      final response = await _networkClient.postRequest(
+        ApiConstants.googleCalendarDisconnect,
+        body: {'branchId': branchId},
+      );
+
+      if (response.isSuccess) {
+        return response.responseData is Map<String, dynamic>
+            ? response.responseData as Map<String, dynamic>
+            : {'success': true, 'data': response.responseData};
+      } else {
+        return {
+          'success': false,
+          'message': response.errorMassage ?? 'Failed to disconnect Google Calendar',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> getGoogleCalendarStatus(String branchId) async {
+    try {
+      final url = '${ApiConstants.googleCalendarStatus}?branchId=$branchId';
+      final response = await _networkClient.getRequest(url);
+
+      if (response.isSuccess) {
+        return response.responseData is Map<String, dynamic>
+            ? response.responseData as Map<String, dynamic>
+            : {'success': true, 'data': response.responseData};
+      } else {
+        return {
+          'success': false,
+          'message': response.errorMassage ?? 'Failed to get Google Calendar status',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> getGoogleCalendarEvents(String branchId) async {
+    try {
+      final url = '${ApiConstants.googleCalendarEvents}?branchId=$branchId';
+      final response = await _networkClient.getRequest(url);
+
+      if (response.isSuccess) {
+        return response.responseData is Map<String, dynamic>
+            ? response.responseData as Map<String, dynamic>
+            : {'success': true, 'data': response.responseData};
+      } else {
+        return {
+          'success': false,
+          'message': response.errorMassage ?? 'Failed to get Google Calendar events',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> createGoogleCalendarEvent(Map<String, dynamic> payload) async {
+    try {
+      final response = await _networkClient.postRequest(
+        ApiConstants.googleCalendarEvents,
+        body: payload,
+      );
+
+      if (response.isSuccess) {
+        return response.responseData is Map<String, dynamic>
+            ? response.responseData as Map<String, dynamic>
+            : {'success': true, 'data': response.responseData};
+      } else {
+        return {
+          'success': false,
+          'message': response.errorMassage ?? 'Failed to create Google Calendar event',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
+    }
+  }
 }
