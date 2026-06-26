@@ -121,10 +121,16 @@ class RoleReports extends StatelessWidget {
     final List<String> branchLabels = [];
     final List<BarChartGroupData> branchBars = [];
     if (businessData != null && businessData!.branchPerformance.isNotEmpty) {
+      double totalAllBranches = 0;
+      for (var branch in businessData!.branchPerformance) {
+        totalAllBranches += branch.totalSales;
+      }
+      
       for (int i = 0; i < businessData!.branchPerformance.length; i++) {
         final branch = businessData!.branchPerformance[i];
+        double percentage = totalAllBranches > 0 ? (branch.totalSales / totalAllBranches) * 100 : 0;
         branchLabels.add(branch.branchName);
-        branchBars.add(BarChartGroupData(x: i, barRods: [BarChartRodData(toY: branch.totalSales, color: AppColor.primary, width: 16)]));
+        branchBars.add(BarChartGroupData(x: i, barRods: [BarChartRodData(toY: percentage, color: AppColor.primary, width: 16)]));
       }
     } else {
       branchLabels.add('No Data');
@@ -155,6 +161,7 @@ class RoleReports extends StatelessWidget {
                 title: "Branch Performance",
                 labels: branchLabels,
                 barGroups: branchBars,
+                isPercentage: true,
               ),
             ),
           ],

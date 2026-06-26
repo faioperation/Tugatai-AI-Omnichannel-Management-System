@@ -28,6 +28,8 @@ class _CustomAddbranchState extends State<CustomAddbranch> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   String? _selectedManagerId;
+  final _formKey = GlobalKey<FormState>();
+  String? _managerError;
 
   @override
   void initState() {
@@ -68,16 +70,18 @@ class _CustomAddbranchState extends State<CustomAddbranch> {
           color: theme.cardTheme.color,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              _buildHeader(context, isMobile),
-              const SizedBox(height: 24),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                _buildHeader(context, isMobile),
+                const SizedBox(height: 24),
 
-              // Form Fields
+                // Form Fields
               _buildFieldLabel(context, "Branch Name"),
               CustomTextfield(
                 hintText: "Main Branch",
@@ -116,6 +120,7 @@ class _CustomAddbranchState extends State<CustomAddbranch> {
               _buildActions(context, isMobile),
             ],
           ),
+        ),
         ),
       ),
     );
@@ -173,7 +178,7 @@ class _CustomAddbranchState extends State<CustomAddbranch> {
           // If we had no selection, we can pre-select if desired.
         }
 
-        return Container(
+        Widget dropdown = Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
@@ -207,6 +212,20 @@ class _CustomAddbranchState extends State<CustomAddbranch> {
             ),
           ),
         );
+        
+        if (_managerError != null) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              dropdown,
+              Padding(
+                padding: const EdgeInsets.only(top: 8, left: 16),
+                child: Text(_managerError!, style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w500)),
+              ),
+            ],
+          );
+        }
+        return dropdown;
       },
     );
   }
@@ -255,21 +274,19 @@ class _CustomAddbranchState extends State<CustomAddbranch> {
         elevation: 0,
       ),
       onPressed: () {
+        setState(() {
+          _managerError = _selectedManagerId == null || _selectedManagerId!.isEmpty ? 'Please select a branch manager' : null;
+        });
+        
+        if (!_formKey.currentState!.validate() || _managerError != null) {
+          return;
+        }
+
         final name = _nameController.text.trim();
         final email = _emailController.text.trim();
         final phone = _phoneController.text.trim();
         final address = _addressController.text.trim();
-        final managerId = _selectedManagerId ?? '';
-
-        if (name.isEmpty || email.isEmpty || phone.isEmpty || address.isEmpty || managerId.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("All fields are required. Please select a manager."),
-              backgroundColor: Colors.red,
-            ),
-          );
-          return;
-        }
+        final managerId = _selectedManagerId!;
 
         if (widget.isEdit && widget.branch != null) {
           context.read<ManagementBloc>().add(UpdateBranchRequested(

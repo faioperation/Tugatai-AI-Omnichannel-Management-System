@@ -20,6 +20,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -35,7 +36,8 @@ class _LoginScreenState extends State<LoginScreen> {
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
-            final role = state.user.primaryRole;
+            final user = state.user;
+            final role = user.primaryRole;
             String routePath = '';
             if (role == UserRole.systemOwner) {
               routePath = '/system-owner';
@@ -45,12 +47,22 @@ class _LoginScreenState extends State<LoginScreen> {
               routePath = '/branch-manager';
             }
 
+            Map<String, String>? branchArg;
+            if (user.branchId != null) {
+              branchArg = {
+                'id': user.branchId!,
+                'name': user.branchName ?? 'Branch',
+                'address': user.branchAddress ?? '',
+              };
+            }
+
             if (routePath.isNotEmpty) {
               Navigator.pushReplacementNamed(
                 context,
                 '$routePath${Routes.overview}',
                 arguments: {
                   'role': role,
+                  if (branchArg != null) 'assignedBranch': branchArg,
                 },
               );
             } else {
@@ -72,129 +84,139 @@ class _LoginScreenState extends State<LoginScreen> {
         },
         builder: (context, state) {
           return CustomScreen(
-            child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(
-              child: SvgPicture.asset(
-                'assets/logo.svg',
-                height: 80,
+            child: Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+              width: double.infinity,
+              constraints: const BoxConstraints(maxWidth: 500),
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardTheme.color,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Theme.of(context).dividerTheme.color!),
               ),
-            ),
-            const SizedBox(height: 20),
-            Center(
-              child: Text(
-                "Dashboard Login",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w400,
-                  color: Theme.of(context).colorScheme.onSurface,
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: SvgPicture.asset(
+                        'assets/logo.svg',
+                        height: 80,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: Text(
+                        "Dashboard Login",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w400,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Center(
+                      child: Text(
+                        "Secure access to Matrix Ai platform",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "Email Address",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    CustomTextfield(
+                      hintText: "owner@platform.com",
+                      controller: _emailController,
+                      textInputAction: TextInputAction.next,
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "Password",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    CustomTextfield(
+                      hintText: "*********",
+                      isPassword: true,
+                      controller: _passwordController,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _handleLogin(),
+                    ),
+
+                    const SizedBox(height: 15),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pushNamed(context, Routes.forgotPassword);
+                      },
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          "Forgot Password?",
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+                    state is AuthLoading 
+                        ? const Center(child: CircularProgressIndicator())
+                        : CustomButton(
+                            text: "Login",
+                            onTap: _handleLogin,
+                          ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 5),
-            Center(
-              child: Text(
-                "Secure access to Matrix Ai platform",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
-                ),
-              ),
             ),
-            const SizedBox(height: 20),
-
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "Email Address",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            CustomTextfield(
-              hintText: "owner@platform.com",
-              controller: _emailController,
-              textInputAction: TextInputAction.next,
-            ),
-
-            const SizedBox(height: 20),
-
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "Password",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            CustomTextfield(
-              hintText: "*********",
-              isPassword: true,
-              controller: _passwordController,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _handleLogin(),
-            ),
-
-            const SizedBox(height: 15),
-            GestureDetector(
-              onTap: () {
-                Navigator.pushNamed(context, Routes.forgotPassword);
-              },
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  "Forgot Password?",
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-            state is AuthLoading 
-                ? const Center(child: CircularProgressIndicator())
-                : CustomButton(
-                    text: "Login",
-                    onTap: _handleLogin,
-                  ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      );
-      },
+          );
+        },
       ),
     );
   }
 
   void _handleLogin() {
-    String email = _emailController.text.trim();
-    String password = _passwordController.text.trim();
+    if (_formKey.currentState!.validate()) {
+      String email = _emailController.text.trim();
+      String password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter email and password"),
-          backgroundColor: Colors.red,
-        ),
+      context.read<AuthBloc>().add(
+        LoginRequested(email: email, password: password),
       );
-      return;
     }
-
-    context.read<AuthBloc>().add(LoginRequested(email: email, password: password));
   }
 }

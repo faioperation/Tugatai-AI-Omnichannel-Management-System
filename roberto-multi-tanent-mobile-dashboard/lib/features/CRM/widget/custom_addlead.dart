@@ -8,7 +8,8 @@ import 'package:roberto/common/user_role.dart';
 
 class CustomAddlead extends StatefulWidget {
   final UserRole role;
-  const CustomAddlead({super.key, this.role = UserRole.businessOwner});
+  final String? branchId;
+  const CustomAddlead({super.key, this.role = UserRole.businessOwner, this.branchId});
 
   @override
   State<CustomAddlead> createState() => _CustomAddleadState();
@@ -20,8 +21,7 @@ class _CustomAddleadState extends State<CustomAddlead> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _sourceController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
-
-  final String _testBranchId = '5feaac7b-c436-4ecb-8a12-9632e4090205';
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -34,16 +34,19 @@ class _CustomAddleadState extends State<CustomAddlead> {
   }
 
   void _createLead() {
-    final name = _nameController.text.trim();
-    if (name.isEmpty) {
+    if (!_formKey.currentState!.validate()) return;
+    
+    if (widget.branchId == null || widget.branchId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Name is required'), backgroundColor: Colors.red),
+        const SnackBar(content: Text('Please select a branch first'), backgroundColor: Colors.red),
       );
       return;
     }
 
+    final name = _nameController.text.trim();
+
     context.read<CrmBloc>().add(CreateLead(
-      branchId: _testBranchId,
+      branchId: widget.branchId!,
       name: name,
       email: _emailController.text.trim(),
       phone: _phoneController.text.trim(),
@@ -110,8 +113,10 @@ class _CustomAddleadState extends State<CustomAddlead> {
 
       content: SizedBox(
         width: isDesktop ? 450 : double.infinity,
-        child: SingleChildScrollView(
-          child: Column(
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -120,6 +125,7 @@ class _CustomAddleadState extends State<CustomAddlead> {
               CustomTextfield(
                 controller: _nameController,
                 hintText: "Enter name",
+                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
               ),
 
               const SizedBox(height: 15),
@@ -129,6 +135,7 @@ class _CustomAddleadState extends State<CustomAddlead> {
               CustomTextfield(
                 controller: _emailController,
                 hintText: "email@example.com",
+                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
               ),
 
               const SizedBox(height: 15),
@@ -138,6 +145,7 @@ class _CustomAddleadState extends State<CustomAddlead> {
               CustomTextfield(
                 controller: _phoneController,
                 hintText: "+1 234 567 8900",
+                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
               ),
 
               const SizedBox(height: 15),
@@ -147,6 +155,7 @@ class _CustomAddleadState extends State<CustomAddlead> {
               CustomTextfield(
                 controller: _sourceController,
                 hintText: "Facebook",
+                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
               ),
 
               const SizedBox(height: 15),
@@ -156,11 +165,13 @@ class _CustomAddleadState extends State<CustomAddlead> {
               CustomTextfield(
                 controller: _noteController,
                 hintText: "Add notes...",
+                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
               ),
 
               const SizedBox(height: 15),
             ],
           ),
+        ),
         ),
       ),
 

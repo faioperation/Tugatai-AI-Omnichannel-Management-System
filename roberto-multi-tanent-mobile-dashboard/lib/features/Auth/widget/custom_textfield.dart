@@ -14,6 +14,7 @@ class CustomTextfield extends StatefulWidget {
   final TextInputAction? textInputAction;
   final Function(String)? onSubmitted;
   final Widget? suffixIcon;
+  final String? Function(String?)? validator;
 
   const CustomTextfield({
     super.key,
@@ -25,9 +26,10 @@ class CustomTextfield extends StatefulWidget {
     this.maxLines = 1,
     this.minLines,
     this.keyboardType,
-    this.textInputAction,
+    this.textInputAction = TextInputAction.next,
     this.onSubmitted,
     this.suffixIcon,
+    this.validator,
   });
 
   @override
@@ -54,14 +56,20 @@ class _CustomTextfieldState extends State<CustomTextfield> {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return TextFormField(
       controller: _controller,
       obscureText: widget.isPassword ? _obscureText : false,
       maxLines: widget.isPassword ? 1 : widget.maxLines,
       minLines: widget.minLines,
       keyboardType: widget.keyboardType,
       textInputAction: widget.textInputAction,
-      onSubmitted: widget.onSubmitted,
+      onFieldSubmitted: widget.onSubmitted,
+      validator: widget.validator ?? (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'This field is required';
+        }
+        return null;
+      },
       style: TextStyle(
         color: widget.textColor ?? Theme.of(context).textTheme.bodyLarge?.color,
         fontSize: 15,
@@ -75,6 +83,11 @@ class _CustomTextfieldState extends State<CustomTextfield> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         filled: true,
         fillColor: Theme.of(context).cardTheme.color,
+        errorStyle: const TextStyle(
+          color: Colors.redAccent,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Theme.of(context).dividerTheme.color!),
@@ -86,6 +99,14 @@ class _CustomTextfieldState extends State<CustomTextfield> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColor.primary,),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 2.0),
         ),
         suffixIcon: widget.isPassword
             ? IconButton(

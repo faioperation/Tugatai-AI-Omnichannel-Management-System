@@ -28,6 +28,7 @@ class CreateCampaignForm extends StatefulWidget {
 class _CreateCampaignFormState extends State<CreateCampaignForm> {
   final _titleController = TextEditingController();
   final _messageController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   String? _selectedAudience;
   String? _selectedBranch;
   DateTime? _scheduledTime;
@@ -90,9 +91,11 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             Row(
@@ -116,6 +119,7 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
             TextFormField(
               controller: _titleController,
               readOnly: widget.isReadOnly,
+              validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
               decoration: _inputDecoration("Please enter the title of campaign"),
             ),
             const SizedBox(height: 20),
@@ -124,6 +128,7 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
               value: _selectedBranch,
               items: widget.branches.map((b) => DropdownMenuItem(value: b.id, child: Text(b.name))).toList(),
               onChanged: widget.isReadOnly ? null : (v) => setState(() => _selectedBranch = v),
+              validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
               decoration: _inputDecoration("Select Branch"),
             ),
             const SizedBox(height: 20),
@@ -132,6 +137,7 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
               value: _selectedAudience,
               items: ["Cold", "Warm", "Hot", "Booked", "Completed"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
               onChanged: widget.isReadOnly ? null : (v) => setState(() => _selectedAudience = v),
+              validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
               decoration: _inputDecoration("Select the customer labels"),
             ),
             const SizedBox(height: 20),
@@ -140,6 +146,7 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
               controller: _messageController,
               readOnly: widget.isReadOnly,
               maxLines: 3,
+              validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
               decoration: _inputDecoration("Please enter the campaign message"),
             ),
             const SizedBox(height: 20),
@@ -149,6 +156,7 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
               controller: TextEditingController(
                 text: _scheduledTime != null ? DateFormat('dd/MM/yyyy, HH:mm').format(_scheduledTime!) : '',
               ),
+              validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
               decoration: _inputDecoration("dd/mm/yyyy, --:--").copyWith(
                 suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
               ),
@@ -161,6 +169,7 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
               controller: TextEditingController(
                 text: _endDate != null ? DateFormat('dd/MM/yyyy, HH:mm').format(_endDate!) : '',
               ),
+              validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
               decoration: _inputDecoration("dd/mm/yyyy, --:--").copyWith(
                 suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
               ),
@@ -186,6 +195,8 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
+                        if (!_formKey.currentState!.validate()) return;
+                        
                         if (_selectedBranch == null) {
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a branch')));
                           return;
@@ -212,6 +223,7 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
               ),
           ],
         ),
+      ),
       ),
     );
   }

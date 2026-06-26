@@ -43,6 +43,7 @@ class _CustomAddruleState extends State<CustomAddrule> {
   final TextEditingController fragileChargeController = TextEditingController();
   final TextEditingController insuranceChargeController = TextEditingController();
   final TextEditingController customsChargeController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController handlingChargeController = TextEditingController();
 
   // Tax
@@ -170,12 +171,14 @@ class _CustomAddruleState extends State<CustomAddrule> {
       content: SizedBox(
         width: isDesktop ? 550 : double.infinity,
         height: MediaQuery.of(context).size.height * 0.7,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionTitle("Basic Info"),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionTitle("Basic Info"),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -375,6 +378,7 @@ class _CustomAddruleState extends State<CustomAddrule> {
             ],
           ),
         ),
+        ),
       ),
       actionsPadding: EdgeInsets.symmetric(
         horizontal: isDesktop ? 24 : 12,
@@ -513,6 +517,10 @@ class _CustomAddruleState extends State<CustomAddrule> {
           elevation: 0,
         ),
         onPressed: () {
+          if (!_formKey.currentState!.validate()) {
+            return;
+          }
+
           if (widget.onSave != null) {
             final configMap = {
               "currency": selectedCurrency,

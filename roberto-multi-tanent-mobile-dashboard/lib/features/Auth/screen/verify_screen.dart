@@ -20,6 +20,7 @@ class VerifyScreen extends StatefulWidget {
 
 class _VerifyScreenState extends State<VerifyScreen> {
   final TextEditingController _otpController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -43,10 +44,12 @@ class _VerifyScreenState extends State<VerifyScreen> {
         },
         builder: (context, state) {
           return CustomScreen(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
             Center(
               child: SvgPicture.asset(
                 'assets/logo.svg',
@@ -95,6 +98,12 @@ class _VerifyScreenState extends State<VerifyScreen> {
                 controller: _otpController,
                 appContext: context,
                 onCompleted: (_) => _handleVerify(),
+                validator: (v) {
+                  if (v == null || v.length < 6) {
+                    return "Please enter a 6-digit OTP";
+                  }
+                  return null;
+                },
             ),
 
             const SizedBox(height: 25),
@@ -129,6 +138,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
             ),
           ],
         ),
+      ),
       );
       },
       ),
@@ -136,13 +146,9 @@ class _VerifyScreenState extends State<VerifyScreen> {
   }
 
   void _handleVerify() {
-    final otp = _otpController.text.trim();
-    if (otp.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a valid OTP"), backgroundColor: Colors.red),
-      );
-      return;
+    if (_formKey.currentState!.validate()) {
+      final otp = _otpController.text.trim();
+      context.read<ForgotPasswordBloc>().add(VerifyOtpRequested(email: widget.email, otp: otp));
     }
-    context.read<ForgotPasswordBloc>().add(VerifyOtpRequested(email: widget.email, otp: otp));
   }
 }

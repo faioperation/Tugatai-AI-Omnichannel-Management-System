@@ -227,9 +227,13 @@ class _CustomCrmState extends State<CustomCrm> {
                             horizontal: 20,
                             vertical: 14,
                           ),
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? theme.colorScheme.surface
-                              : theme.colorScheme.secondary,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? theme.colorScheme.surface
+                                : theme.colorScheme.secondary,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
+                          ),
                           child: Row(
                             children: const [
                               Expanded(

@@ -26,12 +26,12 @@ class CustomAdduser extends StatefulWidget {
 }
 
 class _CustomAdduserState extends State<CustomAdduser> {
-  bool _obscurePassword = true;
-  String _selectedStatus = "Active";
-
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _obscurePassword = true;
+  String _selectedStatus = "Active";
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -76,16 +76,18 @@ class _CustomAdduserState extends State<CustomAdduser> {
           color: theme.cardTheme.color,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              _buildHeader(context, isMobile),
-              const SizedBox(height: 24),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                _buildHeader(context, isMobile),
+                const SizedBox(height: 24),
 
-              // Form Fields
+                // Form Fields
               _buildFieldLabel(context, "User Name"),
               CustomTextfield(
                 hintText: "Enter Full Name",
@@ -108,13 +110,13 @@ class _CustomAdduserState extends State<CustomAdduser> {
               // const SizedBox(height: 16),
 
               _buildFieldLabel(context, "Password"),
-              TextField(
+              TextFormField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
                 style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface),
                 decoration: InputDecoration(
                   hintText: "••••••••",
-                  hintStyle: TextStyle(fontSize: 14, color: theme.textTheme.bodySmall?.color),
+                  hintStyle: TextStyle(fontSize: 14, color: theme.textTheme.bodySmall?.color?.withOpacity(0.5)),
                   filled: true,
                   fillColor: theme.brightness == Brightness.dark ? theme.colorScheme.surface : const Color(0xffF9FAFB),
                   border: OutlineInputBorder(
@@ -134,6 +136,12 @@ class _CustomAdduserState extends State<CustomAdduser> {
                     onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                   ),
                 ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'This field is required';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
@@ -145,6 +153,7 @@ class _CustomAdduserState extends State<CustomAdduser> {
               _buildActions(context, isMobile),
             ],
           ),
+        ),
         ),
       ),
     );
@@ -260,6 +269,10 @@ class _CustomAdduserState extends State<CustomAdduser> {
         elevation: 0,
       ),
       onPressed: () {
+        if (!_formKey.currentState!.validate()) {
+          return;
+        }
+        
         if (!widget.isEdit) {
           context.read<ManagementBloc>().add(CreateBranchManagerRequested(
             name: _nameController.text,

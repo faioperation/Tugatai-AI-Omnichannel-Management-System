@@ -20,6 +20,7 @@ class ResetScreen extends StatefulWidget {
 class _ResetScreenState extends State<ResetScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -44,10 +45,12 @@ class _ResetScreenState extends State<ResetScreen> {
         },
         builder: (context, state) {
           return CustomScreen(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
             Center(
               child: SvgPicture.asset(
                 'assets/logo.svg',
@@ -117,6 +120,11 @@ class _ResetScreenState extends State<ResetScreen> {
               isPassword: true,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _handleReset(),
+              validator: (val) {
+                if (val == null || val.isEmpty) return 'This field is required';
+                if (val != _passwordController.text) return 'Passwords do not match';
+                return null;
+              },
             ),
 
             const SizedBox(height: 25),
@@ -131,6 +139,7 @@ class _ResetScreenState extends State<ResetScreen> {
 
           ],
         ),
+      ),
       );
       },
       ),
@@ -138,22 +147,9 @@ class _ResetScreenState extends State<ResetScreen> {
   }
 
   void _handleReset() {
-    final pass = _passwordController.text;
-    final confirm = _confirmPasswordController.text;
-
-    if (pass.isEmpty || confirm.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill both fields"), backgroundColor: Colors.red),
-      );
-      return;
+    if (_formKey.currentState!.validate()) {
+      final pass = _passwordController.text;
+      context.read<ForgotPasswordBloc>().add(ResetPasswordRequested(newPassword: pass));
     }
-    if (pass != confirm) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Passwords do not match"), backgroundColor: Colors.red),
-      );
-      return;
-    }
-
-    context.read<ForgotPasswordBloc>().add(ResetPasswordRequested(newPassword: pass));
   }
 }
