@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class SystemOwnerSubscriptionModel {
   final List<PlanModel> plans;
   final double mrr;
@@ -102,6 +104,7 @@ class BillingHistoryModel {
   final double amount;
   final String status;
   final String invoiceUrl;
+  final DateTime? renewalDate;
 
   BillingHistoryModel({
     required this.id,
@@ -111,9 +114,29 @@ class BillingHistoryModel {
     required this.amount,
     required this.status,
     required this.invoiceUrl,
+    this.renewalDate,
   });
 
   factory BillingHistoryModel.fromJson(Map<String, dynamic> json) {
+    DateTime? renewalDate;
+    
+    if (json['renewalDate'] != null) {
+      renewalDate = DateTime.tryParse(json['renewalDate'].toString());
+    } else if (json['business'] != null) {
+      if (json['business'] is Map) {
+        if (json['business']['renewalDate'] != null) {
+          renewalDate = DateTime.tryParse(json['business']['renewalDate'].toString());
+        }
+      } else if (json['business'] is String) {
+        try {
+          final bizMap = jsonDecode(json['business']);
+          if (bizMap['renewalDate'] != null) {
+            renewalDate = DateTime.tryParse(bizMap['renewalDate'].toString());
+          }
+        } catch (_) {}
+      }
+    }
+
     return BillingHistoryModel(
       id: json['id'] ?? '',
       date: json['date'] != null ? DateTime.tryParse(json['date']) : null,
@@ -122,6 +145,7 @@ class BillingHistoryModel {
       amount: (json['amount'] ?? 0).toDouble(),
       status: json['status'] ?? '',
       invoiceUrl: json['invoiceUrl'] ?? '',
+      renewalDate: renewalDate,
     );
   }
 }

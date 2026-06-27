@@ -48,8 +48,10 @@ class TenantBusiness {
   final String? industry;
   final String? status;
   final String? planCycle;
+  final String? planId;
   final int? credits;
   final String? businessType;
+  final String? description;
   final String? createdAt;
   final TenantOwner? owner;
   final List<TenantBranch> branches;
@@ -63,8 +65,10 @@ class TenantBusiness {
     this.industry,
     this.status,
     this.planCycle,
+    this.planId,
     this.credits,
     this.businessType,
+    this.description,
     this.createdAt,
     this.owner,
     required this.branches,
@@ -74,14 +78,16 @@ class TenantBusiness {
     return TenantBusiness(
       id: json['id'] ?? '',
       ownerId: json['ownerId'],
-      name: json['name'] ?? 'Unknown',
+      name: json['name'] ?? 'Unknown Business',
       email: json['email'],
       phone: json['phone'],
       industry: json['industry'],
       status: json['status'],
       planCycle: json['planCycle'],
+      planId: json['planId'],
       credits: json['credits'],
       businessType: json['businessType'],
+      description: json['description'],
       createdAt: json['createdAt'],
       owner: json['owner'] != null ? TenantOwner.fromJson(json['owner']) : null,
       branches: (json['branches'] as List<dynamic>?)

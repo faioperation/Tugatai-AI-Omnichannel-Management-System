@@ -25,6 +25,16 @@ class CreateTenantRequested extends TenantEvent {
   List<Object?> get props => [payload];
 }
 
+class UpdateTenantRequested extends TenantEvent {
+  final String businessId;
+  final Map<String, dynamic> payload;
+
+  const UpdateTenantRequested({required this.businessId, required this.payload});
+
+  @override
+  List<Object?> get props => [businessId, payload];
+}
+
 class DeleteTenantRequested extends TenantEvent {
   final String businessId;
 

@@ -13,7 +13,7 @@ class CustomBilling extends StatelessWidget {
     if (url.isNotEmpty) {
       final uri = Uri.parse(url);
       if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
     }
   }
@@ -117,8 +117,9 @@ class CustomBilling extends StatelessWidget {
                 children: [
                   Expanded(flex: 2, child: _Header("Date")),
                   Expanded(flex: 3, child: _Header("Description")),
-                  Expanded(flex: 3, child: _Header("Client")),
+                  Expanded(flex: 2, child: _Header("Client")),
                   Expanded(flex: 2, child: _Header("Amount")),
+                  Expanded(flex: 2, child: _Header("Renewal")),
                   Expanded(flex: 2, child: _Header("Status")),
                   Expanded(flex: 1, child: _Header("Actions")),
                 ],
@@ -135,6 +136,7 @@ class CustomBilling extends StatelessWidget {
               Column(
                 children: items.map((item) {
                   final dateStr = item.date != null ? DateFormat('MMM d, yyyy').format(item.date!) : "N/A";
+                  final renewalStr = item.renewalDate != null ? DateFormat('MMM d, yyyy').format(item.renewalDate!) : "N/A";
                   return Container(
                     padding:
                         const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
@@ -147,19 +149,27 @@ class CustomBilling extends StatelessWidget {
                       children: [
                         Expanded(flex: 2, child: Text(dateStr)),
                         Expanded(flex: 3, child: Text(item.description)),
-                        Expanded(flex: 3, child: Text(item.client)),
+                        Expanded(flex: 2, child: Text(item.client)),
                         Expanded(flex: 2, child: Text("\$${item.amount.toStringAsFixed(2)}")),
+                        Expanded(flex: 2, child: Text(renewalStr)),
                         Expanded(
                           flex: 2,
                           child: _StatusBadge(status: item.status),
                         ),
                         Expanded(
                           flex: 1,
-                          child: IconButton(
-                            icon: const Icon(Icons.download, size: 18),
-                            onPressed: () => _downloadInvoice(item.invoiceUrl),
-                            padding: EdgeInsets.zero,
+                          child: Align(
                             alignment: Alignment.centerLeft,
+                            child: OutlinedButton.icon(
+                              onPressed: () => _downloadInvoice(item.invoiceUrl),
+                              icon: Icon(Icons.download, size: 14, color: Theme.of(context).colorScheme.onSurface),
+                              label: Text("Download", style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface)),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                side: BorderSide(color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -187,6 +197,7 @@ class CustomBilling extends StatelessWidget {
 
   Widget _buildMobileCard(BuildContext context, BillingHistoryModel item) {
     final dateStr = item.date != null ? DateFormat('MMM d, yyyy').format(item.date!) : "N/A";
+    final renewalStr = item.renewalDate != null ? DateFormat('MMM d, yyyy').format(item.renewalDate!) : "N/A";
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -218,6 +229,11 @@ class CustomBilling extends StatelessWidget {
             "Client: ${item.client}",
             style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodySmall?.color),
           ),
+          const SizedBox(height: 4),
+          Text(
+            "Renewal: $renewalStr",
+            style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodySmall?.color),
+          ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -230,9 +246,15 @@ class CustomBilling extends StatelessWidget {
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
-              IconButton(
+              OutlinedButton.icon(
                 onPressed: () => _downloadInvoice(item.invoiceUrl),
-                icon: const Icon(Icons.download, size: 20),
+                icon: Icon(Icons.download, size: 16, color: Theme.of(context).colorScheme.onSurface),
+                label: Text("Download", style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  side: BorderSide(color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                ),
               ),
             ],
           ),
@@ -275,21 +297,26 @@ class _StatusBadge extends StatelessWidget {
     final paidText = isDark ? const Color(0xffD1FAE5) : const Color(0xff065F46);
     final unpaidText = isDark ? const Color(0xffFEE2E2) : const Color(0xff991B1B);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: isPaid ? paidBg : unpaidBg,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        status,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: isPaid ? paidText : unpaidText,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: isPaid ? paidBg : unpaidBg,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            status,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isPaid ? paidText : unpaidText,
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 }

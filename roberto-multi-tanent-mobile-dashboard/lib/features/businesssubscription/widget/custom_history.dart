@@ -170,7 +170,12 @@ class _CustomHistoryState extends State<CustomHistory> {
                 horizontal: 20,
                 vertical: 14,
               ),
-              color: isDark ? theme.colorScheme.surface : AppColor.secondary,
+              decoration: BoxDecoration(
+                color: isDark ? theme.colorScheme.surface : AppColor.secondary,
+                border: Border(
+                  bottom: BorderSide(color: theme.dividerTheme.color ?? const Color(0xffEEEEEE)),
+                ),
+              ),
               child: const Row(
                 children: [
                   Expanded(flex: 2, child: CustomHeadder(label: 'Billing Date')),

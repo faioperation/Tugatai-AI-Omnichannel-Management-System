@@ -42,6 +42,23 @@ class TenantRepository {
     }
   }
 
+  Future<void> updateTenant(String businessId, Map<String, dynamic> payload) async {
+    final response = await networkClient.patchRequest(
+      '${ApiConstants.systemOwnerBusinessSingle}/$businessId',
+      body: payload,
+    );
+
+    if (response.isSuccess && response.responseData != null) {
+      if (response.responseData['success'] == true) {
+        return; // Success
+      } else {
+        throw Exception(response.responseData['message'] ?? 'Failed to update tenant.');
+      }
+    } else {
+      throw Exception(response.errorMassage ?? 'Network error occurred.');
+    }
+  }
+
   Future<void> deleteTenant(String businessId) async {
     final response = await networkClient.deleteRequest('${ApiConstants.systemOwnerBusinessSingle}/$businessId');
 
