@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/Tenant%20Management%20/widget/custom_stat_card.dart';
-import 'package:roberto/features/Tenant%20Management%20/widget/Custom_Addtenant.dart';
+import 'package:roberto/features/Tenant%20Management%20/widget/custom_addtenant.dart';
 import 'package:roberto/features/Tenant%20Management%20/widget/custom_headder.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -160,6 +160,7 @@ class _TenantScreenState extends State<TenantScreen> {
                 child: Row(
                   children: [
                     Expanded(
+                      flex: 2,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -180,6 +181,29 @@ class _TenantScreenState extends State<TenantScreen> {
                         ],
                       ),
                     ),
+                    Expanded(
+                      flex: 1,
+                      child: TextField(
+                        onChanged: _onSearch,
+                        decoration: InputDecoration(
+                          hintText: 'Search businesses...',
+                          prefixIcon: const Icon(Icons.search),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.1)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: theme.primaryColor.withOpacity(0.5)),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.1)),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -188,8 +212,12 @@ class _TenantScreenState extends State<TenantScreen> {
               if (isDesktop)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 12),
-                  color: theme.brightness == Brightness.dark ? theme.colorScheme.surface : AppColor.secondary,
+                      horizontal: 20, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: theme.brightness == Brightness.dark ? theme.colorScheme.surface : AppColor.secondary,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
+                  ),
                   child: const Row(
                     children: [
                       Expanded(
@@ -203,30 +231,14 @@ class _TenantScreenState extends State<TenantScreen> {
                       Expanded(flex: 2, child: CustomHeadder(label: 'Plan', textAlign: TextAlign.center)),
                       Expanded(flex: 2, child: CustomHeadder(label: 'Status', textAlign: TextAlign.center)),
                       Expanded(
-                          flex: 2,
+                          flex: 1,
                           child: CustomHeadder(label: 'Plan Price', textAlign: TextAlign.center)),
                       Expanded(
-                          flex: 1,
+                          flex: 2,
                           child: CustomHeadder(label: 'Actions', textAlign: TextAlign.center)),
                     ],
                   ),
                 ),
-
-              // Search bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: TextField(
-                  onChanged: _onSearch,
-                  decoration: InputDecoration(
-                    hintText: 'Search businesses...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                  ),
-                ),
-              ),
 
               // Rows
               BlocBuilder<TenantBloc, TenantState>(
@@ -341,7 +353,7 @@ class _TenantScreenState extends State<TenantScreen> {
             child: Center(child: _buildStatusLabel(tenant.status ?? 'Unknown')),
           ),
           Expanded(
-            flex: 2,
+            flex: 1,
             child: Text(
               '\$0', // Dynamic pricing missing in API
               textAlign: TextAlign.center,
@@ -354,11 +366,13 @@ class _TenantScreenState extends State<TenantScreen> {
           ),
 
           Expanded(
-            flex: 1,
+            flex: 2,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(6),
                   icon: Icon(Icons.smart_toy_outlined, color: AppColor.primary, size: 20),
                   onPressed: () {
                     if (widget.onNavigateToAiAgent != null) {
@@ -367,8 +381,22 @@ class _TenantScreenState extends State<TenantScreen> {
                   },
                 ),
                 IconButton(
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(6),
                   icon: Icon(Icons.remove_red_eye, color: theme.textTheme.bodySmall?.color, size: 20),
                   onPressed: () => _showClientDetailsDialog(tenant),
+                ),
+                IconButton(
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(6),
+                  icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                  onPressed: () => _showEditTenantDialog(tenant),
+                ),
+                IconButton(
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(6),
+                  icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                  onPressed: () => _showDeleteTenantDialog(tenant),
                 ),
               ],
             ),
@@ -471,6 +499,8 @@ class _TenantScreenState extends State<TenantScreen> {
               Row(
                 children: [
                   IconButton(
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(6),
                     icon: const Icon(Icons.smart_toy_outlined, color: AppColor.primary, size: 20),
                     onPressed: () {
                       if (widget.onNavigateToAiAgent != null) {
@@ -479,8 +509,22 @@ class _TenantScreenState extends State<TenantScreen> {
                     },
                   ),
                   IconButton(
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(6),
                     icon: Icon(Icons.visibility, color: theme.textTheme.bodySmall?.color, size: 20),
                     onPressed: () => _showClientDetailsDialog(tenant),
+                  ),
+                  IconButton(
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(6),
+                    icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                    onPressed: () => _showEditTenantDialog(tenant),
+                  ),
+                  IconButton(
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(6),
+                    icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                    onPressed: () => _showDeleteTenantDialog(tenant),
                   ),
                 ],
               ),
@@ -693,4 +737,36 @@ class _TenantScreenState extends State<TenantScreen> {
       },
     );
   }
+
+  void _showDeleteTenantDialog(TenantBusiness tenant) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Tenant'),
+        content: Text('Are you sure you want to delete ${tenant.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              context.read<TenantBloc>().add(DeleteTenantRequested(businessId: tenant.id));
+              Navigator.pop(context);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditTenantDialog(TenantBusiness tenant) {
+    showDialog(
+      context: context,
+      builder: (context) => CustomAddtenant(tenant: tenant),
+    );
+  }
 }
+

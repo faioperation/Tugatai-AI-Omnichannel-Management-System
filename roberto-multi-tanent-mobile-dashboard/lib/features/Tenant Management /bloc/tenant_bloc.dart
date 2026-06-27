@@ -10,6 +10,7 @@ class TenantBloc extends Bloc<TenantEvent, TenantState> {
   TenantBloc({required this.tenantRepository}) : super(TenantInitial()) {
     on<FetchTenantsRequested>(_onFetchTenantsRequested);
     on<CreateTenantRequested>(_onCreateTenantRequested);
+    on<UpdateTenantRequested>(_onUpdateTenantRequested);
     on<DeleteTenantRequested>(_onDeleteTenantRequested);
   }
 
@@ -35,6 +36,21 @@ class TenantBloc extends Bloc<TenantEvent, TenantState> {
     try {
       await tenantRepository.createTenant(event.payload);
       emit(const TenantActionSuccess(message: 'Business created successfully'));
+      add(FetchTenantsRequested(searchParam: currentSearchParam)); // Refresh list
+    } catch (e) {
+      emit(TenantError(message: e.toString().replaceAll('Exception: ', '')));
+      add(FetchTenantsRequested(searchParam: currentSearchParam)); // Refresh list
+    }
+  }
+
+  Future<void> _onUpdateTenantRequested(
+    UpdateTenantRequested event,
+    Emitter<TenantState> emit,
+  ) async {
+    emit(TenantActionLoading());
+    try {
+      await tenantRepository.updateTenant(event.businessId, event.payload);
+      emit(const TenantActionSuccess(message: 'Business updated successfully'));
       add(FetchTenantsRequested(searchParam: currentSearchParam)); // Refresh list
     } catch (e) {
       emit(TenantError(message: e.toString().replaceAll('Exception: ', '')));

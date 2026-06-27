@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:roberto/app/app_color.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SubscriptionRow extends StatelessWidget {
   final String date;
@@ -237,9 +238,13 @@ class SubscriptionRow extends StatelessWidget {
   Widget _buildDownloadButton(BuildContext context) {
     final theme = Theme.of(context);
     return InkWell(
-      onTap: () {
-        // TODO: Open URL to download invoice
-        print("Download Invoice: $invoiceUrl");
+      onTap: () async {
+        if (invoiceUrl != null && invoiceUrl!.isNotEmpty) {
+          final uri = Uri.parse(invoiceUrl!);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        }
       },
       borderRadius: BorderRadius.circular(6),
       child: Container(

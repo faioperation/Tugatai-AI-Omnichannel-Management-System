@@ -8,9 +8,11 @@ import 'package:roberto/features/Tenant Management /bloc/tenant_event.dart';
 import 'package:roberto/features/Subscription/bloc/subscription_bloc.dart';
 import 'package:roberto/features/Subscription/bloc/subscription_state.dart';
 import 'package:roberto/features/Subscription/bloc/subscription_event.dart';
+import 'package:roberto/features/Tenant Management /data/models/tenant_model.dart';
 
 class CustomAddtenant extends StatefulWidget {
-  const CustomAddtenant({super.key});
+  final TenantBusiness? tenant;
+  const CustomAddtenant({super.key, this.tenant});
 
   @override
   State<CustomAddtenant> createState() => _CustomAddtenantState();
@@ -18,6 +20,9 @@ class CustomAddtenant extends StatefulWidget {
 
 class _CustomAddtenantState extends State<CustomAddtenant> {
   int selectedTab = 0;
+  final _formKey0 = GlobalKey<FormState>();
+  final _formKey1 = GlobalKey<FormState>();
+  final _formKey2 = GlobalKey<FormState>();
   
   // Form controllers
   final _businessNameCtrl = TextEditingController();
@@ -26,10 +31,10 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _industryCtrl = TextEditingController();
 
   // Dropdown states
-  String selectedBusinessType = "RETAIL"; // Matches backend enum or generic
-  String selectedIndustry = "CARGO";
+  String selectedBusinessType = "Order Booking";
   String selectedPlanId = "";
   String selectedBillingCycle = "MONTHLY";
 
@@ -38,6 +43,31 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
     super.initState();
     // Ensure plans are loaded
     context.read<SubscriptionBloc>().add(FetchSubscriptionsRequested());
+
+    if (widget.tenant != null) {
+      final t = widget.tenant!;
+      _businessNameCtrl.text = t.name;
+      _descriptionCtrl.text = t.description ?? '';
+      _ownerNameCtrl.text = t.owner != null ? '${t.owner!.firstName ?? ''} ${t.owner!.lastName ?? ''}'.trim() : '';
+      _emailCtrl.text = t.email ?? '';
+      _phoneCtrl.text = t.phone ?? '';
+      
+      if (t.businessType != null && t.businessType!.isNotEmpty) {
+        String bt = t.businessType!;
+        if (bt == 'ORDER_BOOKING') selectedBusinessType = 'Order Booking';
+        else if (bt == 'APPOINTMENT_BOOKING') selectedBusinessType = 'Appointment Booking';
+        else if (bt == 'PARCEL_DELIVERY') selectedBusinessType = 'Parcel Delivery';
+        else selectedBusinessType = bt;
+      }
+      _industryCtrl.text = t.industry ?? '';
+      
+      if (t.planId != null && t.planId!.isNotEmpty) {
+        selectedPlanId = t.planId!;
+      }
+      if (t.planCycle != null && t.planCycle!.isNotEmpty) {
+        selectedBillingCycle = t.planCycle!;
+      }
+    }
   }
 
   @override
@@ -48,6 +78,7 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
     _passwordCtrl.dispose();
+    _industryCtrl.dispose();
     super.dispose();
   }
 
@@ -58,10 +89,19 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
   }
 
   void _submit() {
+    if (!_formKey2.currentState!.validate()) {
+      return;
+    }
+    
+    String apiBusinessType = selectedBusinessType;
+    if (selectedBusinessType == 'Order Booking') apiBusinessType = 'ORDER_BOOKING';
+    else if (selectedBusinessType == 'Appointment Booking') apiBusinessType = 'APPOINTMENT_BOOKING';
+    else if (selectedBusinessType == 'Parcel Delivery') apiBusinessType = 'PARCEL_DELIVERY';
+
     final payload = {
       "businessName": _businessNameCtrl.text,
-      "businessType": selectedBusinessType,
-      "industry": selectedIndustry,
+      "businessType": apiBusinessType,
+      "industry": _industryCtrl.text,
       "description": _descriptionCtrl.text,
       "ownerName": _ownerNameCtrl.text,
       "ownerEmail": _emailCtrl.text,
@@ -69,10 +109,13 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
       "ownerPhone": _phoneCtrl.text,
       "planId": selectedPlanId.isNotEmpty ? selectedPlanId : "some-default-plan-id",
       "planCycle": selectedBillingCycle,
-      "credits": 0,
     };
 
-    context.read<TenantBloc>().add(CreateTenantRequested(payload: payload));
+    if (widget.tenant != null) {
+      context.read<TenantBloc>().add(UpdateTenantRequested(businessId: widget.tenant!.id, payload: payload));
+    } else {
+      context.read<TenantBloc>().add(CreateTenantRequested(payload: payload));
+    }
     Navigator.pop(context); // Close modal, user can see success message via state if implemented.
   }
 
@@ -95,9 +138,9 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  "Onboard New Client",
-                  style: TextStyle(
+                Text(
+                  widget.tenant != null ? "Edit Client" : "Onboard New Client",
+                  style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
                   ),
@@ -137,9 +180,14 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
             const SizedBox(height: 20),
 
             // Form content
-            if (selectedTab == 0) _businessInfo(),
-            if (selectedTab == 1) _ownerDetails(),
-            if (selectedTab == 2) _planSettings(),
+            IndexedStack(
+              index: selectedTab,
+              children: [
+                _businessInfo(),
+                _ownerDetails(),
+                _planSettings(),
+              ],
+            ),
 
             const SizedBox(height: 20),
 
@@ -148,21 +196,47 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    "Cancel",
-                    style: TextStyle(fontSize: 13),
+                  onPressed: selectedTab > 0 
+                      ? () => setState(() => selectedTab--) 
+                      : () => Navigator.pop(context),
+                  child: Text(
+                    selectedTab > 0 ? "Back" : "Cancel",
+                    style: const TextStyle(fontSize: 13),
                   ),
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton(
+                  onPressed: () {
+                    bool isValid = false;
+                    if (selectedTab == 0) {
+                      isValid = _formKey0.currentState!.validate();
+                    } else if (selectedTab == 1) {
+                      isValid = _formKey1.currentState!.validate();
+                    } else if (selectedTab == 2) {
+                      isValid = _formKey2.currentState!.validate();
+                    }
+                    
+                    if (!isValid) return;
+
+                    if (selectedTab < 2) {
+                      setState(() => selectedTab++);
+                    } else {
+                      _submit();
+                    }
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.primary,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  onPressed: _submit,
-                  child: const Text(
-                    "Create Account",
-                    style: TextStyle(color: AppColor.white, fontSize: 13),
+                  child: Text(
+                    selectedTab < 2 
+                        ? 'Next' 
+                        : (widget.tenant != null ? 'Update Client' : 'Create Client'),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -178,7 +252,20 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
 
     return Expanded(
       child: GestureDetector(
-        onTap: () => changeTab(index),
+        onTap: () {
+          // Validate the current tab before switching
+          bool isValid = true;
+          if (selectedTab == 0) {
+             isValid = _formKey0.currentState!.validate();
+          } else if (selectedTab == 1) {
+             isValid = _formKey1.currentState!.validate();
+          } else if (selectedTab == 2) {
+             isValid = _formKey2.currentState!.validate();
+          }
+          if (!isValid) return;
+
+          changeTab(index);
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
@@ -201,11 +288,17 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
   }
 
   Widget _businessInfo() {
-    return Column(
-      children: [
+    return Form(
+      key: _formKey0,
+      child: Column(
+        children: [
         _inputLabel("Business Name"),
         const SizedBox(height: 5),
-        CustomMinitextfield(hint: "Enter business name", controller: _businessNameCtrl),
+        CustomMinitextfield(
+          hint: "Enter business name", 
+          controller: _businessNameCtrl,
+          validator: (val) => val == null || val.isEmpty ? "Business name is required" : null,
+        ),
 
         const SizedBox(height: 12),
 
@@ -213,20 +306,19 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
         const SizedBox(height: 5),
         CustomMiniDropdown(
           value: selectedBusinessType,
-          items: const ["RETAIL", "SERVICE", "MANUFACTURING", "PARCEL_DELIVERY", "OTHER"],
+          items: const ["Order Booking", "Appointment Booking", "Parcel Delivery"],
           hint: "Select type",
-          onChanged: (val) => setState(() => selectedBusinessType = val ?? "RETAIL"),
+          onChanged: (val) => setState(() => selectedBusinessType = val ?? "Order Booking"),
         ),
 
         const SizedBox(height: 12),
 
         _inputLabel("Industry"),
         const SizedBox(height: 5),
-        CustomMiniDropdown(
-          value: selectedIndustry,
-          items: const ["CARGO", "ECOMMERCE", "FOOD_DELIVERY", "OTHER"],
-          hint: "Select industry",
-          onChanged: (val) => setState(() => selectedIndustry = val ?? "CARGO"),
+        CustomMinitextfield(
+          hint: "Enter industry", 
+          controller: _industryCtrl,
+          validator: (val) => val == null || val.isEmpty ? "Industry is required" : null,
         ),
 
         const SizedBox(height: 12),
@@ -239,34 +331,69 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
           controller: _descriptionCtrl,
         ),
       ],
+    ),
     );
   }
 
   Widget _ownerDetails() {
-    return Column(
-      children: [
+    return Form(
+      key: _formKey1,
+      child: Column(
+        children: [
         _inputLabel("Owner Name"),
         const SizedBox(height: 5),
-        CustomMinitextfield(hint: "Enter owner name", controller: _ownerNameCtrl),
+        CustomMinitextfield(
+          hint: "Enter owner name", 
+          controller: _ownerNameCtrl,
+          validator: (val) => val == null || val.isEmpty ? "Owner name is required" : null,
+        ),
 
         const SizedBox(height: 12),
 
         _inputLabel("Email"),
         const SizedBox(height: 5),
-        CustomMinitextfield(hint: "Enter email", controller: _emailCtrl),
+        CustomMinitextfield(
+          hint: "Enter email", 
+          controller: _emailCtrl,
+          keyboardType: TextInputType.emailAddress,
+          validator: (val) {
+            if (val == null || val.isEmpty) return "Email is required";
+            if (!val.contains('@')) return "Enter a valid email";
+            return null;
+          },
+        ),
 
         const SizedBox(height: 12),
 
         _inputLabel("Phone"),
         const SizedBox(height: 5),
-        CustomMinitextfield(hint: "Enter phone (+880...)", controller: _phoneCtrl),
+        CustomMinitextfield(
+          hint: "Enter phone (+880...)", 
+          controller: _phoneCtrl,
+          keyboardType: TextInputType.phone,
+          validator: (val) => val == null || val.isEmpty ? "Phone is required" : null,
+        ),
 
         const SizedBox(height: 12),
 
-        _inputLabel("Initial Password"),
+        _inputLabel(widget.tenant != null ? "New Password (optional)" : "Initial Password"),
         const SizedBox(height: 5),
-        CustomMinitextfield(hint: "Create password", controller: _passwordCtrl, obscureText: true),
+        CustomMinitextfield(
+          hint: widget.tenant != null ? "Enter new password" : "Create password", 
+          controller: _passwordCtrl, 
+          obscureText: true,
+          validator: (val) {
+            if (widget.tenant == null && (val == null || val.isEmpty)) {
+              return "Password is required";
+            }
+            if (val != null && val.isNotEmpty && val.length < 6) {
+              return "Password must be at least 6 characters";
+            }
+            return null;
+          },
+        ),
       ],
+    ),
     );
   }
 
@@ -304,8 +431,10 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
            }
         }
 
-        return Column(
-          children: [
+        return Form(
+          key: _formKey2,
+          child: Column(
+            children: [
             _inputLabel("Subscription Plan"),
             const SizedBox(height: 5),
             CustomMiniDropdown(
@@ -330,6 +459,7 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
               onChanged: (val) => setState(() => selectedBillingCycle = val ?? "MONTHLY"),
             ),
           ],
+        ),
         );
       },
     );

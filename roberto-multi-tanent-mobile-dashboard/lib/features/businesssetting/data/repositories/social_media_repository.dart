@@ -92,27 +92,16 @@ class SocialMediaRepository {
     return response.isSuccess && (response.responseData?['success'] == true);
   }
 
-  Future<bool> connectWhatsApp({
-    required String branchId,
-    required String wabaId,
-    required String phoneNumberId,
-    required String phoneNumber,
-    required String accessToken,
-  }) async {
-    final response = await networkClient.postRequest(
-      ApiConstants.whatsappConnect,
-      body: {
-        'branchId': branchId,
-        'wabaId': wabaId,
-        'phoneNumberId': phoneNumberId,
-        'phoneNumber': phoneNumber,
-        'accessToken': accessToken,
-      },
+  Future<String?> getWhatsAppAuthUrl(String branchId) async {
+    final response = await networkClient.getRequest(
+      '${ApiConstants.whatsappAuth}?branchId=$branchId',
     );
     if (response.isSuccess && response.responseData != null) {
-      return response.responseData['success'] == true;
+      if (response.responseData['success'] == true && response.responseData['data'] != null) {
+        return response.responseData['data']['url'];
+      }
     }
-    return false;
+    return null;
   }
 
   Future<Map<String, dynamic>> getWhatsAppStatus(String branchId) async {

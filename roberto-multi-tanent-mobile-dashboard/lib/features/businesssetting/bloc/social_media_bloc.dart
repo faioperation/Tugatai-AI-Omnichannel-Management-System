@@ -12,7 +12,7 @@ class SocialMediaBloc extends Bloc<SocialMediaEvent, SocialMediaState> {
     on<DisconnectFacebook>(_onDisconnectFacebook);
     on<ConnectInstagram>(_onConnectInstagram);
     on<DisconnectInstagram>(_onDisconnectInstagram);
-    on<ConnectWhatsAppEvent>(_onConnectWhatsApp);
+    on<ConnectWhatsApp>(_onConnectWhatsApp);
     on<DisconnectWhatsApp>(_onDisconnectWhatsApp);
   }
 
@@ -95,21 +95,16 @@ class SocialMediaBloc extends Bloc<SocialMediaEvent, SocialMediaState> {
     }
   }
 
-  Future<void> _onConnectWhatsApp(ConnectWhatsAppEvent event, Emitter<SocialMediaState> emit) async {
-    emit(state.copyWith(isLoading: true, clearError: true));
+  Future<void> _onConnectWhatsApp(ConnectWhatsApp event, Emitter<SocialMediaState> emit) async {
+    emit(state.copyWith(isLoading: true, clearError: true, clearRedirectUrl: true));
     try {
-      final success = await repository.connectWhatsApp(
-        branchId: event.branchId,
-        wabaId: event.wabaId,
-        phoneNumberId: event.phoneNumberId,
-        phoneNumber: event.phoneNumber,
-        accessToken: event.accessToken,
-      );
-
-      if (success) {
-        add(CheckSocialMediaStatus(event.branchId));
+      final url = await repository.getWhatsAppAuthUrl(event.branchId);
+      if (url != null) {
+        // Quick fix: Meta no longer supports response_type=token for this specific Embedded Signup flow, it requires code.
+        final fixedUrl = url.replaceAll('response_type=token', 'response_type=code');
+        emit(state.copyWith(isLoading: false, redirectUrl: fixedUrl));
       } else {
-        emit(state.copyWith(isLoading: false, error: 'Failed to connect WhatsApp.'));
+        emit(state.copyWith(isLoading: false, error: 'Failed to generate WhatsApp Auth URL.'));
       }
     } catch (e) {
       emit(state.copyWith(isLoading: false, error: e.toString()));

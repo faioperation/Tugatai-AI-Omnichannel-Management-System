@@ -49,23 +49,12 @@ class DisconnectInstagram extends SocialMediaEvent {
   List<Object> get props => [connectionId, branchId];
 }
 
-class ConnectWhatsAppEvent extends SocialMediaEvent {
+class ConnectWhatsApp extends SocialMediaEvent {
   final String branchId;
-  final String wabaId;
-  final String phoneNumberId;
-  final String phoneNumber;
-  final String accessToken;
-
-  const ConnectWhatsAppEvent({
-    required this.branchId,
-    required this.wabaId,
-    required this.phoneNumberId,
-    required this.phoneNumber,
-    required this.accessToken,
-  });
+  const ConnectWhatsApp(this.branchId);
 
   @override
-  List<Object> get props => [branchId, wabaId, phoneNumberId, phoneNumber, accessToken];
+  List<Object> get props => [branchId];
 }
 
 class DisconnectWhatsApp extends SocialMediaEvent {
