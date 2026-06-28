@@ -94,16 +94,17 @@ class _WhatsAppCampaignsScreenState extends State<WhatsAppCampaignsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 600;
+              
+              final titleCol = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     "WhatsApp campaigns",
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: isMobile ? 24 : 28,
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
@@ -117,8 +118,9 @@ class _WhatsAppCampaignsScreenState extends State<WhatsAppCampaignsScreen> {
                     ),
                   ),
                 ],
-              ),
-              ElevatedButton.icon(
+              );
+              
+              final createBtn = ElevatedButton.icon(
                 onPressed: () => _showCampaignDialog(),
                 icon: const Icon(Icons.add, color: Colors.white),
                 label: const Text("Create Campaign", style: TextStyle(color: Colors.white)),
@@ -127,8 +129,28 @@ class _WhatsAppCampaignsScreenState extends State<WhatsAppCampaignsScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-              ),
-            ],
+              );
+
+              if (isMobile) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    titleCol,
+                    const SizedBox(height: 16),
+                    SizedBox(width: double.infinity, child: createBtn),
+                  ],
+                );
+              }
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(child: titleCol),
+                  const SizedBox(width: 16),
+                  createBtn,
+                ],
+              );
+            },
           ),
           const SizedBox(height: 32),
           BlocConsumer<CampaignBloc, CampaignState>(

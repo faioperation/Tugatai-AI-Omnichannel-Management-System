@@ -18,15 +18,16 @@ class RoleReports extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (role) {
       case UserRole.systemOwner:
-        return _buildSystemOwnerReports();
+        return _buildSystemOwnerReports(context);
       case UserRole.businessOwner:
-        return _buildBusinessOwnerReports();
+        return _buildBusinessOwnerReports(context);
       case UserRole.branchManager:
-        return _buildBranchManagerReports();
+        return _buildBranchManagerReports(context);
     }
   }
 
-  Widget _buildSystemOwnerReports() {
+  Widget _buildSystemOwnerReports(BuildContext context) {
+    bool isDesktop = MediaQuery.of(context).size.width > 900;
     // Build dynamic sections for Business Distribution
     final List<PieChartSectionData> businessSections = overviewData?.businessDistribution.map((e) {
       // Assign random or pre-defined colors based on category index, for simplicity we map directly or use a generated color list
@@ -62,31 +63,50 @@ class RoleReports extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(
-              child: OrderDistributionPieChart(
+        if (isDesktop)
+          Row(
+            children: [
+              Expanded(
+                child: OrderDistributionPieChart(
+                  title: "Business Distribution",
+                  sections: businessSections,
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: PerformanceBarChart(
+                  title: "Top Performing Sectors",
+                  labels: sectorLabels.isNotEmpty ? sectorLabels : ['No Data'],
+                  barGroups: sectorBars.isNotEmpty ? sectorBars : [
+                    BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 16)])
+                  ],
+                ),
+              ),
+            ],
+          )
+        else
+          Column(
+            children: [
+              OrderDistributionPieChart(
                 title: "Business Distribution",
                 sections: businessSections,
               ),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              child: PerformanceBarChart(
+              const SizedBox(height: 24),
+              PerformanceBarChart(
                 title: "Top Performing Sectors",
                 labels: sectorLabels.isNotEmpty ? sectorLabels : ['No Data'],
                 barGroups: sectorBars.isNotEmpty ? sectorBars : [
                   BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 16)])
                 ],
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
       ],
     );
   }
 
-  Widget _buildBusinessOwnerReports() {
+  Widget _buildBusinessOwnerReports(BuildContext context) {
+    bool isDesktop = MediaQuery.of(context).size.width > 900;
     final List<FlSpot> weeklySpots = [];
     if (businessData != null && businessData!.weeklySales.isNotEmpty) {
       for (int i = 0; i < businessData!.weeklySales.length; i++) {
@@ -145,32 +165,47 @@ class RoleReports extends StatelessWidget {
           spots: weeklySpots,
         ),
         const SizedBox(height: 24),
-        // const AiPerformanceSection(),
-        // const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(
-              child: OrderDistributionPieChart(
+        if (isDesktop)
+          Row(
+            children: [
+              Expanded(
+                child: OrderDistributionPieChart(
+                  title: "Order Sources",
+                  sections: orderSources,
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: PerformanceBarChart(
+                  title: "Branch Performance",
+                  labels: branchLabels,
+                  barGroups: branchBars,
+                  isPercentage: true,
+                ),
+              ),
+            ],
+          )
+        else
+          Column(
+            children: [
+              OrderDistributionPieChart(
                 title: "Order Sources",
                 sections: orderSources,
               ),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              child: PerformanceBarChart(
+              const SizedBox(height: 24),
+              PerformanceBarChart(
                 title: "Branch Performance",
                 labels: branchLabels,
                 barGroups: branchBars,
                 isPercentage: true,
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
       ],
     );
   }
 
-  Widget _buildBranchManagerReports() {
+  Widget _buildBranchManagerReports(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

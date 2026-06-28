@@ -402,55 +402,103 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
         final int totalAgents = businessAgents.length;
         final int rulesFilesCount = businessAgents.where((a) => a.rulesFile != null && a.rulesFile!.isNotEmpty).length;
 
+        final bool isWide = MediaQuery.of(context).size.width > 600;
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Stats Row
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatMiniCard(
+            if (isWide)
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatMiniCard(
+                      theme: theme,
+                      title: 'Total Voice Agents',
+                      value: '$totalAgents',
+                      icon: Icons.record_voice_over_outlined,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildStatMiniCard(
+                      theme: theme,
+                      title: 'Rules Configured',
+                      value: '$rulesFilesCount',
+                      icon: Icons.picture_as_pdf_outlined,
+                    ),
+                  ),
+                ],
+              )
+            else
+              Column(
+                children: [
+                  _buildStatMiniCard(
                     theme: theme,
                     title: 'Total Voice Agents',
                     value: '$totalAgents',
                     icon: Icons.record_voice_over_outlined,
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildStatMiniCard(
+                  const SizedBox(height: 16),
+                  _buildStatMiniCard(
                     theme: theme,
                     title: 'Rules Configured',
                     value: '$rulesFilesCount',
                     icon: Icons.picture_as_pdf_outlined,
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
             const SizedBox(height: 28),
 
             // Header for agent listing
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'AI Voice Assistants',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _showAddOrEditAgentDialog(context),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Deploy Voice Agent', style: TextStyle(fontWeight: FontWeight.w600)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    elevation: 0,
+            if (isWide)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'AI Voice Assistants',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
                   ),
-                ),
-              ],
-            ),
+                  ElevatedButton.icon(
+                    onPressed: () => _showAddOrEditAgentDialog(context),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Deploy Voice Agent', style: TextStyle(fontWeight: FontWeight.w600)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColor.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      elevation: 0,
+                    ),
+                  ),
+                ],
+              )
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AI Voice Assistants',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showAddOrEditAgentDialog(context),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Deploy Voice Agent', style: TextStyle(fontWeight: FontWeight.w600)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColor.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             const SizedBox(height: 16),
 
             businessAgents.isEmpty

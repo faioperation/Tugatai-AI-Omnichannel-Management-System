@@ -210,27 +210,33 @@ class CustomLeadRow extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                   SvgPicture.asset(
-                    socialIcon,
-                    width: 16,
-                    height: 16,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    socialText,
-                    style: TextStyle(fontSize: 12, color: theme.textTheme.bodySmall?.color),
-                  ),
-                  const SizedBox(width: 16),
-                  Icon(Icons.access_time, size: 14, color: theme.textTheme.bodySmall?.color),
-                  const SizedBox(width: 4),
-                  Text(
-                    time,
-                    style: TextStyle(fontSize: 12, color: theme.textTheme.bodySmall?.color),
-                  ),
-                ],
+              Expanded(
+                child: Row(
+                  children: [
+                     SvgPicture.asset(
+                      socialIcon,
+                      width: 16,
+                      height: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      socialText,
+                      style: TextStyle(fontSize: 12, color: theme.textTheme.bodySmall?.color),
+                    ),
+                    const SizedBox(width: 16),
+                    Icon(Icons.access_time, size: 14, color: theme.textTheme.bodySmall?.color),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        time,
+                        style: TextStyle(fontSize: 12, color: theme.textTheme.bodySmall?.color),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               IconButton(
                 onPressed: () => _showLeadDetails(context),
                 padding: EdgeInsets.zero,
