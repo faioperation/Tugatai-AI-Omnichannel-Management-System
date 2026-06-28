@@ -84,23 +84,12 @@ class _LoginScreenState extends State<LoginScreen> {
         },
         builder: (context, state) {
           return CustomScreen(
-            child: Center(
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-              width: double.infinity,
-              constraints: const BoxConstraints(maxWidth: 500),
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardTheme.color,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Theme.of(context).dividerTheme.color!),
-              ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
                     Center(
                       child: SvgPicture.asset(
                         'assets/logo.svg',
@@ -201,8 +190,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
               ),
-            ),
-            ),
           );
         },
       ),

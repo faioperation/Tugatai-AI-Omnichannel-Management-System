@@ -400,8 +400,10 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
 
     final isAppointmentBooking = bType != null && bType.toUpperCase().replaceAll(' ', '_') == 'APPOINTMENT_BOOKING';
 
-    final actionRow = Row(
-      mainAxisSize: MainAxisSize.min,
+    final actionRow = Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         // Toggle
         Container(
@@ -423,7 +425,6 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
             ],
           ),
         ),
-        const SizedBox(width: 10),
         if (isAppointmentBooking && selectedIndex == 1) ...[
           if (_isLoadingCalendarStatus)
             const Padding(
@@ -473,14 +474,12 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
             IconButton(
               onPressed: _disconnectGoogleCalendar,
               icon: const Icon(Icons.link_off, color: Colors.red),
               tooltip: 'Disconnect Google Calendar',
             ),
           ],
-          const SizedBox(width: 10),
         ],
         if (isAppointmentBooking && selectedIndex == 1 && _isGoogleCalendarConnected) ...[
           ElevatedButton.icon(
@@ -516,7 +515,6 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
           ),
-          const SizedBox(width: 8),
         ],
         // New Booking button
         ElevatedButton.icon(
@@ -557,7 +555,10 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
-      children: [titleCol, actionRow],
+      children: [
+        titleCol, 
+        Expanded(child: Align(alignment: Alignment.centerRight, child: actionRow)),
+      ],
     );
   }
 

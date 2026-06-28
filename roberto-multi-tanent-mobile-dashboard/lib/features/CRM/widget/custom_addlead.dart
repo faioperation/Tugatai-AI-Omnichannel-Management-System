@@ -69,6 +69,7 @@ class _CustomAddleadState extends State<CustomAddlead> {
     return AlertDialog(
       backgroundColor: Theme.of(context).cardTheme.color,
       surfaceTintColor: Colors.transparent,
+      insetPadding: EdgeInsets.symmetric(horizontal: isDesktop ? 40 : 16, vertical: 24),
 
       contentPadding: EdgeInsets.symmetric(
         horizontal: isDesktop ? 24 : 16,

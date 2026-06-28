@@ -500,11 +500,11 @@ class _DashboardShellState extends State<DashboardShell> {
                       label: displayLabel,
                       isActive: _activeItem == label,
                       onTap: () {
-                        _selectItem(label);
-                        // Close drawer on mobile after selection
+                        // Close drawer on mobile before selection to avoid popping the new route
                         if (MediaQuery.of(context).size.width <= 900) {
-                          Navigator.pop(context);
+                          _scaffoldKey.currentState?.closeDrawer();
                         }
+                        _selectItem(label);
                       },
                     );
                   },

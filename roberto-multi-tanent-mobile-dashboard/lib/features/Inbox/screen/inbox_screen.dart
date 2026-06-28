@@ -341,27 +341,31 @@ class _InboxScreenState extends State<InboxScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              Text(
-                "Inbox",
-                style: TextStyle(
-                  fontSize: isMobile ? 22 : 28,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
+              if (!isMobile) ...[
+                Text(
+                  "Inbox",
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "Manage all your customer conversations in one place",
-                style: TextStyle(
-                  fontSize: isMobile ? 14 : 16,
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                const SizedBox(height: 8),
+                Text(
+                  "Manage all your customer conversations in one place",
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
+              ],
               
               // Chat UI Container
               Container(
-                height: isMobile ? 650 : MediaQuery.of(context).size.height > 600 ? MediaQuery.of(context).size.height - 220 : 600,
+                height: isMobile 
+                    ? MediaQuery.of(context).size.height - 170 
+                    : (MediaQuery.of(context).size.height > 600 ? MediaQuery.of(context).size.height - 220 : 600),
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(16),
