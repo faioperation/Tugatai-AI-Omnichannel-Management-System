@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/CRM/widget/custom_crm.dart';
 import 'package:roberto/features/CRM/widget/custom_addlead.dart';
-import 'package:roberto/features/Tenant%20Management%20/widget/custom_stat_card.dart';
+import 'package:roberto/features/TenantManagement%20/widget/custom_stat_card.dart';
 import 'package:roberto/common/user_role.dart';
 import 'package:roberto/features/CRM/bloc/crm_bloc.dart';
 import 'package:roberto/features/CRM/bloc/crm_state.dart';
