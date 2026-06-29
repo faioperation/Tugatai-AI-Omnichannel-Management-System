@@ -116,9 +116,9 @@ const Signup = () => {
                   label="Business Type"
                   placeholder="Select type"
                   options={[
-                    "ORDER_BOOKING",
-                    "APPOINTMENT_BOOKING",
-                    "PARCEL_DELIVERY",
+                    { label: "Order Booking", value: "ORDER_BOOKING" },
+                    { label: "Appointment Booking", value: "APPOINTMENT_BOOKING" },
+                    { label: "Cargo", value: "PARCEL_DELIVERY" },
                   ]}
                   value={formData.businessType}
                   onSelect={(val) => handleInputChange("businessType", val)}
@@ -137,7 +137,7 @@ const Signup = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <InputField
                     label="Country"
-                    placeholder="e.g. BD"
+                    placeholder="e.g. Qatar"
                     labelClass="text-[13px] font-semibold"
                     inputClass="!p-3 !text-sm !rounded-xl"
                     type="text"
@@ -146,7 +146,7 @@ const Signup = () => {
                   />
                   <InputField
                     label="Address"
-                    placeholder="e.g. Dhaka"
+                    placeholder="e.g. Doha"
                     labelClass="text-[13px] font-semibold"
                     inputClass="!p-3 !text-sm !rounded-xl"
                     type="text"

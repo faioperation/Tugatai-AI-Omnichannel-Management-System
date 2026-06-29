@@ -99,7 +99,7 @@ const Stats = () => {
 
           <div className="">
             <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
-              Join 500+ businesses already growing with MoonAI
+              Join 500+ businesses already growing with Matrix
             </h3>
             <p className="text-white/60 text-lg">
               Start automating your customer conversations today

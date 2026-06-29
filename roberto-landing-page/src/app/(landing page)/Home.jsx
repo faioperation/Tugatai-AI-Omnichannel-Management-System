@@ -4,6 +4,7 @@ import Container from "../component/Container";
 import { motion } from "framer-motion";
 import { FiPlay, FiArrowRight } from "react-icons/fi";
 import { RiSparklingFill } from "react-icons/ri";
+import Link from "next/link";
 
 const Home = () => {
   return (
@@ -12,14 +13,14 @@ const Home = () => {
       className="relative  bg-[#000000] overflow-hidden flex items-center py-20 "
     >
       <Container>
-        <div className=" grid md:grid-cols-2 gap-5  items-center ">
+        <div className=" grid lg:grid-cols-2 gap-5  items-center ">
           {/* Left Content */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: false }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="flex flex-col items-center md:items-start gap-6 "
+            className="flex flex-col items-center lg:items-start gap-6 "
           >
             {/* Badge */}
             <motion.div
@@ -35,25 +36,27 @@ const Home = () => {
             </motion.div>
 
             {/* Heading */}
-            <h1 className="text-5xl md:text-6xl font-bold bg-gradient bg-gradient-to-r from-[#ffffff] via-[#E9D4FF] to-[#ffffff] bg-clip-text text-transparent leading-[1.1] font-inter text-center md:text-start">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient bg-gradient-to-r from-[#ffffff] via-[#E9D4FF] to-[#ffffff] bg-clip-text text-transparent leading-[1.1] font-inter text-center lg:text-start">
               Run Your Entire Customer Communication with AI
             </h1>
 
             {/* Subheading */}
-            <p className="text-lg md:text-xl text-[#DBDBDB]  font-inter text-center md:text-start">
+            <p className="text-base md:text-lg lg:text-xl text-[#DBDBDB]  font-inter text-center lg:text-start">
              WhatsApp, Email, Voice, SMS & More — All in One AI Platform
             </p>
 
             {/* Buttons */}
             <div className="flex  items-center gap-4 pt-4">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="group relative px-2 md:px-8 py-4 bg-gradient-to-r from-[#9810FA] to-[#AD46FF] rounded-2xl text-white font-medium font-inter text-base flex items-center gap-2 shadow-[0_0_20px_rgba(147,51,234,0.3)] hover:shadow-[0_0_30px_rgba(147,51,234,0.5)] transition-all"
-              >
-               Book Live Demo
-                <FiArrowRight className="group-hover:translate-x-1 transition-transform" />
-              </motion.button>
+              <Link href="/demo">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="group relative px-2 md:px-8 py-4 bg-gradient-to-r from-[#9810FA] to-[#AD46FF] rounded-2xl text-white font-medium font-inter text-base flex items-center gap-2 shadow-[0_0_20px_rgba(147,51,234,0.3)] hover:shadow-[0_0_30px_rgba(147,51,234,0.5)] transition-all"
+                >
+                 Book Live Demo
+                  <FiArrowRight className="group-hover:translate-x-1 transition-transform" />
+                </motion.button>
+              </Link>
 
               <motion.button
                 whileHover={{

@@ -157,7 +157,7 @@ const Pricing = () => {
             Error loading plans: {error.message}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-25 mt-35  mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 mt-16 lg:mt-24 mx-auto">
             {sortedPlans.map((plan, idx) => (
               <motion.div
                 key={plan.id}
