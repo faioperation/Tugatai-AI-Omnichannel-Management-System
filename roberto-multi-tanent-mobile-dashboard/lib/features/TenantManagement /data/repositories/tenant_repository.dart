@@ -1,6 +1,6 @@
 import 'package:roberto/core/network/api_constants.dart';
 import 'package:roberto/core/network/network_client.dart';
-import 'package:roberto/features/Tenant Management /data/models/tenant_model.dart';
+import 'package:roberto/features/TenantManagement%20/data/models/tenant_model.dart';
 
 class TenantRepository {
   final NetworkClient networkClient;

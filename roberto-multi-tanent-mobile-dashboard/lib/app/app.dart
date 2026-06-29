@@ -26,8 +26,8 @@ import 'package:roberto/features/Settings/data/repositories/profile_repository.d
 import 'package:roberto/features/Settings/bloc/profile_bloc.dart';
 import 'package:roberto/features/notification/data/repositories/notification_repository.dart';
 import 'package:roberto/features/notification/bloc/notification_bloc.dart';
-import 'package:roberto/features/Tenant Management /data/repositories/tenant_repository.dart';
-import 'package:roberto/features/Tenant Management /bloc/tenant_bloc.dart';
+import 'package:roberto/features/TenantManagement%20/data/repositories/tenant_repository.dart';
+import 'package:roberto/features/TenantManagement%20/bloc/tenant_bloc.dart';
 import 'package:roberto/features/AiAgent/data/repositories/agent_training_repository.dart';
 import 'package:roberto/features/AiAgent/bloc/agent_training_bloc.dart';
 import 'package:roberto/features/AiAgent/data/repositories/agent_repository.dart';
