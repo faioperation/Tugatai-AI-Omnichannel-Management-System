@@ -25,10 +25,10 @@ const Dropdown = ({
   const [show, setShow] = useState(false);
   const dropdownRef = useRef(null);
 
-  const handleSelect = (value) => {
-    setSelected(value);
+  const handleSelect = (selectedValue) => {
+    setSelected(selectedValue);
     setShow(false);
-    if (onSelect) onSelect(value);
+    if (onSelect) onSelect(selectedValue);
   };
 
   useEffect(() => {
@@ -41,6 +41,17 @@ const Dropdown = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const getSelectedLabel = () => {
+    const selectedOption = options.find((opt) => {
+      const optValue = typeof opt === "object" ? opt.value : opt;
+      return optValue === selected;
+    });
+    if (selectedOption) {
+      return typeof selectedOption === "object" ? selectedOption.label : selectedOption;
+    }
+    return selected || "";
+  };
 
   return (
     <div
@@ -58,7 +69,7 @@ const Dropdown = ({
         <div onClick={() => setShow(!show)}>
           <input
             readOnly
-            value={selected || ""}
+            value={getSelectedLabel()}
             className={`w-full bg-transparent outline-none text-[#000000] border border-[#D1D5DC] p-4 rounded-lg  placeholder:text-[#0A0A0A]/50    cursor-pointer ${inputClass}`}
             placeholder={placeholder}
           />
@@ -77,15 +88,21 @@ const Dropdown = ({
               : "opacity-0 invisible max-h-0 "
           }`}
         >
-          {options.map((item, index) => (
-            <div
-              key={index}
-              onClick={() => handleSelect(item)}
-              className="py-2 hover:bg-[#EA2B33] hover:text-white cursor-pointer"
-            >
-              {item}
-            </div>
-          ))}
+          {options.map((item, index) => {
+            const isObject = typeof item === "object";
+            const itemLabel = isObject ? item.label : item;
+            const itemValue = isObject ? item.value : item;
+
+            return (
+              <div
+                key={index}
+                onClick={() => handleSelect(itemValue)}
+                className="py-2 hover:bg-[#EA2B33] hover:text-white cursor-pointer"
+              >
+                {itemLabel}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

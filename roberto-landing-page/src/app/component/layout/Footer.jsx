@@ -3,7 +3,7 @@ import React from 'react';
 import Container from '../Container';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FiTwitter, FiLinkedin, FiGithub, FiMail } from 'react-icons/fi';
+import { FaWhatsapp, FaFacebookF, FaInstagram, FaLinkedinIn } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 
 const Footer = () => {
@@ -45,19 +45,19 @@ const Footer = () => {
               AI Voice & Chat Agent for businesses. Automate customer conversations, bookings, and operations 24/7.
             </p>
 
-            <div className="flex items-center gap-4">
-              <a href="#" className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-[#888888] hover:text-white hover:bg-white/10 transition-all">
-                <FiTwitter className="w-5 h-5" />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-[#888888] hover:text-white hover:bg-white/10 transition-all">
-                <FiLinkedin className="w-5 h-5" />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-[#888888] hover:text-white hover:bg-white/10 transition-all">
-                <FiGithub className="w-5 h-5" />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-[#888888] hover:text-white hover:bg-white/10 transition-all">
-                <FiMail className="w-5 h-5" />
-              </a>
+            <div className="flex items-center gap-3">
+              <Link href="https://wa.me/97477631991" target="_blank" className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-gradient-to-r hover:from-[#9810FA] hover:to-[#AD46FF] hover:border-transparent transition-all shadow-lg hover:shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                <FaWhatsapp size={16} />
+              </Link>
+              <Link href="https://www.facebook.com/tugataicargo" className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-gradient-to-r hover:from-[#9810FA] hover:to-[#AD46FF] hover:border-transparent transition-all shadow-lg hover:shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                <FaFacebookF size={16} />
+              </Link>
+              <Link href="https://www.instagram.com/tugataicago" className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-gradient-to-r hover:from-[#9810FA] hover:to-[#AD46FF] hover:border-transparent transition-all shadow-lg hover:shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                <FaInstagram size={16} />
+              </Link>
+              <Link href="#" className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-gradient-to-r hover:from-[#9810FA] hover:to-[#AD46FF] hover:border-transparent transition-all shadow-lg hover:shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                <FaLinkedinIn size={16} />
+              </Link>
             </div>
           </div>
 

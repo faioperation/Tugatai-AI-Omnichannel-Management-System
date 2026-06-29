@@ -311,7 +311,7 @@ const Features = () => {
               whileInView={{ opacity: 1, scale: 1, y: 0 }}
               viewport={{ once: false, margin: "-50px" }}
               transition={{ duration: 0.5, delay: 0.4 + idx * 0.1 }}
-              className=" md:col-span-3 col-span-12 bg-gradient-to-br from-[#1A1A27]  to-[#0F0F18] border border-white/10 rounded-[24px] pt-8 pb-6 px-6 flex flex-col items-center justify-center text-center  mt-2 overflow-hidden relative group"
+              className=" col-span-12 sm:col-span-6 lg:col-span-3 bg-gradient-to-br from-[#1A1A27]  to-[#0F0F18] border border-white/10 rounded-[24px] pt-8 pb-6 px-6 flex flex-col items-center justify-center text-center  mt-2 overflow-hidden relative group"
             >
               {feature.animation}
               <h4 className="text-white font-semibold text-base mb-1.5 font-inter relative z-10">

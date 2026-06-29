@@ -26,16 +26,16 @@ const Call = () => {
       className="relative bg-gradient-to-t from-[#000000] via-[#1A0B2E] to-[#000000] py-20 overflow-hidden"
     >
       <Container className="flex flex-col items-center gap-16">
-        <div className="md:grid grid-cols-12 space-y-8 md:space-y-0  w-full mx-auto items-center ">
+        <div className="flex flex-col-reverse lg:grid lg:grid-cols-12 gap-8 lg:gap-8 w-full mx-auto items-center">
           {/* Left Content - Call Form */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: false }}
             transition={{ duration: 0.8 }}
-            className="col-span-8  w-full"
+            className="lg:col-span-8 w-full"
           >
-            <div className="bg-[#050925] backdrop-blur-xl  rounded-3xl py-16 px-6 shadow-2xl flex flex-col gap-6 md:w-[420px]">
+            <div className="bg-[#050925] backdrop-blur-xl  rounded-3xl py-16 px-6 shadow-2xl flex flex-col gap-6 w-full md:w-[420px]">
               <h3 className="text-2xl font-bold font-inter text-white text-center">
                Connect with us
               </h3>
@@ -133,7 +133,7 @@ const Call = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: false }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="col-span-4 w-full flex items-center justify-center relative"
+            className="lg:col-span-4 w-full flex items-center justify-center relative"
           >
             {/* The Video Container */}
             <div className="relative w-full aspect-video md:aspect-[16/10]  rounded-3xl">
