@@ -1,0 +1,249 @@
+import json
+import logging
+from fastapi import APIRouter, File, UploadFile, Form, HTTPException
+import httpx
+
+from app.config import VAPI_BASE, BACKEND_URL
+from app.vapi_client import (
+    upload_file_to_vapi, create_query_tool, attach_tool_to_assistant,
+    vapi_headers, delete_file_from_vapi, create_tools_for_business_type,
+    get_assistant_from_vapi
+)
+from app.file_utils import extract_text_from_bytes
+from app.services.business_config import (
+    get_business_type, build_system_prompt as build_biz_prompt,
+    analyze_business_pdf_with_openai, MASTER_PROMPT_TEMPLATE
+)
+
+router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def get_llm_provider(model: str) -> str:
+    """Map model name to Vapi LLM provider string."""
+    m = model.lower()
+    if m.startswith("gpt"):
+        return "openai"
+    elif m.startswith("gemini"):
+        return "google"
+    elif m.startswith("llama") or m.startswith("mixtral"):
+        return "groq"
+    elif m.startswith("claude"):
+        return "anthropic"
+    return "openai"
+
+
+def get_clean_backend_url() -> str:
+    """Return cleaned backend URL or empty string."""
+    if BACKEND_URL:
+        return BACKEND_URL.rstrip('/')
+    return ""
+
+
+@router.post("/api/agents/create")
+async def create_agent(
+    business_id: str = Form(...),
+    rules_file: UploadFile = File(...)
+):
+    """
+    Creates a Vapi assistant.
+    Analyzes the uploaded business script (rules_file), generates prompt/persona/greeting,
+    and automatically attaches tools according to business needs.
+    """
+    # ── Extract text from business script ────────────────────────────────────
+    if not rules_file.filename:
+        raise HTTPException(status_code=400, detail="rules_file is empty")
+
+    content = await rules_file.read()
+    extracted_text = extract_text_from_bytes(content, rules_file.filename)
+    if not extracted_text:
+        raise HTTPException(status_code=400, detail="Failed to extract text from rules_file")
+
+    # Upload file to Vapi file store (needed for potential RAG search tool)
+    vapi_file_id = None
+    try:
+        vapi_file_id = await upload_file_to_vapi(content, rules_file.filename)
+    except Exception as exc:
+        logger.error(f"Failed to upload business script to VAPI: {exc}")
+
+    # ── Core Business Script Training Pipeline ────────────────────────────────
+    # Call OpenAI to automatically analyze the business script and train the agent!
+    try:
+        analysis = await analyze_business_pdf_with_openai(extracted_text)
+        logger.info(f"OpenAI script analysis result: {analysis}")
+        
+        # Use detected values
+        detected_business_name = analysis.get("business_name") or business_id
+        used_agent_name = analysis.get("agent_name") or "Assistant"
+        used_business_type = analysis.get("business_type") or "generic"
+        used_language = analysis.get("language") or "en"
+        used_tools = analysis.get("tools") or ["collect_info", "escalate_to_human"]
+        first_message = analysis.get("first_message") or f"Hello! Thank you for calling {detected_business_name}. How can I help you today?"
+        dynamic_fields = analysis.get("extracted_data_fields") or {}
+        
+        # Construct a system prompt customized by AI using our MASTER_PROMPT_TEMPLATE
+        custom_l2 = analysis.get("custom_layer2") or ""
+        custom_l3 = analysis.get("custom_layer3") or ""
+        
+        prompt_content = MASTER_PROMPT_TEMPLATE.format(
+            business_name=detected_business_name,
+            business_type_label=get_business_type(used_business_type)["display_name"],
+            layer2=custom_l2,
+            layer3=custom_l3
+        )
+        
+        # If the KB is small (< 10000 chars), inject it directly into the prompt.
+        if len(extracted_text) <= 10000:
+            placeholder = "[The business context and knowledge base content will be dynamically loaded and placed here. If this section is empty, rely on your knowledge base search tool.]"
+            kb_section = f"# KNOWLEDGE BASE — {detected_business_name.upper()}\n\n{extracted_text}"
+            used_prompt = prompt_content.replace(placeholder, kb_section)
+        else:
+            used_prompt = prompt_content
+
+    except Exception as exc:
+        logger.error(f"OpenAI script analysis failed: {exc}", exc_info=True)
+        # Fallback to standard generic templates
+        used_prompt = build_biz_prompt(
+            business_type="generic",
+            business_name=business_id,
+            agent_name="Assistant",
+            kb_text=extracted_text if len(extracted_text) <= 10000 else ""
+        )
+        used_business_type = "generic"
+        used_language = "en"
+        used_tools = ["collect_info", "escalate_to_human"]
+        first_message = f"Hello! Thank you for calling {business_id}. How can I help you today?"
+        dynamic_fields = {}
+
+    # ── Determine if query tool is needed ─────────────────────────────────────
+    use_query_tool = bool(vapi_file_id and len(extracted_text) > 10000)
+
+    clean_backend_url = get_clean_backend_url()
+    model = "gpt-4o"  # Default high-performance model
+    llm_provider = get_llm_provider(model)
+
+    transcriber_config = {
+        "provider": "deepgram",
+        "model": "nova-3",
+        "language": used_language
+    }
+
+    voice_config = {
+        "provider": "11labs",
+        "model": "eleven_flash_v2",
+        "voiceId": "21m00Tcm4TlvDq8ikWAM"  # Rachel (default voice)
+    }
+
+    # Build schema properties dynamically
+    schema_properties = {
+        "lead_status": {"type": "string", "description": "The status of the lead, e.g., scheduled, ordered, escalated, abandoned."},
+        "call_summary": {"type": "string", "description": "A brief 1-2 sentence summary of what the customer wanted and the outcome."},
+        "customer_name": {"type": "string", "description": "The full name of the customer."},
+        "customer_phone": {"type": "string", "description": "The phone number of the customer."}
+    }
+    
+    if isinstance(dynamic_fields, dict):
+        for field_name, field_desc in dynamic_fields.items():
+            if field_name not in schema_properties:
+                schema_properties[field_name] = {"type": "string", "description": str(field_desc)}
+
+    assistant_payload = {
+        "name": business_id,
+        "transcriber": transcriber_config,
+        "model": {
+            "provider": llm_provider,
+            "model": model,
+            "messages": [{"role": "system", "content": used_prompt}],
+            "temperature": 0.4
+        },
+        "voice": voice_config,
+        "recordingEnabled": True,
+        "firstMessage": first_message,
+        "endCallMessage": "Thank you for calling. Have a wonderful day!",
+        "silenceTimeoutSeconds": 30,
+        "maxDurationSeconds": 620,
+        "backchannelingEnabled": False,
+        "backgroundDenoisingEnabled": True,
+        "startSpeakingPlan": {
+            "waitSeconds": 0.1,
+            "smartEndpointingEnabled": True,
+            "smartEndpointingPlan": {"provider": "vapi"},
+            "transcriptionEndpointingPlan": {
+                "onNumberSeconds": 0.2,
+                "onPunctuationSeconds": 0.1,
+                "onNoPunctuationSeconds": 0.3
+            }
+        },
+        "stopSpeakingPlan": {
+            "numWords": 0,
+            "voiceSeconds": 0.3,
+            "backoffSeconds": 0.6
+        },
+        "analysisPlan": {
+            "structuredDataPlan": {
+                "schema": {
+                    "type": "object",
+                    "properties": schema_properties
+                }
+            }
+        }
+    }
+
+    # If backend URL is set, direct VAPI events to our webhook/vapi handler.
+    # We will compute the service URL from our server's config.
+    from app.config import SERVICE_URL
+    if SERVICE_URL:
+        target_webhook = f"{SERVICE_URL.rstrip('/')}/api/webhook/vapi"
+        assistant_payload["serverUrl"] = target_webhook
+        assistant_payload["server"] = {
+            "url": target_webhook,
+            "timeoutSeconds": 20
+        }
+
+    # ── Create Assistant in VAPI ──────────────────────────────────────────────
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(f"{VAPI_BASE}/assistant", json=assistant_payload, headers=vapi_headers())
+
+    if resp.status_code not in (200, 201):
+        error_detail = resp.text
+        logger.error(f"VAPI Assistant Creation Failed ({resp.status_code}): {error_detail}")
+        raise HTTPException(resp.status_code, f"Vapi Error: {error_detail}")
+
+    vapi_data = resp.json()
+    assistant_id = vapi_data["id"]
+    current_model = vapi_data.get("model", {})
+
+    # ── Attach tools ──────────────────────────────────────────────────────────
+    try:
+        # Create and attach query tool if document is large
+        if vapi_file_id and use_query_tool:
+            biz_config = get_business_type(used_business_type)
+            query_tool_id = await create_query_tool(
+                file_ids=[vapi_file_id],
+                kb_name=biz_config.get("kb_name", "business-kb"),
+                kb_description=biz_config.get("kb_description", "Business knowledge base.")
+            )
+            await attach_tool_to_assistant(assistant_id, query_tool_id, current_model)
+            # Re-fetch current model structure
+            assistant_info = await get_assistant_from_vapi(assistant_id)
+            if assistant_info:
+                current_model = assistant_info.get("model", current_model)
+
+        # Create/attach business tools (booking, quote, human-escalation, etc.) targeting fallback webhook
+        tool_ids = await create_tools_for_business_type(used_tools, SERVICE_URL or clean_backend_url)
+        for t_id in tool_ids:
+            try:
+                await attach_tool_to_assistant(assistant_id, t_id, current_model)
+                assistant_info = await get_assistant_from_vapi(assistant_id)
+                if assistant_info:
+                    current_model = assistant_info.get("model", current_model)
+            except Exception as e:
+                logger.warning(f"Failed to attach tool {t_id}: {e}")
+
+    except Exception as exc:
+        logger.warning(f"Error attaching tools (non-fatal): {exc}")
+
+    return {
+        "assistant_id": assistant_id,
+        "business_id": business_id
+    }
