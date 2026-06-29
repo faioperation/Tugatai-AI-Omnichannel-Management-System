@@ -319,7 +319,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
               bType = profileState.currentUser.businessType;
             }
 
-            String titleLabel = 'Order Booking (Debug: $bType)';
+            String titleLabel = 'Order Booking';
             String columnAddressLabel = 'Address';
             String columnPriceLabel = 'Shipping Charge';
             String columnTimeLabel = 'Delivery Time';
@@ -335,8 +335,8 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 columnTimeLabel = 'Appointment Date';
                 shortPriceLabel = 'Price';
                 shortTimeLabel = 'Date';
-              } else if (normalized == 'PERCEL_BOOKING' || normalized == 'PARCEL_BOOKING') {
-                titleLabel = 'Parcel Booking';
+              } else if (normalized == 'PERCEL_BOOKING' || normalized == 'PARCEL_BOOKING' || normalized == 'PARCEL_DELIVERY') {
+                titleLabel = 'Parcel Delivery';
                 columnAddressLabel = 'Pickup / Delivery';
               }
             }

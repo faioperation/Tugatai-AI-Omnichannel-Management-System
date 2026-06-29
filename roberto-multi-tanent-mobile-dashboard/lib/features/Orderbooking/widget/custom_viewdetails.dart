@@ -66,7 +66,9 @@ class CustomViewdetails extends StatelessWidget {
       if (!predefinedKeys.contains(key) && key.isNotEmpty) {
         String displayValue = value?.toString() ?? '';
         final lowerKey = key.toLowerCase();
-        if (lowerKey.contains('type') || lowerKey.contains('mode') || lowerKey.contains('status')) {
+        if (lowerKey.contains('type') ||
+            lowerKey.contains('mode') ||
+            lowerKey.contains('status')) {
           displayValue = displayValue.toUpperCase();
         }
 
@@ -131,7 +133,7 @@ class CustomViewdetails extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: theme.cardColor,
       child: Container(
-        width: isMobile ? width * 0.95 : 480,
+        width: isMobile ? width * 0.95 : 600,
         padding: const EdgeInsets.all(24),
         child: SingleChildScrollView(
           child: Column(
@@ -149,55 +151,123 @@ class CustomViewdetails extends StatelessWidget {
               // Customer Information
               _buildSectionTitle('Customer Information', theme),
               const SizedBox(height: 8),
-              _buildInfoContainer([
-                _buildIconRow(Icons.person_outline, order.customerName, theme),
-                const SizedBox(height: 12),
-                _buildIconRow(Icons.phone_outlined, order.phone, theme),
-                if (order.email != null && order.email!.isNotEmpty) ...[
+              _buildInfoContainer(
+                [
+                  _buildIconRow(
+                    Icons.person_outline,
+                    order.customerName,
+                    theme,
+                  ),
                   const SizedBox(height: 12),
-                  _buildIconRow(Icons.email_outlined, order.email!, theme),
+                  _buildIconRow(Icons.phone_outlined, order.phone, theme),
+                  if (order.email != null && order.email!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _buildIconRow(Icons.email_outlined, order.email!, theme),
+                  ],
                 ],
-              ], theme, isDark),
+                theme,
+                isDark,
+              ),
               const SizedBox(height: 20),
 
               // Booking Details Section
-              _buildSectionTitle('Booking Details (${order.bookingType ?? "General"})', theme),
+              _buildSectionTitle(
+                'Booking Details (${order.bookingType ?? "General"})',
+                theme,
+              ),
               const SizedBox(height: 8),
-              _buildInfoContainer([
-                if (order.bookingType == 'Appointment Booking') ...[
-                  _buildDetailRow('Date', order.appointmentDate ?? 'N/A', theme),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('Time', order.appointmentTime ?? 'N/A', theme),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('Platform', order.platform ?? 'N/A', theme),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('Duration', order.duration ?? 'N/A', theme),
-                  if (order.customRequirement != null && order.customRequirement!.isNotEmpty) ...[
+              _buildInfoContainer(
+                [
+                  if (order.bookingType == 'Appointment Booking') ...[
+                    _buildDetailRow(
+                      'Date',
+                      order.appointmentDate ?? 'N/A',
+                      theme,
+                    ),
                     const SizedBox(height: 8),
-                    _buildDetailRow('Requirement', order.customRequirement!, theme),
+                    _buildDetailRow(
+                      'Time',
+                      order.appointmentTime ?? 'N/A',
+                      theme,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDetailRow('Platform', order.platform ?? 'N/A', theme),
+                    const SizedBox(height: 8),
+                    _buildDetailRow('Duration', order.duration ?? 'N/A', theme),
+                    if (order.customRequirement != null &&
+                        order.customRequirement!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _buildDetailRow(
+                        'Requirement',
+                        order.customRequirement!,
+                        theme,
+                      ),
+                    ],
+                  ] else if (order.bookingType == 'Parcel Delivery') ...[
+                    _buildDetailRow(
+                      'Pickup',
+                      order.pickupAddress ?? 'N/A',
+                      theme,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'Delivery Date',
+                      order.deliveryDate ?? 'N/A',
+                      theme,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'Delivery To',
+                      order.deliveryAddress ?? 'N/A',
+                      theme,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'Receiver Phone',
+                      order.receiverPhone ?? 'N/A',
+                      theme,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'Product Type',
+                      order.productType ?? 'N/A',
+                      theme,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'Height / Weight',
+                      '${order.productHeight ?? "N/A"} / ${order.productWeight ?? "N/A"} kg',
+                      theme,
+                    ),
+                  ] else if (order.bookingType == 'Order Booking') ...[
+                    _buildDetailRow(
+                      'Company',
+                      order.companyName ?? 'N/A',
+                      theme,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'Delivery Date',
+                      order.deliveryDate ?? 'N/A',
+                      theme,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'Delivery To',
+                      order.deliveryAddress ?? 'N/A',
+                      theme,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'Product Type',
+                      order.productType ?? 'N/A',
+                      theme,
+                    ),
                   ],
-                ] else if (order.bookingType == 'Parcel Delivery') ...[
-                  _buildDetailRow('Pickup', order.pickupAddress ?? 'N/A', theme),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('Delivery Date', order.deliveryDate ?? 'N/A', theme),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('Delivery To', order.deliveryAddress ?? 'N/A', theme),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('Receiver Phone', order.receiverPhone ?? 'N/A', theme),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('Product Type', order.productType ?? 'N/A', theme),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('Height / Weight', '${order.productHeight ?? "N/A"} / ${order.productWeight ?? "N/A"} kg', theme),
-                ] else if (order.bookingType == 'Order Booking') ...[
-                  _buildDetailRow('Company', order.companyName ?? 'N/A', theme),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('Delivery Date', order.deliveryDate ?? 'N/A', theme),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('Delivery To', order.deliveryAddress ?? 'N/A', theme),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('Product Type', order.productType ?? 'N/A', theme),
                 ],
-              ], theme, isDark),
+                theme,
+                isDark,
+              ),
               const SizedBox(height: 20),
 
               // Custom/Extra Fields Section
@@ -212,12 +282,19 @@ class CustomViewdetails extends StatelessWidget {
               if (order.note != null && order.note!.isNotEmpty) ...[
                 _buildSectionTitle('Notes', theme),
                 const SizedBox(height: 8),
-                _buildInfoContainer([
-                  Text(
-                    order.note!,
-                    style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface.withOpacity(0.8)),
-                  ),
-                ], theme, isDark),
+                _buildInfoContainer(
+                  [
+                    Text(
+                      order.note!,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.colorScheme.onSurface.withOpacity(0.8),
+                      ),
+                    ),
+                  ],
+                  theme,
+                  isDark,
+                ),
                 const SizedBox(height: 20),
               ],
 
@@ -255,10 +332,7 @@ class CustomViewdetails extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 'Complete information about this order',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: theme.hintColor,
-                ),
+                style: TextStyle(fontSize: 14, color: theme.hintColor),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 2,
               ),
@@ -294,10 +368,7 @@ class CustomViewdetails extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               displayId ?? order.orderId,
-              style: TextStyle(
-                fontSize: 14,
-                color: theme.hintColor,
-              ),
+              style: TextStyle(fontSize: 14, color: theme.hintColor),
             ),
           ],
         ),
@@ -317,12 +388,18 @@ class CustomViewdetails extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoContainer(List<Widget> children, ThemeData theme, bool isDark) {
+  Widget _buildInfoContainer(
+    List<Widget> children,
+    ThemeData theme,
+    bool isDark,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? theme.colorScheme.surfaceVariant.withOpacity(0.15) : const Color(0xffF9FAFB),
+        color: isDark
+            ? theme.colorScheme.surfaceVariant.withOpacity(0.15)
+            : const Color(0xffF9FAFB),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
       ),
@@ -337,7 +414,9 @@ class CustomViewdetails extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? theme.colorScheme.surfaceVariant.withOpacity(0.15) : const Color(0xffF9FAFB),
+        color: isDark
+            ? theme.colorScheme.surfaceVariant.withOpacity(0.15)
+            : const Color(0xffF9FAFB),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
       ),
@@ -348,22 +427,34 @@ class CustomViewdetails extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.attach_money, size: 18, color: theme.colorScheme.onSurface.withOpacity(0.7)),
+                  Icon(
+                    Icons.attach_money,
+                    size: 18,
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  ),
                   const SizedBox(width: 8),
-                  Text('Total Amount',
-                      style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7), fontSize: 14)),
+                  Text(
+                    'Total Amount',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      fontSize: 14,
+                    ),
+                  ),
                 ],
               ),
               Text(
                 '\$${order.price}',
                 style: TextStyle(
-                    color: theme.colorScheme.onSurface,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
+                  color: theme.colorScheme.onSurface,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
-          if (order.paymentMethod != null || order.paymentStatus != null || order.transactionId != null) ...[
+          if (order.paymentMethod != null ||
+              order.paymentStatus != null ||
+              order.transactionId != null) ...[
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
               child: Divider(height: 1),
@@ -408,7 +499,11 @@ class CustomViewdetails extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, double width, ThemeData theme) {
+  Widget _buildActionButtons(
+    BuildContext context,
+    double width,
+    ThemeData theme,
+  ) {
     final bool isStack = width < 400;
 
     final updateBtn = ElevatedButton(
@@ -425,8 +520,10 @@ class CustomViewdetails extends StatelessWidget {
         elevation: 0,
       ),
       child: const Center(
-        child: Text('Update Status',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        child: Text(
+          'Update Status',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
       ),
     );
 
@@ -438,20 +535,20 @@ class CustomViewdetails extends StatelessWidget {
         side: BorderSide(color: theme.dividerColor.withOpacity(0.2)),
       ),
       child: Center(
-        child: Text('Print Invoice',
-            style: TextStyle(
-                color: theme.colorScheme.onSurface, fontWeight: FontWeight.w600)),
+        child: Text(
+          'Print Invoice',
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
 
     if (isStack) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          updateBtn,
-          const SizedBox(height: 12),
-          printBtn,
-        ],
+        children: [updateBtn, const SizedBox(height: 12), printBtn],
       );
     }
 
@@ -467,7 +564,11 @@ class CustomViewdetails extends StatelessWidget {
   Widget _buildIconRow(IconData icon, String text, ThemeData theme) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: theme.colorScheme.onSurface.withOpacity(0.7)),
+        Icon(
+          icon,
+          size: 18,
+          color: theme.colorScheme.onSurface.withOpacity(0.7),
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
@@ -514,7 +615,10 @@ class CustomViewdetails extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Text(
         label,
         style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w500),
@@ -645,10 +749,16 @@ class CustomViewdetails extends StatelessWidget {
                           ),
                         ),
                         pw.SizedBox(height: 2),
-                        pw.Text('Phone: ${order.phone}', style: const pw.TextStyle(fontSize: 11)),
+                        pw.Text(
+                          'Phone: ${order.phone}',
+                          style: const pw.TextStyle(fontSize: 11),
+                        ),
                         if (order.email != null && order.email!.isNotEmpty) ...[
                           pw.SizedBox(height: 2),
-                          pw.Text('Email: ${order.email}', style: const pw.TextStyle(fontSize: 11)),
+                          pw.Text(
+                            'Email: ${order.email}',
+                            style: const pw.TextStyle(fontSize: 11),
+                          ),
                         ],
                       ],
                     ),
@@ -683,11 +793,13 @@ class CustomViewdetails extends StatelessWidget {
                           style: pw.TextStyle(
                             fontSize: 12,
                             fontWeight: pw.FontWeight.bold,
-                            color: order.status == OrderStatus.completed || order.status == OrderStatus.delivered
+                            color:
+                                order.status == OrderStatus.completed ||
+                                    order.status == OrderStatus.delivered
                                 ? PdfColors.green700
                                 : order.status == OrderStatus.cancelled
-                                    ? PdfColors.red700
-                                    : PdfColors.amber700,
+                                ? PdfColors.red700
+                                : PdfColors.amber700,
                           ),
                         ),
                       ],
@@ -708,32 +820,73 @@ class CustomViewdetails extends StatelessWidget {
                   padding: const pw.EdgeInsets.all(12),
                   decoration: pw.BoxDecoration(
                     color: PdfColors.grey100,
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                    borderRadius: const pw.BorderRadius.all(
+                      pw.Radius.circular(8),
+                    ),
                   ),
                   child: pw.Column(
                     children: [
-                      _buildPdfRow('Booking Type', order.bookingType ?? 'General'),
+                      _buildPdfRow(
+                        'Booking Type',
+                        order.bookingType ?? 'General',
+                      ),
                       if (order.bookingType == 'Appointment Booking') ...[
-                        _buildPdfRow('Date / Time', '${order.appointmentDate ?? "N/A"} @ ${order.appointmentTime ?? "N/A"}'),
+                        _buildPdfRow(
+                          'Date / Time',
+                          '${order.appointmentDate ?? "N/A"} @ ${order.appointmentTime ?? "N/A"}',
+                        ),
                         _buildPdfRow('Platform', order.platform ?? 'N/A'),
                         _buildPdfRow('Duration', order.duration ?? 'N/A'),
                       ] else if (order.bookingType == 'Parcel Delivery') ...[
-                        _buildPdfRow('Pickup Address', order.pickupAddress ?? 'N/A'),
-                        _buildPdfRow('Delivery Address', order.deliveryAddress ?? 'N/A'),
-                        _buildPdfRow('Product Type', order.productType ?? 'N/A'),
-                        _buildPdfRow('Height / Weight', '${order.productHeight ?? "N/A"} / ${order.productWeight ?? "N/A"} kg'),
-                        _buildPdfRow('Receiver Phone', order.receiverPhone ?? 'N/A'),
+                        _buildPdfRow(
+                          'Pickup Address',
+                          order.pickupAddress ?? 'N/A',
+                        ),
+                        _buildPdfRow(
+                          'Delivery Address',
+                          order.deliveryAddress ?? 'N/A',
+                        ),
+                        _buildPdfRow(
+                          'Product Type',
+                          order.productType ?? 'N/A',
+                        ),
+                        _buildPdfRow(
+                          'Height / Weight',
+                          '${order.productHeight ?? "N/A"} / ${order.productWeight ?? "N/A"} kg',
+                        ),
+                        _buildPdfRow(
+                          'Receiver Phone',
+                          order.receiverPhone ?? 'N/A',
+                        ),
                       ] else if (order.bookingType == 'Order Booking') ...[
-                        _buildPdfRow('Company Name', order.companyName ?? 'N/A'),
-                        _buildPdfRow('Delivery Date', order.deliveryDate ?? 'N/A'),
-                        _buildPdfRow('Delivery Address', order.deliveryAddress ?? 'N/A'),
-                        _buildPdfRow('Product Type', order.productType ?? 'N/A'),
+                        _buildPdfRow(
+                          'Company Name',
+                          order.companyName ?? 'N/A',
+                        ),
+                        _buildPdfRow(
+                          'Delivery Date',
+                          order.deliveryDate ?? 'N/A',
+                        ),
+                        _buildPdfRow(
+                          'Delivery Address',
+                          order.deliveryAddress ?? 'N/A',
+                        ),
+                        _buildPdfRow(
+                          'Product Type',
+                          order.productType ?? 'N/A',
+                        ),
                       ],
                     ],
                   ),
                 ),
                 pw.SizedBox(height: 25),
-                if (order.rawAdditionalDetails.entries.any((e) => !predefinedKeys.contains(e.key) && e.key.isNotEmpty && e.value != null && e.value.toString().isNotEmpty)) ...[
+                if (order.rawAdditionalDetails.entries.any(
+                  (e) =>
+                      !predefinedKeys.contains(e.key) &&
+                      e.key.isNotEmpty &&
+                      e.value != null &&
+                      e.value.toString().isNotEmpty,
+                )) ...[
                   pw.Text(
                     'ADDITIONAL DETAILS',
                     style: pw.TextStyle(
@@ -747,15 +900,25 @@ class CustomViewdetails extends StatelessWidget {
                     padding: const pw.EdgeInsets.all(12),
                     decoration: pw.BoxDecoration(
                       color: PdfColors.grey100,
-                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                      borderRadius: const pw.BorderRadius.all(
+                        pw.Radius.circular(8),
+                      ),
                     ),
                     child: pw.Column(
                       children: order.rawAdditionalDetails.entries
-                          .where((e) => !predefinedKeys.contains(e.key) && e.key.isNotEmpty && e.value != null && e.value.toString().isNotEmpty)
+                          .where(
+                            (e) =>
+                                !predefinedKeys.contains(e.key) &&
+                                e.key.isNotEmpty &&
+                                e.value != null &&
+                                e.value.toString().isNotEmpty,
+                          )
                           .map((e) {
                             String valueStr = e.value.toString();
                             final lowerKey = e.key.toLowerCase();
-                            if (lowerKey.contains('type') || lowerKey.contains('mode') || lowerKey.contains('status')) {
+                            if (lowerKey.contains('type') ||
+                                lowerKey.contains('mode') ||
+                                lowerKey.contains('status')) {
                               valueStr = valueStr.toUpperCase();
                             }
                             return _buildPdfRow(formatKeyName(e.key), valueStr);
@@ -775,26 +938,44 @@ class CustomViewdetails extends StatelessWidget {
                 ),
                 pw.SizedBox(height: 6),
                 pw.Table(
-                  border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                  border: pw.TableBorder.all(
+                    color: PdfColors.grey300,
+                    width: 0.5,
+                  ),
                   children: [
                     pw.TableRow(
-                      decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                      decoration: const pw.BoxDecoration(
+                        color: PdfColors.grey200,
+                      ),
                       children: [
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('Description', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                          child: pw.Text(
+                            'Description',
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('Method', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                          child: pw.Text(
+                            'Method',
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('Txn ID / Details', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                          child: pw.Text(
+                            'Txn ID / Details',
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('Amount', style: pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+                          child: pw.Text(
+                            'Amount',
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                            textAlign: pw.TextAlign.right,
+                          ),
                         ),
                       ],
                     ),
@@ -802,7 +983,9 @@ class CustomViewdetails extends StatelessWidget {
                       children: [
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('Booking Service Fee (${order.bookingType ?? "General"})'),
+                          child: pw.Text(
+                            'Booking Service Fee (${order.bookingType ?? "General"})',
+                          ),
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8),
@@ -814,7 +997,10 @@ class CustomViewdetails extends StatelessWidget {
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('\$${order.price}', textAlign: pw.TextAlign.right),
+                          child: pw.Text(
+                            '\$${order.price}',
+                            textAlign: pw.TextAlign.right,
+                          ),
                         ),
                       ],
                     ),
@@ -829,31 +1015,54 @@ class CustomViewdetails extends StatelessWidget {
                       child: pw.Column(
                         children: [
                           pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                                pw.MainAxisAlignment.spaceBetween,
                             children: [
-                              pw.Text('Subtotal:', style: const pw.TextStyle(fontSize: 12)),
-                              pw.Text('\$${order.price}', style: const pw.TextStyle(fontSize: 12)),
+                              pw.Text(
+                                'Subtotal:',
+                                style: const pw.TextStyle(fontSize: 12),
+                              ),
+                              pw.Text(
+                                '\$${order.price}',
+                                style: const pw.TextStyle(fontSize: 12),
+                              ),
                             ],
                           ),
                           pw.SizedBox(height: 4),
                           pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                                pw.MainAxisAlignment.spaceBetween,
                             children: [
-                              pw.Text('Tax / Vat (0%):', style: const pw.TextStyle(fontSize: 12)),
-                              pw.Text('\$0.00', style: const pw.TextStyle(fontSize: 12)),
+                              pw.Text(
+                                'Tax / Vat (0%):',
+                                style: const pw.TextStyle(fontSize: 12),
+                              ),
+                              pw.Text(
+                                '\$0.00',
+                                style: const pw.TextStyle(fontSize: 12),
+                              ),
                             ],
                           ),
                           pw.Divider(thickness: 0.5, color: PdfColors.grey400),
                           pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                                pw.MainAxisAlignment.spaceBetween,
                             children: [
                               pw.Text(
                                 'Total Amount:',
-                                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.red900),
+                                style: pw.TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: PdfColors.red900,
+                                ),
                               ),
                               pw.Text(
                                 '\$${order.price}',
-                                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.red900),
+                                style: pw.TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: PdfColors.red900,
+                                ),
                               ),
                             ],
                           ),
@@ -866,26 +1075,40 @@ class CustomViewdetails extends StatelessWidget {
                 if (order.note != null && order.note!.isNotEmpty) ...[
                   pw.Text(
                     'Notes:',
-                    style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700),
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.grey700,
+                    ),
                   ),
                   pw.SizedBox(height: 4),
                   pw.Text(
                     order.note!,
-                    style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600),
+                    style: const pw.TextStyle(
+                      fontSize: 9,
+                      color: PdfColors.grey600,
+                    ),
                   ),
                   pw.SizedBox(height: 20),
                 ],
                 pw.Center(
                   child: pw.Text(
                     'Thank you for your business!',
-                    style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700),
+                    style: pw.TextStyle(
+                      fontSize: 12,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.grey700,
+                    ),
                   ),
                 ),
                 pw.SizedBox(height: 4),
                 pw.Center(
                   child: pw.Text(
                     'Generated via Matrix AI Omnichannel Dashboard',
-                    style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey500),
+                    style: const pw.TextStyle(
+                      fontSize: 8,
+                      color: PdfColors.grey500,
+                    ),
                   ),
                 ),
               ],
@@ -915,12 +1138,19 @@ class CustomViewdetails extends StatelessWidget {
               children: [
                 pw.Text(
                   label,
-                  style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey600),
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey600,
+                  ),
                 ),
                 pw.SizedBox(height: 2),
                 pw.Text(
                   value,
-                  style: const pw.TextStyle(fontSize: 10, color: PdfColors.black),
+                  style: const pw.TextStyle(
+                    fontSize: 10,
+                    color: PdfColors.black,
+                  ),
                 ),
               ],
             )
@@ -930,14 +1160,21 @@ class CustomViewdetails extends StatelessWidget {
               children: [
                 pw.Text(
                   label,
-                  style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey600),
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey600,
+                  ),
                 ),
                 pw.SizedBox(width: 16),
                 pw.Expanded(
                   child: pw.Text(
                     value,
                     textAlign: pw.TextAlign.right,
-                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.black),
+                    style: const pw.TextStyle(
+                      fontSize: 10,
+                      color: PdfColors.black,
+                    ),
                   ),
                 ),
               ],

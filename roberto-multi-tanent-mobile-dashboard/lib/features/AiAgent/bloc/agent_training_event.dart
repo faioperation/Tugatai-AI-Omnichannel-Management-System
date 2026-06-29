@@ -45,13 +45,13 @@ class CreateAgentTrainingRequested extends AgentTrainingEvent {
 
   @override
   List<Object?> get props => [
-        businessId,
-        systemPrompt,
-        businessInformation,
-        productInformationFile,
-        policiesGuidelinesFile,
-        faqFile,
-      ];
+    businessId,
+    systemPrompt,
+    businessInformation,
+    productInformationFile,
+    policiesGuidelinesFile,
+    faqFile,
+  ];
 }
 
 class UpdateAgentTrainingRequested extends AgentTrainingEvent {

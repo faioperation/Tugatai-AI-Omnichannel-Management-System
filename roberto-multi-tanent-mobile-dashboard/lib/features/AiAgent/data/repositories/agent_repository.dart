@@ -8,12 +8,16 @@ class AgentRepository {
   AgentRepository({required this.networkClient});
 
   Future<AgentListResponse> getAllAgents() async {
-    final response = await networkClient.getRequest(ApiConstants.systemOwnerAgentManagementAll);
+    final response = await networkClient.getRequest(
+      ApiConstants.systemOwnerAgentManagementAll,
+    );
     if (response.isSuccess && response.responseData != null) {
       if (response.responseData['success'] == true) {
         return AgentListResponse.fromJson(response.responseData);
       } else {
-        throw Exception(response.responseData['message'] ?? 'Failed to load agents.');
+        throw Exception(
+          response.responseData['message'] ?? 'Failed to load agents.',
+        );
       }
     } else {
       throw Exception(response.errorMassage ?? 'Network error occurred.');
@@ -46,7 +50,9 @@ class AgentRepository {
       if (response.responseData['success'] == true) {
         return AgentModel.fromJson(response.responseData['data']);
       } else {
-        throw Exception(response.responseData['message'] ?? 'Failed to create agent.');
+        throw Exception(
+          response.responseData['message'] ?? 'Failed to create agent.',
+        );
       }
     } else {
       throw Exception(response.errorMassage ?? 'Network error occurred.');
@@ -78,7 +84,9 @@ class AgentRepository {
       if (response.responseData['success'] == true) {
         return AgentModel.fromJson(response.responseData['data']);
       } else {
-        throw Exception(response.responseData['message'] ?? 'Failed to update agent.');
+        throw Exception(
+          response.responseData['message'] ?? 'Failed to update agent.',
+        );
       }
     } else {
       throw Exception(response.errorMassage ?? 'Network error occurred.');
@@ -86,12 +94,16 @@ class AgentRepository {
   }
 
   Future<void> deleteAgent(String id) async {
-    final response = await networkClient.deleteRequest('${ApiConstants.systemOwnerAgentManagementSingle}/$id');
+    final response = await networkClient.deleteRequest(
+      '${ApiConstants.systemOwnerAgentManagementSingle}/$id',
+    );
     if (response.isSuccess && response.responseData != null) {
       if (response.responseData['success'] == true) {
         return;
       } else {
-        throw Exception(response.responseData['message'] ?? 'Failed to delete agent.');
+        throw Exception(
+          response.responseData['message'] ?? 'Failed to delete agent.',
+        );
       }
     } else {
       throw Exception(response.errorMassage ?? 'Network error occurred.');
@@ -120,7 +132,9 @@ class AgentRepository {
       if (response.responseData['success'] == true) {
         return;
       } else {
-        throw Exception(response.responseData['message'] ?? 'Failed to setup Twilio number.');
+        throw Exception(
+          response.responseData['message'] ?? 'Failed to setup Twilio number.',
+        );
       }
     } else {
       throw Exception(response.errorMassage ?? 'Network error occurred.');

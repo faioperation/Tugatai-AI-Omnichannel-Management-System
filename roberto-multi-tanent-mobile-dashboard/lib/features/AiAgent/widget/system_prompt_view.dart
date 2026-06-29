@@ -7,7 +7,8 @@ import 'package:roberto/features/AiAgent/bloc/agent_training_state.dart';
 
 class SystemPromptView extends StatefulWidget {
   final String businessId;
-  const SystemPromptView({super.key, required this.businessId});
+  final VoidCallback? onNext;
+  const SystemPromptView({super.key, required this.businessId, this.onNext});
 
   @override
   State<SystemPromptView> createState() => _SystemPromptViewState();
@@ -36,9 +37,9 @@ class _SystemPromptViewState extends State<SystemPromptView> {
   void _savePrompt() {
     final prompt = _promptController.text.trim();
     if (prompt.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Prompt cannot be empty')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Prompt cannot be empty')));
       return;
     }
 
@@ -57,12 +58,13 @@ class _SystemPromptViewState extends State<SystemPromptView> {
         ),
       );
     }
+    widget.onNext?.call();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return BlocListener<AgentTrainingBloc, AgentTrainingState>(
       listener: (context, state) {
         if (state is SingleAgentTrainingLoaded) {
@@ -72,7 +74,10 @@ class _SystemPromptViewState extends State<SystemPromptView> {
           _trainingId = state.training.id;
         } else if (state is AgentTrainingOperationSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.green,
+            ),
           );
         } else if (state is AgentTrainingError) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -86,7 +91,10 @@ class _SystemPromptViewState extends State<SystemPromptView> {
         decoration: BoxDecoration(
           color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).dividerTheme.color!, width: 1),
+          border: Border.all(
+            color: Theme.of(context).dividerTheme.color!,
+            width: 1,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,7 +111,10 @@ class _SystemPromptViewState extends State<SystemPromptView> {
             const SizedBox(height: 6),
             Text(
               'Define how your AI agent should behave and respond to customers',
-              style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodyMedium?.color),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              ),
             ),
             const SizedBox(height: 24),
 
@@ -129,22 +140,28 @@ class _SystemPromptViewState extends State<SystemPromptView> {
             // Caption below textfield
             Text(
               "This prompt defines the AI's personality, knowledge, and behavior",
-              style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              ),
             ),
             const SizedBox(height: 24),
 
-            // Save button (left aligned)
+            // Next button (left aligned)
             ElevatedButton.icon(
               onPressed: _savePrompt,
-              icon: const Icon(Icons.save_outlined, size: 18),
+              icon: const Icon(Icons.arrow_forward, size: 18),
               label: const Text(
-                'Save Prompt',
+                'Next',
                 style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

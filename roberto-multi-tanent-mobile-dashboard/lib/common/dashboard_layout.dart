@@ -41,6 +41,7 @@ class DashboardShell extends StatefulWidget {
   final Map<String, String>? assignedBranch;
   final String? initialItem;
   final String? initialBusinessId;
+  final String? initialConversationId;
 
   const DashboardShell({
     super.key,
@@ -48,6 +49,7 @@ class DashboardShell extends StatefulWidget {
     this.assignedBranch,
     this.initialItem,
     this.initialBusinessId,
+    this.initialConversationId,
   });
 
   @override
@@ -61,7 +63,7 @@ class _DashboardShellState extends State<DashboardShell> {
   String? _inboxTargetPhone;
   String? _inboxTargetName;
   String? _inboxTargetConversationId;
-  
+
   final List<Map<String, String>> _branches = [
     {"name": "Queens Center", "address": "719/B, Queens, NY"},
     {"name": "Brooklyn Hub", "address": "123, Brooklyn, NY"},
@@ -81,7 +83,10 @@ class _DashboardShellState extends State<DashboardShell> {
     if (widget.initialBusinessId != null) {
       _selectedTenantBusinessId = widget.initialBusinessId;
     }
-    
+    if (widget.initialConversationId != null) {
+      _inboxTargetConversationId = widget.initialConversationId;
+    }
+
     // Fetch initial data
     context.read<ProfileBloc>().add(FetchProfileRequested());
     context.read<NotificationBloc>().add(FetchNotificationsRequested());
@@ -93,20 +98,46 @@ class _DashboardShellState extends State<DashboardShell> {
   void _navigateTo(String item) {
     String? route;
     switch (item) {
-      case 'Overview': route = Routes.overview; break;
-      case 'Inbox': route = Routes.inbox; break;
-      case 'Order Booking': route = Routes.orderBooking; break;
-      case 'AI Agent': route = Routes.aiAgent; break;
-      case 'Pricing': route = Routes.pricing; break;
-      case 'Campaigns': route = Routes.campaigns; break;
-      case 'CRM & Leads': route = Routes.crmLeads; break;
-      case 'Subscriptions': route = Routes.subscriptions; break;
-      case 'Management': route = Routes.management; break;
-      case 'Settings': route = Routes.settings; break;
+      case 'Overview':
+        route = Routes.overview;
+        break;
+      case 'Inbox':
+        route = Routes.inbox;
+        break;
+      case 'Order Booking':
+        route = Routes.orderBooking;
+        break;
+      case 'AI Agent':
+        route = Routes.aiAgent;
+        break;
+      case 'Pricing':
+        route = Routes.pricing;
+        break;
+      case 'Campaigns':
+        route = Routes.campaigns;
+        break;
+      case 'CRM & Leads':
+        route = Routes.crmLeads;
+        break;
+      case 'Subscriptions':
+        route = Routes.subscriptions;
+        break;
+      case 'Management':
+        route = Routes.management;
+        break;
+      case 'Settings':
+        route = Routes.settings;
+        break;
       // case 'Demo Bookings': route = Routes.demoBookings; break;
-      case 'Notifications': route = Routes.notifications; break;
-      case 'Edit Profile': route = Routes.settings; break;
-      case 'Tenant Management': route = Routes.management; break; // Map to management or dedicated route
+      case 'Notifications':
+        route = Routes.notifications;
+        break;
+      case 'Edit Profile':
+        route = Routes.settings;
+        break;
+      case 'Tenant Management':
+        route = Routes.management;
+        break; // Map to management or dedicated route
     }
 
     String rolePath = '';
@@ -120,6 +151,10 @@ class _DashboardShellState extends State<DashboardShell> {
 
     String fullRoute = '$rolePath$route';
 
+    if (item == 'Inbox' && _inboxTargetConversationId != null) {
+      fullRoute = '$fullRoute?conversationId=$_inboxTargetConversationId';
+    }
+
     if (route != null && fullRoute != ModalRoute.of(context)?.settings.name) {
       Navigator.pushReplacementNamed(
         context,
@@ -128,6 +163,7 @@ class _DashboardShellState extends State<DashboardShell> {
           'role': widget.role,
           'assignedBranch': _selectedBranch,
           'businessId': _selectedTenantBusinessId,
+          'conversationId': _inboxTargetConversationId,
         },
       );
     } else {
@@ -137,7 +173,12 @@ class _DashboardShellState extends State<DashboardShell> {
     }
   }
 
-  void _selectItem(String item, {String? targetPhone, String? targetName, String? conversationId}) {
+  void _selectItem(
+    String item, {
+    String? targetPhone,
+    String? targetName,
+    String? conversationId,
+  }) {
     if (targetPhone != null) {
       _inboxTargetPhone = targetPhone;
     }
@@ -158,14 +199,20 @@ class _DashboardShellState extends State<DashboardShell> {
       listeners: [
         BlocListener<ManagementBloc, ManagementState>(
           listener: (context, state) {
-            if (widget.role == UserRole.businessOwner && state is ManagementLoaded && state.branches.isNotEmpty) {
-              final dynamicBranches = state.branches.map((b) => {
-                'id': b.id,
-                'name': b.name,
-                'address': b.address,
-              }).toList();
-              
-              bool found = dynamicBranches.any((b) => (b['id'] != null && b['id'] == _selectedBranch['id']) || (b['name'] != null && b['name'] == _selectedBranch['name']));
+            if (widget.role == UserRole.businessOwner &&
+                state is ManagementLoaded &&
+                state.branches.isNotEmpty) {
+              final dynamicBranches = state.branches
+                  .map(
+                    (b) => {'id': b.id, 'name': b.name, 'address': b.address},
+                  )
+                  .toList();
+
+              bool found = dynamicBranches.any(
+                (b) =>
+                    (b['id'] != null && b['id'] == _selectedBranch['id']) ||
+                    (b['name'] != null && b['name'] == _selectedBranch['name']),
+              );
               if (!found) {
                 setState(() {
                   _selectedBranch = dynamicBranches.first;
@@ -177,31 +224,31 @@ class _DashboardShellState extends State<DashboardShell> {
       ],
       child: Scaffold(
         key: _scaffoldKey,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      drawer: isDesktop ? null : Drawer(child: _buildSidebar(context)),
-      body: SafeArea(
-        bottom: false,
-        child: Row(
-          children: [
-            if (isDesktop) RepaintBoundary(child: _buildSidebar(context)),
-            Expanded(
-              child: Column(
-                children: [
-                  RepaintBoundary(child: _buildTopBar(context)),
-                  Expanded(
-                    child: RepaintBoundary(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(24.0),
-                        child: _buildContent(context),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        drawer: isDesktop ? null : Drawer(child: _buildSidebar(context)),
+        body: SafeArea(
+          bottom: false,
+          child: Row(
+            children: [
+              if (isDesktop) RepaintBoundary(child: _buildSidebar(context)),
+              Expanded(
+                child: Column(
+                  children: [
+                    RepaintBoundary(child: _buildTopBar(context)),
+                    Expanded(
+                      child: RepaintBoundary(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(24.0),
+                          child: _buildContent(context),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -214,7 +261,7 @@ class _DashboardShellState extends State<DashboardShell> {
         return widget.role == UserRole.systemOwner
             ? const DemoBookingScreen() // System Owner's inbox is Demo Bookings
             : InboxScreen(
-                isSystemOwner: widget.role == UserRole.systemOwner, 
+                isSystemOwner: widget.role == UserRole.systemOwner,
                 branchId: currentBranchId,
                 initialCustomerPhone: _inboxTargetPhone,
                 initialCustomerName: _inboxTargetName,
@@ -251,7 +298,10 @@ class _DashboardShellState extends State<DashboardShell> {
               isBranchManager: widget.role == UserRole.branchManager,
             ),
           )..add(GetBookings(branchId: currentBranchId)),
-          child: OrderBookingScreen(onNavigate: _selectItem, branchId: currentBranchId),
+          child: OrderBookingScreen(
+            onNavigate: _selectItem,
+            branchId: currentBranchId,
+          ),
         );
 
       case 'AI Agent Training':
@@ -266,9 +316,11 @@ class _DashboardShellState extends State<DashboardShell> {
         return PricingScreen(role: widget.role, branchId: currentBranchId);
 
       case 'CRM & Leads':
-        return CmrScreen(onNavigate: _selectItem, role: widget.role, branchId: currentBranchId);
-
-
+        return CmrScreen(
+          onNavigate: _selectItem,
+          role: widget.role,
+          branchId: currentBranchId,
+        );
 
       case 'Notifications':
         return const NotificationScreen();
@@ -283,16 +335,13 @@ class _DashboardShellState extends State<DashboardShell> {
         return WhatsAppCampaignsScreen(branchId: currentBranchId);
 
       case 'Overview':
-
       default:
         return OverviewScreen(role: widget.role, branchId: currentBranchId);
     }
   }
 
-
   // ─── Sidebar ─────────────────────────────────────────────────────────────
-  
-  
+
   static const List<Map<String, dynamic>> _systemOwnerItems = [
     {'icon': 'assets/overview.svg', 'label': 'Overview'},
     // {'icon': 'assets/inbox.svg', 'label': 'Demo Bookings'},
@@ -346,17 +395,18 @@ class _DashboardShellState extends State<DashboardShell> {
                 const SizedBox(height: 10),
                 const Text(
                   "MATRIX AI",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
           ),
           if (widget.role != UserRole.systemOwner) ...[
             const SizedBox(height: 16),
-            Divider(color: Theme.of(context).dividerTheme.color, height: 1, thickness: 1),
+            Divider(
+              color: Theme.of(context).dividerTheme.color,
+              height: 1,
+              thickness: 1,
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Theme(
@@ -370,12 +420,17 @@ class _DashboardShellState extends State<DashboardShell> {
                     : BlocBuilder<ManagementBloc, ManagementState>(
                         builder: (context, state) {
                           List<Map<String, String>> dynamicBranches = _branches;
-                          if (state is ManagementLoaded && state.branches.isNotEmpty) {
-                            dynamicBranches = state.branches.map((b) => {
-                                  'id': b.id,
-                                  'name': b.name,
-                                  'address': b.address,
-                                }).toList();
+                          if (state is ManagementLoaded &&
+                              state.branches.isNotEmpty) {
+                            dynamicBranches = state.branches
+                                .map(
+                                  (b) => {
+                                    'id': b.id,
+                                    'name': b.name,
+                                    'address': b.address,
+                                  },
+                                )
+                                .toList();
                           }
 
                           return Column(
@@ -384,7 +439,8 @@ class _DashboardShellState extends State<DashboardShell> {
                               InkWell(
                                 onTap: () {
                                   setState(() {
-                                    _isBranchDropdownOpen = !_isBranchDropdownOpen;
+                                    _isBranchDropdownOpen =
+                                        !_isBranchDropdownOpen;
                                   });
                                 },
                                 borderRadius: BorderRadius.circular(12),
@@ -396,18 +452,33 @@ class _DashboardShellState extends State<DashboardShell> {
                                 child: _isBranchDropdownOpen
                                     ? Container(
                                         margin: const EdgeInsets.only(top: 8),
-                                        padding: const EdgeInsets.symmetric(vertical: 8),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 8,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: Theme.of(context).cardTheme.color,
-                                          borderRadius: BorderRadius.circular(12),
+                                          color: Theme.of(
+                                            context,
+                                          ).cardTheme.color,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                           border: Border.all(
-                                            color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE),
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).dividerTheme.color ??
+                                                const Color(0xffEEEEEE),
                                           ),
                                         ),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                                          children: dynamicBranches.map((branch) {
-                                            final isSelected = branch['name'] == _selectedBranch['name'];
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.stretch,
+                                          children: dynamicBranches.map((
+                                            branch,
+                                          ) {
+                                            final isSelected =
+                                                branch['name'] ==
+                                                _selectedBranch['name'];
                                             return InkWell(
                                               onTap: () {
                                                 setState(() {
@@ -416,23 +487,35 @@ class _DashboardShellState extends State<DashboardShell> {
                                                 });
                                               },
                                               child: Padding(
-                                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 12,
+                                                    ),
                                                 child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
                                                   children: [
                                                     Text(
                                                       branch['name'] ?? '',
                                                       style: TextStyle(
                                                         fontSize: 14,
-                                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                                        color: Theme.of(context).colorScheme.onSurface,
+                                                        fontWeight: isSelected
+                                                            ? FontWeight.bold
+                                                            : FontWeight.normal,
+                                                        color: Theme.of(
+                                                          context,
+                                                        ).colorScheme.onSurface,
                                                       ),
                                                     ),
                                                     Text(
                                                       branch['address'] ?? '',
                                                       style: TextStyle(
                                                         fontSize: 12,
-                                                        color: Theme.of(context).textTheme.bodySmall?.color,
+                                                        color: Theme.of(context)
+                                                            .textTheme
+                                                            .bodySmall
+                                                            ?.color,
                                                       ),
                                                     ),
                                                   ],
@@ -474,22 +557,27 @@ class _DashboardShellState extends State<DashboardShell> {
                       bType = profileState.currentUser.businessType;
                       _cachedBusinessType = bType;
                     }
-                    
+
                     final effectiveBType = bType ?? _cachedBusinessType;
-                    
+
                     String normalizedBType = '';
                     if (effectiveBType != null) {
-                      normalizedBType = effectiveBType.toUpperCase().replaceAll(' ', '_');
+                      normalizedBType = effectiveBType.toUpperCase().replaceAll(
+                        ' ',
+                        '_',
+                      );
                     }
 
-                    if (label == 'Pricing' && normalizedBType == 'APPOINTMENT_BOOKING') {
+                    if (label == 'Pricing' &&
+                        normalizedBType == 'APPOINTMENT_BOOKING') {
                       return const SizedBox.shrink();
                     }
 
                     if (label == 'Order Booking' && effectiveBType != null) {
                       if (normalizedBType == 'APPOINTMENT_BOOKING') {
                         displayLabel = 'Appointment Booking';
-                      } else if (normalizedBType == 'PERCEL_BOOKING' || normalizedBType == 'PARCEL_BOOKING') {
+                      } else if (normalizedBType == 'PERCEL_BOOKING' ||
+                          normalizedBType == 'PARCEL_BOOKING') {
                         displayLabel = 'Parcel Booking';
                       }
                     }
@@ -529,7 +617,12 @@ class _DashboardShellState extends State<DashboardShell> {
       padding: EdgeInsets.symmetric(horizontal: isSmallMobile ? 12 : 24),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
-        border: Border(bottom: BorderSide(color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE))),
+        border: Border(
+          bottom: BorderSide(
+            color:
+                Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE),
+          ),
+        ),
       ),
       child: Row(
         children: [
@@ -565,12 +658,15 @@ class _DashboardShellState extends State<DashboardShell> {
     return BlocBuilder<NotificationBloc, NotificationState>(
       builder: (context, state) {
         int count = state.unreadCount;
-        
+
         return Stack(
           alignment: Alignment.center,
           children: [
             IconButton(
-              icon: const Icon(Icons.notifications_none_outlined, color: AppColor.grey),
+              icon: const Icon(
+                Icons.notifications_none_outlined,
+                color: AppColor.grey,
+              ),
               onPressed: () {
                 _selectItem('Notifications');
               },
@@ -609,12 +705,14 @@ class _DashboardShellState extends State<DashboardShell> {
         String name = "Loading...";
         String? avatarUrl;
 
-        if (state is ProfileLoaded || state is ProfileUpdating || state is ProfileUpdateSuccess) {
+        if (state is ProfileLoaded ||
+            state is ProfileUpdating ||
+            state is ProfileUpdateSuccess) {
           final user = (state is ProfileLoaded)
               ? state.user
               : (state is ProfileUpdating)
-                  ? state.currentUser
-                  : (state as ProfileUpdateSuccess).user;
+              ? state.currentUser
+              : (state as ProfileUpdateSuccess).user;
           name = "${user.firstName} ${user.lastName ?? ''}".trim();
           if (name.isEmpty) name = "User";
           avatarUrl = user.profilePicture;
@@ -649,7 +747,10 @@ class _DashboardShellState extends State<DashboardShell> {
                 children: [
                   Icon(Icons.logout, size: 18, color: AppColor.primary),
                   SizedBox(width: 8),
-                  Text('Logout', style: TextStyle(color: AppColor.primary, fontSize: 14)),
+                  Text(
+                    'Logout',
+                    style: TextStyle(color: AppColor.primary, fontSize: 14),
+                  ),
                 ],
               ),
             ),
@@ -662,16 +763,28 @@ class _DashboardShellState extends State<DashboardShell> {
                 CircleAvatar(
                   radius: 17.5,
                   backgroundColor: AppColor.mini,
-                  backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl.replaceFirst('http://', 'https://'), headers: const {'ngrok-skip-browser-warning': 'true'}) : null,
+                  backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty)
+                      ? NetworkImage(
+                          avatarUrl.replaceFirst('http://', 'https://'),
+                          headers: const {'ngrok-skip-browser-warning': 'true'},
+                        )
+                      : null,
                   child: (avatarUrl == null || avatarUrl.isEmpty)
-                      ? const Icon(Icons.person, color: AppColor.white, size: 18)
+                      ? const Icon(
+                          Icons.person,
+                          color: AppColor.white,
+                          size: 18,
+                        )
                       : null,
                 ),
                 if (!isMobile) ...[
                   const SizedBox(width: 10),
                   Text(
                     name,
-                    style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
                   ),
                 ],
                 const SizedBox(width: 4),
@@ -693,11 +806,15 @@ class _DashboardShellState extends State<DashboardShell> {
       builder: (context, state) {
         Map<String, String> branchData = _selectedBranch;
 
-        if (state is ProfileLoaded || state is ProfileUpdateSuccess || state is ProfileUpdating) {
+        if (state is ProfileLoaded ||
+            state is ProfileUpdateSuccess ||
+            state is ProfileUpdating) {
           final user = (state is ProfileLoaded)
               ? state.user
-              : (state is ProfileUpdateSuccess) ? state.user : (state as ProfileUpdating).currentUser;
-          
+              : (state is ProfileUpdateSuccess)
+              ? state.user
+              : (state as ProfileUpdating).currentUser;
+
           if (user.branchName != null && user.branchName!.isNotEmpty) {
             branchData = {
               'name': user.branchName!,
@@ -712,7 +829,11 @@ class _DashboardShellState extends State<DashboardShell> {
             borderRadius: BorderRadius.circular(12),
             color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
           ),
-          child: _buildBranchInfoContent(context, showArrow: false, overrideBranch: branchData),
+          child: _buildBranchInfoContent(
+            context,
+            showArrow: false,
+            overrideBranch: branchData,
+          ),
         );
       },
     );
@@ -729,13 +850,19 @@ class _DashboardShellState extends State<DashboardShell> {
     );
   }
 
-  Widget _buildBranchInfoContent(BuildContext context,
-      {required bool showArrow, Map<String, String>? overrideBranch}) {
+  Widget _buildBranchInfoContent(
+    BuildContext context, {
+    required bool showArrow,
+    Map<String, String>? overrideBranch,
+  }) {
     final Map<String, String> branch = overrideBranch ?? _selectedBranch;
     return Row(
       children: [
-        const Icon(Icons.location_on_outlined,
-            color: AppColor.primary, size: 22),
+        const Icon(
+          Icons.location_on_outlined,
+          color: AppColor.primary,
+          size: 22,
+        ),
         const SizedBox(width: 10),
         Expanded(
           child: Column(

@@ -34,13 +34,14 @@ class _CustomMediaState extends State<CustomMedia> {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
       width: double.infinity,
-      padding: EdgeInsets.all(isMobile ? 12 : 16),
+      padding: EdgeInsets.all(isMobile ? 16 : 20),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE)),
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.08)),
       ),
       child: isMobile
           ? Column(
@@ -145,23 +146,23 @@ class _CustomMediaState extends State<CustomMedia> {
   }
 
   Widget _buildConnectedButton() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Theme.of(context).colorScheme.surface : Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColor.greens),
+        color: isDark ? Colors.green.withOpacity(0.15) : const Color(0xffD1FAE5),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         children: [
-          Icon(Icons.check, size: 14, color: AppColor.greens),
-          const SizedBox(width: 4),
+          Icon(Icons.check_circle, size: 14, color: isDark ? Colors.green.shade400 : const Color(0xff059669)),
+          const SizedBox(width: 6),
           Text(
             'Connected',
             style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: AppColor.greens,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.green.shade400 : const Color(0xff059669),
             ),
           ),
         ],
@@ -170,25 +171,30 @@ class _CustomMediaState extends State<CustomMedia> {
   }
 
   Widget _buildActionButton() {
-    return GestureDetector(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = widget.isConnected 
+        ? (isDark ? Colors.red.withOpacity(0.15) : const Color(0xffFEE2E2)) 
+        : (isDark ? AppColor.primary.withOpacity(0.15) : AppColor.primary.withOpacity(0.1));
+    final fg = widget.isConnected ? (isDark ? Colors.red.shade300 : const Color(0xffDC2626)) : AppColor.primary;
+    final text = widget.isConnected ? 'Disconnect' : 'Connect';
+
+    return InkWell(
       onTap: widget.isLoading ? null : widget.onActionPressed,
+      borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark ? Theme.of(context).colorScheme.surface : Theme.of(context).cardTheme.color,
+          color: bg,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: widget.isConnected ? AppColor.primary : Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE),
-          ),
         ),
         child: widget.isLoading 
-            ? SizedBox(width: 13, height: 13, child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.onSurface))
+            ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: fg))
             : Text(
-                widget.isConnected ? 'Disconnect' : 'Connect',
+                text,
                 style: TextStyle(
                   fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: widget.isConnected ? AppColor.primary : Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                  color: fg,
                 ),
               ),
       ),
