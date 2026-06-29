@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/common/custom_pagination.dart';
 import 'package:roberto/features/Pricing/widget/custom_widgetrule.dart';
-import 'package:roberto/features/TenantManagement%20/widget/custom_headder.dart';
+import 'package:roberto/features/TenantManagement/widget/custom_headder.dart';
 
 import 'package:roberto/features/Pricing/widget/pricing_rule_mod.dart';
 import 'package:roberto/features/Pricing/widget/custom_addrule.dart';

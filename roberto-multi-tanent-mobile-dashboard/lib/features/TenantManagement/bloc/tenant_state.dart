@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:roberto/features/TenantManagement%20/data/models/tenant_model.dart';
+import 'package:roberto/features/TenantManagement/data/models/tenant_model.dart';
 
 abstract class TenantState extends Equatable {
   const TenantState();

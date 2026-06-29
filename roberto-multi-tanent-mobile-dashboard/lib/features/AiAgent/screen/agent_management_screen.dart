@@ -7,10 +7,10 @@ import 'package:roberto/features/AiAgent/bloc/agent_management_bloc.dart';
 import 'package:roberto/features/AiAgent/bloc/agent_management_event.dart';
 import 'package:roberto/features/AiAgent/bloc/agent_management_state.dart';
 import 'package:roberto/features/AiAgent/data/models/agent_model.dart';
-import 'package:roberto/features/TenantManagement%20/bloc/tenant_bloc.dart';
-import 'package:roberto/features/TenantManagement%20/bloc/tenant_event.dart';
-import 'package:roberto/features/TenantManagement%20/bloc/tenant_state.dart';
-import 'package:roberto/features/TenantManagement%20/data/models/tenant_model.dart';
+import 'package:roberto/features/TenantManagement/bloc/tenant_bloc.dart';
+import 'package:roberto/features/TenantManagement/bloc/tenant_event.dart';
+import 'package:roberto/features/TenantManagement/bloc/tenant_state.dart';
+import 'package:roberto/features/TenantManagement/data/models/tenant_model.dart';
 
 class AgentManagementScreen extends StatefulWidget {
   final String? businessId;

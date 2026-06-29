@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/businesssubscription/widget/custom_plans.dart';
 import 'package:roberto/features/businesssubscription/widget/custom_history.dart';
-import 'package:roberto/features/TenantManagement%20/widget/custom_stat_card.dart';
+import 'package:roberto/features/TenantManagement/widget/custom_stat_card.dart';
 
 class BusinessSubscription extends StatefulWidget {
   const BusinessSubscription({super.key});

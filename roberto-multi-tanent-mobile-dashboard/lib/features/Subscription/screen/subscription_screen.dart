@@ -4,7 +4,7 @@ import 'package:roberto/features/Subscription/bloc/subscription_event.dart';
 import 'package:roberto/features/Subscription/bloc/subscription_state.dart';
 import 'package:roberto/features/Subscription/data/models/subscription_model.dart';
 import 'package:flutter/material.dart';
-import 'package:roberto/features/TenantManagement%20/widget/custom_stat_card.dart';
+import 'package:roberto/features/TenantManagement/widget/custom_stat_card.dart';
 import 'package:roberto/features/Subscription/widget/custom_planbilling.dart';
 
 class SubscriptionScreen extends StatefulWidget {
