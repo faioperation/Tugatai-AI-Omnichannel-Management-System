@@ -3,7 +3,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/common/sidebar_item.dart';
 import 'package:roberto/core/network/network_client.dart';
-import 'package:roberto/features/TenantManagement%20/screen/tenant_screen.dart';
+import 'package:roberto/features/TenantManagement/screen/tenant_screen.dart';
 import 'package:roberto/features/Subscription/screen/subscription_screen.dart';
 import 'package:roberto/features/Settings/screen/setting_screen.dart';
 import 'package:roberto/features/Orderbooking/screen/order_booking_screen.dart';

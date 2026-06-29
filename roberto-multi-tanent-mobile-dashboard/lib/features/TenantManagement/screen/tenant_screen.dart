@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:roberto/app/app_color.dart';
-import 'package:roberto/features/TenantManagement%20/widget/custom_stat_card.dart';
-import 'package:roberto/features/TenantManagement%20/widget/custom_addtenant.dart';
-import 'package:roberto/features/TenantManagement%20/widget/custom_headder.dart';
+import 'package:roberto/features/TenantManagement/widget/custom_stat_card.dart';
+import 'package:roberto/features/TenantManagement/widget/custom_addtenant.dart';
+import 'package:roberto/features/TenantManagement/widget/custom_headder.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:roberto/features/TenantManagement%20/bloc/tenant_bloc.dart';
-import 'package:roberto/features/TenantManagement%20/bloc/tenant_event.dart';
-import 'package:roberto/features/TenantManagement%20/bloc/tenant_state.dart';
-import 'package:roberto/features/TenantManagement%20/data/models/tenant_model.dart';
+import 'package:roberto/features/TenantManagement/bloc/tenant_bloc.dart';
+import 'package:roberto/features/TenantManagement/bloc/tenant_event.dart';
+import 'package:roberto/features/TenantManagement/bloc/tenant_state.dart';
+import 'package:roberto/features/TenantManagement/data/models/tenant_model.dart';
 import '../widget/custom_builditem.dart';
 
 class TenantScreen extends StatefulWidget {

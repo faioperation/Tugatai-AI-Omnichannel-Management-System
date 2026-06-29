@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:roberto/features/TenantManagement%20/data/repositories/tenant_repository.dart';
+import 'package:roberto/features/TenantManagement/data/repositories/tenant_repository.dart';
 import 'tenant_event.dart';
 import 'tenant_state.dart';
 

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
-import 'package:roberto/features/TenantManagement%20/widget/custom_minitextfield.dart';
-import 'package:roberto/features/TenantManagement%20/widget/Custom_MiniDropdown.dart';
-import 'package:roberto/features/TenantManagement%20/bloc/tenant_bloc.dart';
-import 'package:roberto/features/TenantManagement%20/bloc/tenant_event.dart';
+import 'package:roberto/features/TenantManagement/widget/custom_minitextfield.dart';
+import 'package:roberto/features/TenantManagement/widget/Custom_MiniDropdown.dart';
+import 'package:roberto/features/TenantManagement/bloc/tenant_bloc.dart';
+import 'package:roberto/features/TenantManagement/bloc/tenant_event.dart';
 import 'package:roberto/features/Subscription/bloc/subscription_bloc.dart';
 import 'package:roberto/features/Subscription/bloc/subscription_state.dart';
 import 'package:roberto/features/Subscription/bloc/subscription_event.dart';
-import 'package:roberto/features/TenantManagement%20/data/models/tenant_model.dart';
+import 'package:roberto/features/TenantManagement/data/models/tenant_model.dart';
 
 class CustomAddtenant extends StatefulWidget {
   final TenantBusiness? tenant;
