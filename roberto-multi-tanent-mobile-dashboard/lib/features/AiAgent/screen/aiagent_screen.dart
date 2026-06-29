@@ -38,16 +38,27 @@ class _AiagentScreenState extends State<AiagentScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.warning_amber_rounded, size: 64, color: Theme.of(context).colorScheme.primary),
+            Icon(
+              Icons.warning_amber_rounded,
+              size: 64,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             const SizedBox(height: 16),
             Text(
               "Please select a tenant",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               "Go to Tenant Management and select a tenant to configure their AI Agent.",
-              style: TextStyle(fontSize: 16, color: Theme.of(context).textTheme.bodyMedium?.color),
+              style: TextStyle(
+                fontSize: 16,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              ),
             ),
           ],
         ),
@@ -67,7 +78,9 @@ class _AiagentScreenState extends State<AiagentScreen> {
                   Text(
                     'AI Agent Management',
                     style: TextStyle(
-                      fontSize: MediaQuery.of(context).size.width < 600 ? 24 : 28,
+                      fontSize: MediaQuery.of(context).size.width < 600
+                          ? 24
+                          : 28,
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
@@ -75,7 +88,10 @@ class _AiagentScreenState extends State<AiagentScreen> {
                   const SizedBox(height: 6),
                   Text(
                     'Configure and train your AI assistant',
-                    style: TextStyle(fontSize: 15, color: Theme.of(context).textTheme.bodyMedium?.color),
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
                   ),
                 ],
               ),
@@ -95,10 +111,8 @@ class _AiagentScreenState extends State<AiagentScreen> {
         // Tab Content
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 250),
-          transitionBuilder: (child, animation) => FadeTransition(
-            opacity: animation,
-            child: child,
-          ),
+          transitionBuilder: (child, animation) =>
+              FadeTransition(opacity: animation, child: child),
           child: BlocBuilder<AgentTrainingBloc, AgentTrainingState>(
             builder: (context, state) {
               if (state is AgentTrainingLoading) {
@@ -107,10 +121,21 @@ class _AiagentScreenState extends State<AiagentScreen> {
                   child: Center(child: CircularProgressIndicator()),
                 );
               }
-              
+
               return _selectedTab == 0
-                  ? SystemPromptView(key: const ValueKey('system'), businessId: widget.businessId!)
-                  : TrainingDataView(key: const ValueKey('training'), businessId: widget.businessId!);
+                  ? SystemPromptView(
+                      key: const ValueKey('system'),
+                      businessId: widget.businessId!,
+                      onNext: () {
+                        setState(() {
+                          _selectedTab = 1;
+                        });
+                      },
+                    )
+                  : TrainingDataView(
+                      key: const ValueKey('training'),
+                      businessId: widget.businessId!,
+                    );
             },
           ),
         ),
@@ -169,7 +194,9 @@ class _AiagentScreenState extends State<AiagentScreen> {
               width: 16,
               height: 16,
               colorFilter: ColorFilter.mode(
-                isActive ? Colors.white : theme.textTheme.bodyMedium?.color ?? Colors.grey,
+                isActive
+                    ? Colors.white
+                    : theme.textTheme.bodyMedium?.color ?? Colors.grey,
                 BlendMode.srcIn,
               ),
             ),
@@ -179,7 +206,9 @@ class _AiagentScreenState extends State<AiagentScreen> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isActive ? Colors.white : theme.textTheme.bodyMedium?.color,
+                color: isActive
+                    ? Colors.white
+                    : theme.textTheme.bodyMedium?.color,
               ),
             ),
           ],

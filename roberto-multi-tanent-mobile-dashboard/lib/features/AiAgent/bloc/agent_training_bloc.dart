@@ -6,7 +6,8 @@ import 'package:roberto/features/AiAgent/bloc/agent_training_state.dart';
 class AgentTrainingBloc extends Bloc<AgentTrainingEvent, AgentTrainingState> {
   final AgentTrainingRepository repository;
 
-  AgentTrainingBloc({required this.repository}) : super(AgentTrainingInitial()) {
+  AgentTrainingBloc({required this.repository})
+    : super(AgentTrainingInitial()) {
     on<FetchAgentTrainingsRequested>(_onFetchAgentTrainings);
     on<FetchAgentTrainingByBusinessRequested>(_onFetchAgentTrainingByBusiness);
     on<CreateAgentTrainingRequested>(_onCreateAgentTraining);
@@ -14,10 +15,15 @@ class AgentTrainingBloc extends Bloc<AgentTrainingEvent, AgentTrainingState> {
   }
 
   Future<void> _onFetchAgentTrainings(
-      FetchAgentTrainingsRequested event, Emitter<AgentTrainingState> emit) async {
+    FetchAgentTrainingsRequested event,
+    Emitter<AgentTrainingState> emit,
+  ) async {
     emit(AgentTrainingLoading());
     try {
-      final response = await repository.getAllTrainings(page: event.page, limit: event.limit);
+      final response = await repository.getAllTrainings(
+        page: event.page,
+        limit: event.limit,
+      );
       emit(AgentTrainingLoaded(response));
     } catch (e) {
       emit(AgentTrainingError(e.toString()));
@@ -25,14 +31,16 @@ class AgentTrainingBloc extends Bloc<AgentTrainingEvent, AgentTrainingState> {
   }
 
   Future<void> _onFetchAgentTrainingByBusiness(
-      FetchAgentTrainingByBusinessRequested event, Emitter<AgentTrainingState> emit) async {
+    FetchAgentTrainingByBusinessRequested event,
+    Emitter<AgentTrainingState> emit,
+  ) async {
     emit(AgentTrainingLoading());
     try {
-      // The API doesn't have a direct /by-business endpoint in the screenshots, 
+      // The API doesn't have a direct /by-business endpoint in the screenshots,
       // but it has /all. We will fetch all and filter by businessId.
       // If there is a direct endpoint in the future, we can change this.
-      final response = await repository.getAllTrainings(limit: 100); 
-      
+      final response = await repository.getAllTrainings(limit: 100);
+
       final training = response.trainings.cast<dynamic>().firstWhere(
         (t) => t.businessId == event.businessId,
         orElse: () => null,
@@ -42,7 +50,7 @@ class AgentTrainingBloc extends Bloc<AgentTrainingEvent, AgentTrainingState> {
         emit(SingleAgentTrainingLoaded(training));
       } else {
         // Not found for this business, emit initial or specific state
-        emit(AgentTrainingInitial()); 
+        emit(AgentTrainingInitial());
       }
     } catch (e) {
       emit(AgentTrainingError(e.toString()));
@@ -50,7 +58,9 @@ class AgentTrainingBloc extends Bloc<AgentTrainingEvent, AgentTrainingState> {
   }
 
   Future<void> _onCreateAgentTraining(
-      CreateAgentTrainingRequested event, Emitter<AgentTrainingState> emit) async {
+    CreateAgentTrainingRequested event,
+    Emitter<AgentTrainingState> emit,
+  ) async {
     emit(AgentTrainingLoading());
     try {
       final training = await repository.createTraining(
@@ -61,7 +71,12 @@ class AgentTrainingBloc extends Bloc<AgentTrainingEvent, AgentTrainingState> {
         policiesGuidelinesFile: event.policiesGuidelinesFile,
         faqFile: event.faqFile,
       );
-      emit(AgentTrainingOperationSuccess(training, "Agent training created successfully"));
+      emit(
+        AgentTrainingOperationSuccess(
+          training,
+          "Agent training created successfully",
+        ),
+      );
       // Re-fetch or just emit loaded
       emit(SingleAgentTrainingLoaded(training));
     } catch (e) {
@@ -70,11 +85,18 @@ class AgentTrainingBloc extends Bloc<AgentTrainingEvent, AgentTrainingState> {
   }
 
   Future<void> _onUpdateAgentTraining(
-      UpdateAgentTrainingRequested event, Emitter<AgentTrainingState> emit) async {
+    UpdateAgentTrainingRequested event,
+    Emitter<AgentTrainingState> emit,
+  ) async {
     emit(AgentTrainingLoading());
     try {
       final training = await repository.updateTraining(event.id, event.data);
-      emit(AgentTrainingOperationSuccess(training, "Agent training updated successfully"));
+      emit(
+        AgentTrainingOperationSuccess(
+          training,
+          "Agent training updated successfully",
+        ),
+      );
       emit(SingleAgentTrainingLoaded(training));
     } catch (e) {
       emit(AgentTrainingError(e.toString()));

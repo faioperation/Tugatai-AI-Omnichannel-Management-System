@@ -29,7 +29,14 @@ class CreateAgentRequested extends AgentManagementEvent {
   });
 
   @override
-  List<Object?> get props => [businessId, agentName, branchId, filePath, fileBytes, fileName];
+  List<Object?> get props => [
+    businessId,
+    agentName,
+    branchId,
+    filePath,
+    fileBytes,
+    fileName,
+  ];
 }
 
 class UpdateAgentRequested extends AgentManagementEvent {
@@ -50,7 +57,14 @@ class UpdateAgentRequested extends AgentManagementEvent {
   });
 
   @override
-  List<Object?> get props => [id, businessId, agentName, filePath, fileBytes, fileName];
+  List<Object?> get props => [
+    id,
+    businessId,
+    agentName,
+    filePath,
+    fileBytes,
+    fileName,
+  ];
 }
 
 class DeleteAgentRequested extends AgentManagementEvent {
@@ -78,5 +92,11 @@ class SetupTwilioRequested extends AgentManagementEvent {
   });
 
   @override
-  List<Object> get props => [twilioSid, twilioAuthToken, twilioNumber, transferNumber, assistantId];
+  List<Object> get props => [
+    twilioSid,
+    twilioAuthToken,
+    twilioNumber,
+    transferNumber,
+    assistantId,
+  ];
 }

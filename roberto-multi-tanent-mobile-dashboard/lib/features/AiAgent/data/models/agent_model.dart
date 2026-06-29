@@ -35,17 +35,34 @@ class AgentModel {
       branchId: json['branchId'] ?? '',
       rulesFile: json['rulesFile'],
       vapiId: json['vapiId'],
-      metadata: json['metadata'] != null ? AgentMetadata.fromJson(json['metadata']) : null,
+      metadata: json['metadata'] != null
+          ? AgentMetadata.fromJson(json['metadata'])
+          : null,
       createdAt: json['createdAt'],
       updatedAt: json['updatedAt'],
-      twilioSid: json['twilioSid'] ?? json['twilio_sid'] ?? meta['twilioSid'] ?? meta['twilio_sid'],
-      twilioAuthToken: json['twilioAuthToken'] ?? json['twilio_auth_token'] ?? meta['twilioAuthToken'] ?? meta['twilio_auth_token'],
-      twilioNumber: json['twilioNumber'] ?? json['twilio_number'] ?? meta['twilioNumber'] ?? meta['twilio_number'],
-      transferNumber: json['transferNumber'] ?? json['transfer_number'] ?? meta['transferNumber'] ?? meta['transfer_number'],
+      twilioSid:
+          json['twilioSid'] ??
+          json['twilio_sid'] ??
+          meta['twilioSid'] ??
+          meta['twilio_sid'],
+      twilioAuthToken:
+          json['twilioAuthToken'] ??
+          json['twilio_auth_token'] ??
+          meta['twilioAuthToken'] ??
+          meta['twilio_auth_token'],
+      twilioNumber:
+          json['twilioNumber'] ??
+          json['twilio_number'] ??
+          meta['twilioNumber'] ??
+          meta['twilio_number'],
+      transferNumber:
+          json['transferNumber'] ??
+          json['transfer_number'] ??
+          meta['transferNumber'] ??
+          meta['transfer_number'],
     );
   }
 }
-
 
 class AgentMetadata {
   final String? agentName;

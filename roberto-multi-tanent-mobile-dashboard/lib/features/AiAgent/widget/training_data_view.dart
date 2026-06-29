@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:roberto/features/Auth/widget/custom_textfield.dart';
@@ -5,6 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/features/AiAgent/bloc/agent_training_bloc.dart';
 import 'package:roberto/features/AiAgent/bloc/agent_training_event.dart';
 import 'package:roberto/features/AiAgent/bloc/agent_training_state.dart';
+import 'package:printing/printing.dart';
 
 class TrainingDataView extends StatefulWidget {
   final String businessId;
@@ -16,7 +20,11 @@ class TrainingDataView extends StatefulWidget {
 
 class _TrainingDataViewState extends State<TrainingDataView> {
   final TextEditingController _businessInfoController = TextEditingController();
-  List<String> selectedFiles = [];
+  Map<String, List<PlatformFile>> uploadedFiles = {
+    'Product Information': [],
+    'Policies & Guidelines': [],
+    'Common FAQs': [],
+  };
   String? _trainingId;
 
   @override
@@ -35,33 +43,53 @@ class _TrainingDataViewState extends State<TrainingDataView> {
     super.dispose();
   }
 
-  Future<void> pickFile(String type) async {
+  Future<void> pickFile(String label) async {
+    if ((uploadedFiles[label] ?? []).isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('You can only upload one file for $label.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.any,
+      withData: true,
     );
 
     if (result != null) {
       setState(() {
-        selectedFiles.add(result.files.single.name);
+        uploadedFiles[label]?.add(result.files.single);
       });
     }
   }
 
   void _saveTrainingData() {
     final businessInfo = _businessInfoController.text.trim();
+    if (businessInfo.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Business information cannot be empty')),
+      );
+      return;
+    }
 
     if (_trainingId != null) {
       context.read<AgentTrainingBloc>().add(
         UpdateAgentTrainingRequested(
           id: _trainingId!,
-          data: {'businessInformation': businessInfo}, // File upload not supported in PATCH right now
+          data: {
+            'businessInformation': businessInfo,
+          }, // File upload not supported in PATCH right now
         ),
       );
     } else {
       context.read<AgentTrainingBloc>().add(
         CreateAgentTrainingRequested(
           businessId: widget.businessId,
-          systemPrompt: '', // This will be set from system prompt tab, but if creating from here, we might need to handle empty.
+          systemPrompt:
+              '', // This will be set from system prompt tab, but if creating from here, we might need to handle empty.
           businessInformation: businessInfo,
         ),
       );
@@ -75,12 +103,16 @@ class _TrainingDataViewState extends State<TrainingDataView> {
       listener: (context, state) {
         if (state is SingleAgentTrainingLoaded) {
           if (_businessInfoController.text.isEmpty) {
-            _businessInfoController.text = state.training.businessInformation ?? '';
+            _businessInfoController.text =
+                state.training.businessInformation ?? '';
           }
           _trainingId = state.training.id;
         } else if (state is AgentTrainingOperationSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.green,
+            ),
           );
         } else if (state is AgentTrainingError) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -111,7 +143,10 @@ class _TrainingDataViewState extends State<TrainingDataView> {
             const SizedBox(height: 6),
             Text(
               'Provide business-specific information to train your AI agent',
-              style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodyMedium?.color),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              ),
             ),
             const SizedBox(height: 24),
 
@@ -167,7 +202,10 @@ class _TrainingDataViewState extends State<TrainingDataView> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -186,6 +224,8 @@ class _TrainingDataViewState extends State<TrainingDataView> {
     required IconData iconData,
   }) {
     final theme = Theme.of(context);
+    final files = uploadedFiles[label] ?? [];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -201,7 +241,7 @@ class _TrainingDataViewState extends State<TrainingDataView> {
         InkWell(
           onTap: () {
             pickFile(label);
-            },
+          },
           borderRadius: BorderRadius.circular(8),
           child: CustomPaint(
             painter: DashedRectPainter(
@@ -231,7 +271,171 @@ class _TrainingDataViewState extends State<TrainingDataView> {
             ),
           ),
         ),
+        if (files.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          ...files.map((file) => _buildFileItem(file)),
+        ],
       ],
+    );
+  }
+
+  Widget _buildFileItem(PlatformFile file) {
+    return InkWell(
+      onTap: () => _showFilePreview(file),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withOpacity(0.5),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.insert_drive_file,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                file.name,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, size: 20),
+              onPressed: () {
+                setState(() {
+                  for (var key in uploadedFiles.keys) {
+                    uploadedFiles[key]?.remove(file);
+                  }
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFilePreview(PlatformFile file) {
+    final ext = file.extension?.toLowerCase();
+    Widget previewContent;
+    
+    Future<Uint8List> getBytes() async {
+      if (file.bytes != null) return file.bytes!;
+      if (!kIsWeb && file.path != null) {
+        return await File(file.path!).readAsBytes();
+      }
+      throw Exception('Cannot read file data');
+    }
+
+    if (ext == 'jpg' || ext == 'jpeg' || ext == 'png') {
+      previewContent = FutureBuilder<Uint8List>(
+        future: getBytes(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return Image.memory(snapshot.data!, fit: BoxFit.contain);
+          } else if (snapshot.hasError) {
+            return const Center(child: Text('Error loading image'));
+          }
+          return const Center(child: CircularProgressIndicator());
+        },
+      );
+    } else if (ext == 'pdf') {
+      previewContent = PdfPreview(
+        build: (format) => getBytes(),
+        allowPrinting: false,
+        allowSharing: false,
+        canChangeOrientation: false,
+        canChangePageFormat: false,
+        canDebug: false,
+      );
+    } else if (ext == 'txt' || ext == 'csv' || ext == 'md') {
+      previewContent = FutureBuilder<Uint8List>(
+        future: getBytes(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(utf8.decode(snapshot.data!, allowMalformed: true)),
+              ),
+            );
+          } else if (snapshot.hasError) {
+            return const Center(child: Text('Error loading text'));
+          }
+          return const Center(child: CircularProgressIndicator());
+        },
+      );
+    } else {
+      previewContent = Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.insert_drive_file, size: 80, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: 16),
+            const Text('Preview not available for this file type.'),
+          ],
+        ),
+      );
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          height: MediaQuery.of(context).size.height * 0.9,
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      file.name,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Theme.of(context).dividerColor),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: previewContent,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -257,8 +461,12 @@ class DashedRectPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final path = Path();
-    path.addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, size.width, size.height), const Radius.circular(8)));
+    path.addRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        const Radius.circular(8),
+      ),
+    );
 
     try {
       for (final pathMetric in path.computeMetrics()) {
@@ -271,7 +479,9 @@ class DashedRectPainter extends CustomPainter {
           }
           if (draw) {
             canvas.drawPath(
-                pathMetric.extractPath(distance, distance + length), paint);
+              pathMetric.extractPath(distance, distance + length),
+              paint,
+            );
           }
           distance += length;
           draw = !draw;
@@ -279,7 +489,7 @@ class DashedRectPainter extends CustomPainter {
       }
     } catch (e) {
       // Fallback
-       canvas.drawPath(path, paint);
+      canvas.drawPath(path, paint);
     }
   }
 

@@ -9,14 +9,17 @@ class AgentTrainingRepository {
     return LocalStorageService.accessToken;
   }
 
-  Future<AgentTrainingResponse> getAllTrainings({int page = 1, int limit = 10}) async {
+  Future<AgentTrainingResponse> getAllTrainings({
+    int page = 1,
+    int limit = 10,
+  }) async {
     final token = await _getToken();
-    final url = Uri.parse('${ApiConstants.systemOwnerAgentTrainings}?page=$page&limit=$limit');
+    final url = Uri.parse(
+      '${ApiConstants.systemOwnerAgentTrainings}?page=$page&limit=$limit',
+    );
     final response = await http.get(
       url,
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Authorization': 'Bearer $token'},
     );
 
     if (response.statusCode == 200) {
@@ -29,12 +32,12 @@ class AgentTrainingRepository {
 
   Future<AgentTraining> getTrainingById(String id) async {
     final token = await _getToken();
-    final url = Uri.parse('${ApiConstants.systemOwnerAgentTrainingsSingle}/$id');
+    final url = Uri.parse(
+      '${ApiConstants.systemOwnerAgentTrainingsSingle}/$id',
+    );
     final response = await http.get(
       url,
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Authorization': 'Bearer $token'},
     );
 
     if (response.statusCode == 200) {
@@ -68,7 +71,7 @@ class AgentTrainingRepository {
     // we use fromBytes for cross-platform (if passing bytes)
     // Here we will assume file objects are not being uploaded yet, just text.
     // If you pass real files in the UI, you would use http.MultipartFile.fromBytes
-    
+
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
 
@@ -80,9 +83,14 @@ class AgentTrainingRepository {
     }
   }
 
-  Future<AgentTraining> updateTraining(String id, Map<String, dynamic> data) async {
+  Future<AgentTraining> updateTraining(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
     final token = await _getToken();
-    final url = Uri.parse('${ApiConstants.systemOwnerAgentTrainingsSingle}/$id');
+    final url = Uri.parse(
+      '${ApiConstants.systemOwnerAgentTrainingsSingle}/$id',
+    );
     final response = await http.patch(
       url,
       headers: {
@@ -102,12 +110,12 @@ class AgentTrainingRepository {
 
   Future<void> deleteTraining(String id) async {
     final token = await _getToken();
-    final url = Uri.parse('${ApiConstants.systemOwnerAgentTrainingsSingle}/$id');
+    final url = Uri.parse(
+      '${ApiConstants.systemOwnerAgentTrainingsSingle}/$id',
+    );
     final response = await http.delete(
       url,
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Authorization': 'Bearer $token'},
     );
 
     if (response.statusCode != 200 && response.statusCode != 204) {

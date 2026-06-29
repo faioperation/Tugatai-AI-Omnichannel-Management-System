@@ -89,14 +89,21 @@ class _BusinessownerSettingsState extends State<BusinessownerSettings> {
           ),
           const SizedBox(height: 28),
 
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardTheme.color,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE)),
-            ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+                border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.1)),
+              ),
             child: Row(
               children: [
                 // RIGHT COLUMN
@@ -115,23 +122,23 @@ class _BusinessownerSettingsState extends State<BusinessownerSettings> {
                           Text(
                             "Social Media Connections",
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
                       Text(
                         "Connect your social media accounts to manage all conversations in one place",
                         style: TextStyle(
                           fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w400,
                           color: Theme.of(context).textTheme.bodyMedium?.color,
                         ),
                       ),
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 24),
                       BlocBuilder<SocialMediaBloc, SocialMediaState>(
                         builder: (context, state) {
                           return Column(
@@ -197,11 +204,18 @@ class _BusinessownerSettingsState extends State<BusinessownerSettings> {
           // SYSTEM PREFERENCES CARD
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Theme.of(context).cardTheme.color,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE)),
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+              border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.1)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,22 +223,68 @@ class _BusinessownerSettingsState extends State<BusinessownerSettings> {
                 const Text(
                   "System Preferences",
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 ListenableBuilder(
                   listenable: themeController,
                   builder: (context, _) {
-                    return SwitchListTile(
-                      title: const Text("Dark Mode"),
-                      subtitle: const Text("Switch between light and dark system themes"),
-                      value: themeController.isDarkMode,
-                      activeThumbColor: AppColor.primary,
-                      onChanged: (value) {
-                        themeController.toggleTheme();
-                      },
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.05)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: themeController.isDarkMode ? Colors.amber.withOpacity(0.15) : Colors.blue.withOpacity(0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              themeController.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                              color: themeController.isDarkMode ? Colors.amber : Colors.blue,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Dark Mode",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "Switch between light and dark system themes",
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch(
+                            value: themeController.isDarkMode,
+                            activeColor: AppColor.primary,
+                            onChanged: (value) {
+                              themeController.toggleTheme();
+                            },
+                          ),
+                        ],
+                      ),
                     );
                   },
                 ),
