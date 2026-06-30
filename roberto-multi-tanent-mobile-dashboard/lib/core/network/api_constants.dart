@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'https://accustomed-maryalice-bubbleless.ngrok-free.dev/api';
+  static const String baseUrl = 'https://test14.fireai.agency/api';
   
   // Auth endpoints
   static const String login = '$baseUrl/auth/login';
