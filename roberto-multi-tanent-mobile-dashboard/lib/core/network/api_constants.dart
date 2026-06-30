@@ -118,4 +118,7 @@ class ApiConstants {
   static const String googleCalendarDisconnect = '$baseUrl/v1/google/calendar/disconnect';
   static const String googleCalendarEvents = '$baseUrl/v1/google/calendar/events';
 
+  // Demo Booking endpoints
+  static const String demoBookingsAll = '$baseUrl/demo-bookings/all';
+  static const String demoBookings = '$baseUrl/demo-bookings'; // for /$id
 }

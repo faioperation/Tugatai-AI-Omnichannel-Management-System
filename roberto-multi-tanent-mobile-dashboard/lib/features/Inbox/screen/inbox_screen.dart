@@ -85,10 +85,14 @@ class _InboxScreenState extends State<InboxScreen> {
           } else if (widget.initialConversationId != null) {
             final match = _conversations.where((c) => c.id == widget.initialConversationId);
             if (match.isNotEmpty) {
-              _selectedConversation = match.first;
-              _showChatViewOnMobile = true;
-              _fetchMessages(_selectedConversation!);
-              _fetchChatbotStatus(_selectedConversation!.id);
+              _openConversation(match.first);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Not found this conversation, I think it's from another platform or it's a voice call"),
+                  backgroundColor: Colors.orange,
+                ),
+              );
             }
           } else if (widget.initialCustomerPhone != null || widget.initialCustomerName != null) {
             final match = _conversations.where((c) {
@@ -105,10 +109,7 @@ class _InboxScreenState extends State<InboxScreen> {
               return false;
             });
             if (match.isNotEmpty) {
-              _selectedConversation = match.first;
-              _showChatViewOnMobile = true;
-              _fetchMessages(_selectedConversation!);
-              _fetchChatbotStatus(_selectedConversation!.id);
+              _openConversation(match.first);
             }
           }
         });
@@ -130,6 +131,18 @@ class _InboxScreenState extends State<InboxScreen> {
         );
       }
     }
+  }
+
+  void _openConversation(ConversationMod conv) {
+    if (mounted) {
+      setState(() {
+        _selectedConversation = conv;
+        _showChatViewOnMobile = true;
+        _isAiOn = conv.aiReply;
+      });
+    }
+    _fetchMessages(conv);
+    _fetchChatbotStatus(conv.id);
   }
 
   Future<void> _fetchChatbotStatus(String conversationId) async {
@@ -394,12 +407,7 @@ class _InboxScreenState extends State<InboxScreen> {
                                 });
                               },
                               onConversationSelected: (conv) {
-                                setState(() {
-                                  _selectedConversation = conv;
-                                  _isAiOn = conv.aiReply;
-                                });
-                                _fetchMessages(conv);
-                                _fetchChatbotStatus(conv.id);
+                                _openConversation(conv);
                               },
                             )),
                             const VerticalDivider(width: 1, thickness: 1),
@@ -440,12 +448,7 @@ class _InboxScreenState extends State<InboxScreen> {
                                     });
                                   },
                                   onConversationSelected: (conv) {
-                                    setState(() {
-                                      _selectedConversation = conv;
-                                      _isAiOn = conv.aiReply;
-                                    });
-                                    _fetchMessages(conv);
-                                    _fetchChatbotStatus(conv.id);
+                                    _openConversation(conv);
                                   },
                                 )),
                                 const VerticalDivider(width: 1, thickness: 1),
@@ -483,13 +486,7 @@ class _InboxScreenState extends State<InboxScreen> {
                                         });
                                       },
                                       onConversationSelected: (conv) {
-                                        setState(() {
-                                          _selectedConversation = conv;
-                                          _showChatViewOnMobile = true;
-                                          _isAiOn = conv.aiReply;
-                                        });
-                                        _fetchMessages(conv);
-                                        _fetchChatbotStatus(conv.id);
+                                        _openConversation(conv);
                                       },
                                     ),
                                   )

@@ -35,6 +35,9 @@ import 'package:roberto/features/notification/bloc/notification_state.dart';
 import 'package:roberto/features/management/bloc/management_bloc.dart';
 import 'package:roberto/features/management/bloc/management_event.dart';
 import 'package:roberto/features/management/bloc/management_state.dart';
+import 'package:roberto/features/businesssubscription/bloc/business_subscription_bloc.dart';
+import 'package:roberto/features/businesssubscription/bloc/business_subscription_event.dart';
+import 'package:roberto/features/businesssubscription/bloc/business_subscription_state.dart';
 
 class DashboardShell extends StatefulWidget {
   final UserRole role;
@@ -58,6 +61,7 @@ class DashboardShell extends StatefulWidget {
 
 class _DashboardShellState extends State<DashboardShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _isSubscriptionExpired = false;
   String _activeItem = 'Overview';
   String? _selectedTenantBusinessId;
   String? _inboxTargetPhone;
@@ -92,6 +96,9 @@ class _DashboardShellState extends State<DashboardShell> {
     context.read<NotificationBloc>().add(FetchNotificationsRequested());
     if (widget.role == UserRole.businessOwner) {
       context.read<ManagementBloc>().add(FetchBranchesRequested());
+    }
+    if (widget.role == UserRole.businessOwner || widget.role == UserRole.branchManager) {
+      context.read<BusinessSubscriptionBloc>().add(FetchMySubscriptionRequested());
     }
   }
 
@@ -128,7 +135,6 @@ class _DashboardShellState extends State<DashboardShell> {
       case 'Settings':
         route = Routes.settings;
         break;
-      // case 'Demo Bookings': route = Routes.demoBookings; break;
       case 'Notifications':
         route = Routes.notifications;
         break;
@@ -137,7 +143,7 @@ class _DashboardShellState extends State<DashboardShell> {
         break;
       case 'Tenant Management':
         route = Routes.management;
-        break; // Map to management or dedicated route
+        break;
     }
 
     String rolePath = '';
@@ -179,6 +185,9 @@ class _DashboardShellState extends State<DashboardShell> {
     String? targetName,
     String? conversationId,
   }) {
+    if (_isSubscriptionExpired && item != 'Subscriptions' && item != 'Settings') {
+      return;
+    }
     if (targetPhone != null) {
       _inboxTargetPhone = targetPhone;
     }
@@ -197,6 +206,23 @@ class _DashboardShellState extends State<DashboardShell> {
 
     return MultiBlocListener(
       listeners: [
+        BlocListener<BusinessSubscriptionBloc, BusinessSubscriptionState>(
+          listener: (context, state) {
+            if (state is BusinessSubscriptionLoaded && state.subscriptions.isNotEmpty) {
+              final sub = state.subscriptions.first;
+              if (sub.isExpired) {
+                setState(() {
+                  _isSubscriptionExpired = true;
+                  _activeItem = 'Subscriptions';
+                });
+              } else {
+                setState(() {
+                  _isSubscriptionExpired = false;
+                });
+              }
+            }
+          },
+        ),
         BlocListener<ManagementBloc, ManagementState>(
           listener: (context, state) {
             if (widget.role == UserRole.businessOwner &&
@@ -259,7 +285,7 @@ class _DashboardShellState extends State<DashboardShell> {
     switch (_activeItem) {
       case 'Inbox':
         return widget.role == UserRole.systemOwner
-            ? const DemoBookingScreen() // System Owner's inbox is Demo Bookings
+            ? const DemoBookingScreen()
             : InboxScreen(
                 isSystemOwner: widget.role == UserRole.systemOwner,
                 branchId: currentBranchId,
@@ -283,7 +309,7 @@ class _DashboardShellState extends State<DashboardShell> {
       case 'Subscriptions':
         return widget.role == UserRole.systemOwner
             ? const SubscriptionScreen()
-            : const BusinessSubscription();
+            : BusinessSubscription(role: widget.role);
 
       case 'Settings':
         return widget.role == UserRole.systemOwner
@@ -325,8 +351,8 @@ class _DashboardShellState extends State<DashboardShell> {
       case 'Notifications':
         return const NotificationScreen();
 
-      // case 'Demo Bookings':
-      //   return const DemoBookingScreen();
+      case 'Demo Bookings':
+        return const DemoBookingScreen();
 
       case 'Edit Profile':
         return const SettingScreen();
@@ -344,10 +370,10 @@ class _DashboardShellState extends State<DashboardShell> {
 
   static const List<Map<String, dynamic>> _systemOwnerItems = [
     {'icon': 'assets/overview.svg', 'label': 'Overview'},
-    // {'icon': 'assets/inbox.svg', 'label': 'Demo Bookings'},
     {'icon': Icons.business, 'label': 'Tenant Management'},
-    {'icon': 'assets/subscription.svg', 'label': 'Subscriptions'},
     {'icon': 'assets/agent.svg', 'label': 'AI Agent'},
+    {'icon': 'assets/inbox.svg', 'label': 'Demo Bookings'},
+    {'icon': 'assets/subscription.svg', 'label': 'Subscriptions'},
     {'icon': 'assets/setting.svg', 'label': 'Settings'},
   ];
 
@@ -538,11 +564,38 @@ class _DashboardShellState extends State<DashboardShell> {
             const SizedBox(height: 32),
           ],
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: items.map((item) {
-                final label = item['label']! as String;
-                final iconData = item['icon'];
+            child: BlocBuilder<BusinessSubscriptionBloc, BusinessSubscriptionState>(
+              builder: (context, subState) {
+                bool hasCampaignsFeature = true;
+                if (subState is BusinessSubscriptionLoaded && subState.subscriptions.isNotEmpty) {
+                  final plan = subState.subscriptions.first.plan;
+                  if (plan != null) {
+                    if (plan.name.toUpperCase().contains('CONNECT')) {
+                      hasCampaignsFeature = false;
+                    } else {
+                      for (var feature in plan.features) {
+                        if (feature.value.toLowerCase().contains('no campaign')) {
+                          hasCampaignsFeature = false;
+                        }
+                      }
+                    }
+                  }
+                }
+
+                return ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: items.map((item) {
+                    final label = item['label']! as String;
+                    
+                    if (_isSubscriptionExpired && label != 'Subscriptions' && label != 'Settings') {
+                      return const SizedBox.shrink();
+                    }
+
+                    if (label == 'Campaigns' && !hasCampaignsFeature) {
+                      return const SizedBox.shrink();
+                    }
+                    
+                    final iconData = item['icon'];
                 return BlocBuilder<ProfileBloc, ProfileState>(
                   builder: (context, profileState) {
                     String displayLabel = label;
@@ -588,7 +641,6 @@ class _DashboardShellState extends State<DashboardShell> {
                       label: displayLabel,
                       isActive: _activeItem == label,
                       onTap: () {
-                        // Close drawer on mobile before selection to avoid popping the new route
                         if (MediaQuery.of(context).size.width <= 900) {
                           _scaffoldKey.currentState?.closeDrawer();
                         }
@@ -598,7 +650,8 @@ class _DashboardShellState extends State<DashboardShell> {
                   },
                 );
               }).toList(),
-            ),
+            );
+          }),
           ),
         ],
       ),
