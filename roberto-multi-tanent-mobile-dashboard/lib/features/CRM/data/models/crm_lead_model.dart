@@ -13,6 +13,7 @@ class CrmLeadModel {
   final Map<String, dynamic>? metadata;
   final String? createdAt;
   final String? updatedAt;
+  final String? conversationId;
 
   CrmLeadModel({
     this.id,
@@ -29,6 +30,7 @@ class CrmLeadModel {
     this.metadata,
     this.createdAt,
     this.updatedAt,
+    this.conversationId,
   });
 
   factory CrmLeadModel.fromJson(Map<String, dynamic> json) {
@@ -47,6 +49,7 @@ class CrmLeadModel {
       metadata: json['metadata'] != null ? Map<String, dynamic>.from(json['metadata']) : null,
       createdAt: json['createdAt'] as String?,
       updatedAt: json['updatedAt'] as String?,
+      conversationId: json['conversationId'] as String?,
     );
   }
 
@@ -66,6 +69,7 @@ class CrmLeadModel {
       'metadata': metadata,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      'conversationId': conversationId,
     };
   }
 
@@ -84,6 +88,7 @@ class CrmLeadModel {
     Map<String, dynamic>? metadata,
     String? createdAt,
     String? updatedAt,
+    String? conversationId,
   }) {
     return CrmLeadModel(
       id: id ?? this.id,
@@ -100,6 +105,7 @@ class CrmLeadModel {
       metadata: metadata ?? this.metadata,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      conversationId: conversationId ?? this.conversationId,
     );
   }
 }

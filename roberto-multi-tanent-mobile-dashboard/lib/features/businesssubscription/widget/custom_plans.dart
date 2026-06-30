@@ -6,8 +6,11 @@ import 'package:roberto/features/businesssubscription/bloc/business_subscription
 import 'package:roberto/features/businesssubscription/bloc/business_subscription_state.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:roberto/common/user_role.dart';
+
 class CustomPlans extends StatefulWidget {
-  const CustomPlans({super.key});
+  final UserRole role;
+  const CustomPlans({super.key, this.role = UserRole.businessOwner});
 
   @override
   State<CustomPlans> createState() => _CustomPlansState();
@@ -79,23 +82,52 @@ class _CustomPlansState extends State<CustomPlans> {
           return Center(
             child: Container(
               constraints: const BoxConstraints(maxWidth: 450),
-              child: CustomPlan(
-                title: plan.name,
-                subtitle: plan.description,
-                price: "\$${plan.monthlyPrice.toInt()}",
-                iconPath: _getIconPath(plan.slug),
-                features: plan.features.map((f) => f.value).toList(),
-                buttonText: sub.isExpired ? "Renew Plan" : "Plan Active",
-                onButtonPressed: sub.isExpired
-                    ? () {
-                        context.read<BusinessSubscriptionBloc>().add(
-                              CreateCheckoutSessionRequested(
-                                planId: plan.id,
-                                billingCycle: sub.billingCycle,
-                              ),
-                            );
-                      }
-                    : null,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (sub.isExpired && widget.role == UserRole.branchManager)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded, color: Colors.red),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              "Your business subscription has expired. Please inform your owner to renew the subscription to continue using the platform.",
+                              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  CustomPlan(
+                    title: plan.name,
+                    subtitle: plan.description,
+                    price: "\$${plan.monthlyPrice.toInt()}",
+                    iconPath: _getIconPath(plan.slug),
+                    features: plan.features.map((f) => f.value).toList(),
+                    buttonText: sub.isExpired
+                        ? (widget.role == UserRole.businessOwner ? "Renew Plan" : "Plan Expired")
+                        : "Plan Active",
+                    onButtonPressed: (sub.isExpired && widget.role == UserRole.businessOwner)
+                        ? () {
+                            context.read<BusinessSubscriptionBloc>().add(
+                                  CreateCheckoutSessionRequested(
+                                    planId: plan.id,
+                                    billingCycle: sub.billingCycle,
+                                  ),
+                                );
+                          }
+                        : null,
+                  ),
+                ],
               ),
             ),
           );

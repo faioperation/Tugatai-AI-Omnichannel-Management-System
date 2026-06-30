@@ -19,7 +19,7 @@ class CustomLeadRow extends StatelessWidget {
   final String socialText;
 
   final String? notes;
-  final Function(String)? onNavigate;
+  final void Function(String, {String? targetPhone, String? targetName, String? conversationId})? onNavigate;
   final CrmLeadModel? fullLeadData; // The actual data model
   final UserRole role;
 
@@ -49,7 +49,7 @@ class CustomLeadRow extends StatelessWidget {
     }
 
     return InkWell(
-      onTap: () => onNavigate?.call('Inbox'),
+      onTap: () => onNavigate?.call('Inbox', conversationId: fullLeadData?.conversationId),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
@@ -164,7 +164,7 @@ class CustomLeadRow extends StatelessWidget {
   Widget _buildMobileCard(BuildContext context) {
     final theme = Theme.of(context);
     return InkWell(
-      onTap: () => onNavigate?.call('Inbox'),
+      onTap: () => onNavigate?.call('Inbox', conversationId: fullLeadData?.conversationId),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
