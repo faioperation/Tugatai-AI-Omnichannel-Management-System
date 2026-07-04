@@ -52,7 +52,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
 // Routes
-app.use("/api", router);
+app.use("/", router);
 app.use("/uploads", express.static("uploads"));
 
 // Health check (Liveness / Readiness)
