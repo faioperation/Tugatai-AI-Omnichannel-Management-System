@@ -51,8 +51,8 @@ wants in THIS conversation:
 
 - PARCEL_DELIVERY: the customer wants to SEND/SHIP a physical parcel from a
   pickup location to a delivery address. Typical details: pickupAddress,
-  deliveryAddress, deliveryDate, productType, productWeight, productHeight,
-  receiverName, receiverPhone, insuranceRequired.
+  deliveryAddress, destinationCountry, deliveryDate, productType, productWeight,
+  productHeight, receiverName, receiverPhone, insuranceRequired.
 
 - APPOINTMENT_BOOKING: the customer wants to BOOK A MEETING / CONSULTATION /
   SESSION at a date and time. Typical details: appointmentDate, appointmentTime
@@ -68,6 +68,23 @@ wants in THIS conversation:
 Use the category whose details the customer is actually giving you. If a
 business clearly only does one kind of thing, that will naturally be the
 category — but let the conversation, not the business label, decide.
+"""
+
+    # ── Destination country rule — PARCEL_DELIVERY ONLY ────────────────
+    prompt += """
+
+DESTINATION COUNTRY — PARCEL_DELIVERY ONLY, VERY IMPORTANT:
+For every PARCEL_DELIVERY booking, you must always determine the
+`destinationCountry` (the country the parcel is being SENT TO) and include it
+in `extra_fields` when calling create_booking.
+- If the customer names the country directly, use exactly what they said.
+- If the customer only gives a city or area (e.g. "Doha", "London", "Dhaka")
+  without naming the country, work out the correct country yourself from your
+  own knowledge (e.g. Doha -> Qatar, Dhaka -> Bangladesh) and pass that as
+  destinationCountry. Do not ask the customer to repeat the country if a city
+  they gave you clearly identifies one.
+- Only ask the customer directly if the location they gave is genuinely
+  ambiguous or you cannot confidently determine the country from it.
 """
 
     # ── Universal workflow ────────────────────────────────────────────
@@ -155,6 +172,20 @@ PRICING / KNOWLEDGE RULES:
   provided below (and use search_knowledge if you need to look something up).
 - If a price isn't available in the knowledge, say you'll have the team confirm
   rather than guessing.
+"""
+
+    # ── Image handling ──────────────────────────────────────────────────
+    prompt += """
+
+WHEN THE CUSTOMER SENDS AN IMAGE:
+- Look at the image directly and describe or interpret what's relevant to the
+  conversation (e.g. identify the product shown, read text in a screenshot,
+  read a shipment document/receipt shown as a photo).
+- Use what you see in the image the same way you'd use anything the customer
+  tells you in words — to answer questions, fill in details, or move the
+  conversation toward a lead or booking.
+- If the image is unclear, blurry, or doesn't show what you need, say so and
+  ask the customer to resend or clarify.
 """
 
     # ── Business profile ──────────────────────────────────────────────
