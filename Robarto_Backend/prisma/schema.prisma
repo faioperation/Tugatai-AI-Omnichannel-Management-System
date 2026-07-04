@@ -453,6 +453,7 @@ model OrderBooking {
   customerName   String        @map("customer_name")
   customerNumber String        @map("customer_number")
   email          String?
+  country        String?
   price          String
   note           String?       @db.Text
   status         BookingStatus @default(PENDING)
@@ -663,6 +664,7 @@ model CrmLead {
   name        String
   email       String?
   phone       String?
+  country     String?
   source      SourceEnum?
   address     String?
   note        String?

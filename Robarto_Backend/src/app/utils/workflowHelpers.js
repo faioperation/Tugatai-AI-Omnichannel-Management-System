@@ -28,6 +28,7 @@ export const extractBookingPayload = async (businessId, payload) => {
     "customerName",
     "customerNumber",
     "email",
+    "country",
     "price",
     "note"
   ];
@@ -76,6 +77,7 @@ export const extractLeadPayload = async (businessId, payload) => {
     "name",
     "email",
     "phone",
+    "country",
     "source",
     "address",
     "note",
