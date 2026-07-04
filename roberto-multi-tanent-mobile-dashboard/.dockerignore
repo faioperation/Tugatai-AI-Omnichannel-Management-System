@@ -1,0 +1,10 @@
+.git
+.idea
+.metadata
+build/
+.dart_tool/
+android/
+ios/
+macos/
+windows/
+*.log

@@ -1,0 +1,216 @@
+version: "3.8"
+
+networks:
+  roberto-internal:
+    driver: bridge
+    internal: true
+  roberto-ingress:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  uploads_data:
+
+services:
+  # ── DATABASE LAYER ──
+  postgres:
+    image: postgres:16-alpine
+    container_name: roberto-postgres
+    restart: always
+    env_file:
+      - ./Robarto_Backend/.env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-roberto}
+      POSTGRES_USER: ${POSTGRES_USER:-roberto_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - roberto-internal
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-roberto_user} -d $${POSTGRES_DB:-roberto}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── CACHING & QUEUE ENGINE ──
+  redis:
+    image: redis:7-alpine
+    container_name: roberto-redis
+    restart: always
+    command: redis-server --save 60 1 --loglevel warning --maxmemory-policy noeviction
+    volumes:
+      - redis_data:/data
+    networks:
+      - roberto-internal
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── NODE.JS EXPRESS API BACKEND ──
+  backend:
+    build:
+      context: ./Robarto_Backend
+      dockerfile: Dockerfile
+      args:
+        DATABASE_URL: postgresql://${POSTGRES_USER:-roberto_user}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-roberto}?schema=public
+    container_name: roberto-backend
+    restart: always
+    env_file:
+      - ./Robarto_Backend/.env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-roberto_user}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-roberto}?schema=public
+      REDIS_URL: redis://redis:6379
+      PORT: 8001
+      NODE_ENV: production
+      AI_API_TAREQ: http://ai-chatbot:8005
+    volumes:
+      - uploads_data:/usr/src/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - roberto-internal
+      - roberto-ingress
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8001/ || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── DECOUPLED BULLMQ QUEUE WORKER ──
+  campaign-worker:
+    build:
+      context: ./Robarto_Backend
+      dockerfile: Dockerfile.worker
+      args:
+        DATABASE_URL: postgresql://${POSTGRES_USER:-roberto_user}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-roberto}?schema=public
+    container_name: roberto-campaign-worker
+    restart: always
+    env_file:
+      - ./Robarto_Backend/.env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-roberto_user}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-roberto}?schema=public
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - roberto-internal
+
+  # ── PYTHON FASTAPI AI CHATBOT ──
+  ai-chatbot:
+    build:
+      context: ./ai-chatbot
+      dockerfile: Dockerfile
+    container_name: roberto-ai-chatbot
+    restart: always
+    env_file:
+      - ./ai-chatbot/.env
+    environment:
+      ROBERTO_API_BASE: http://backend:8001/api
+      ROBERTO_API_BASE_PUBLIC: http://backend:8001/api
+    networks:
+      - roberto-internal
+      - roberto-ingress
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8005/" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── PYTHON VOICE AI ──
+  voice-ai:
+    build:
+      context: ./Roberto_Voice_AI
+      dockerfile: Dockerfile
+    container_name: roberto-voice-ai
+    restart: always
+    env_file:
+      - ./Roberto_Voice_AI/.env
+    environment:
+      BACKEND_URL: http://backend:8001/api
+    networks:
+      - roberto-internal
+      - roberto-ingress
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8002/" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── NEXT.JS LANDING & WEB CLIENT ──
+  frontend:
+    build:
+      context: ./roberto-landing-page
+      dockerfile: Dockerfile
+    container_name: roberto-frontend
+    restart: always
+    env_file:
+      - ./roberto-landing-page/.env.local
+    ports:
+      - "3000:3000"
+    networks:
+      - roberto-ingress
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── FLUTTER MULTI-TENANT WEB DASHBOARD ──
+  dashboard:
+    build:
+      context: ./roberto-multi-tanent-mobile-dashboard
+      dockerfile: Dockerfile
+    container_name: roberto-dashboard
+    restart: always
+    networks:
+      - roberto-ingress
+      - roberto-internal
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --quiet --spider http://localhost/ || exit 1" ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── REVERSE PROXY GATEWAY (SINGLE PORT EXPOSURE) ──
+  nginx:
+    image: nginx:alpine
+    container_name: roberto-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - uploads_data:/usr/src/app/uploads:ro
+    networks:
+      - roberto-ingress
+    depends_on:
+      - frontend
+      - dashboard
+      - backend
+      - ai-chatbot
+      - voice-ai
