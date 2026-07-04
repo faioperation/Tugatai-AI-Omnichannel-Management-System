@@ -1,4 +1,7 @@
 import prisma from "../../prisma/client.js";
+import { notifyAiAgent } from "../../utils/aiAgent.js";
+import { NotificationService } from "../notification/notification.service.js";
+import { isConversationLimitReached } from "../../utils/limitChecker.js";
 
 export const handleWebhookEvent = async (body) => {
   if (body.object === "whatsapp_business_account") {
@@ -35,6 +38,30 @@ const processIncomingMessages = async (value) => {
     const waUserId = contact.wa_id;
     const name = contact.profile?.name;
     const phoneNumber = waUserId;
+
+    // Check if conversation already exists before checking limits
+    const existingContact = await prisma.whatsappContact.findUnique({
+      where: {
+        businessId_waUserId: { businessId, waUserId },
+      },
+    });
+
+    let existingConv = null;
+    if (existingContact) {
+      existingConv = await prisma.whatsappConversation.findUnique({
+        where: {
+          businessId_contactId: { businessId, contactId: existingContact.id },
+        },
+      });
+    }
+
+    if (!existingConv) {
+      const limitReached = await isConversationLimitReached(businessId);
+      if (limitReached) {
+        console.warn(`[WhatsApp Webhook] Conversation limit reached for business: ${businessId}. Ignoring incoming message.`);
+        continue;
+      }
+    }
 
     // Upsert Contact
     const dbContact = await prisma.whatsappContact.upsert({
@@ -101,10 +128,33 @@ const processIncomingMessages = async (value) => {
         },
       });
 
+      // Trigger notification for incoming WhatsApp message with throttling
+      NotificationService.shouldSendMessageNotification(conversation.id, "whatsapp").then((shouldNotify) => {
+        if (shouldNotify) {
+          NotificationService.createAndSendNotification({
+            title: "New WhatsApp Message",
+            message: `Message: "${text || "Attachment/Other"}"`,
+            type: "NEW_MESSAGE",
+            businessId: businessId,
+            branchId: account.branchId || null,
+            conversationId: conversation.id,
+          }).catch(err => console.error("Error sending WhatsApp incoming message notification:", err));
+        }
+      }).catch(err => console.error("Error checking WhatsApp throttling:", err));
+
       // Update conversation's last message ID
       await prisma.whatsappConversation.update({
         where: { id: conversation.id },
         data: { lastMessageId: message.id },
+      });
+
+      // Notify AI Agent of incoming WhatsApp message
+      notifyAiAgent({
+        businessId,
+        recipientId: waUserId,
+        conversationId: conversation.id,
+        channel: "whatsapp",
+        message: text || ""
       });
     }
   }

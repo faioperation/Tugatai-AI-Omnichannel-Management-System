@@ -2,8 +2,40 @@ import axios from "axios";
 import prisma from "../../prisma/client.js";
 import { envVars } from "../../config/env.js";
 import { AppError } from "../../errorHelper/appError.js";
+import { notifyAiAgent } from "../../utils/aiAgent.js";
+import { NotificationService } from "../notification/notification.service.js";
+import { isConversationLimitReached } from "../../utils/limitChecker.js";
 
 const getGraphUrl = () => `https://graph.facebook.com/${envVars.META_GRAPH_VERSION || "v23.0"}`;
+
+const getMessengerUserProfile = async (psid, pageAccessToken) => {
+  try {
+    const response = await axios.get(
+      `${getGraphUrl()}/me/conversations`,
+      {
+        params: {
+          user_id: psid,
+          fields: "participants",
+          access_token: pageAccessToken,
+        },
+      }
+    );
+    const conversations = response.data?.data;
+    if (conversations && conversations.length > 0) {
+      const participants = conversations[0].participants?.data;
+      if (participants) {
+        const customer = participants.find((p) => p.id === psid);
+        if (customer && customer.name) {
+          return { name: customer.name };
+        }
+      }
+    }
+    return { name: "Social Customer" };
+  } catch (error) {
+    console.error("Error fetching Messenger user profile from conversations:", error.response?.data || error.message);
+    return { name: "Social Customer" };
+  }
+};
 
 export const handleIncomingMessage = async (pageId, webhookEvent) => {
   const senderId = webhookEvent.sender.id;
@@ -22,6 +54,31 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
 
   const businessId = connection.businessId;
 
+  // Fetch customerName if conversation doesn't exist or is missing name
+  const existingConv = await prisma.conversation.findUnique({
+    where: {
+      businessId_platform_customerId: {
+        businessId,
+        platform: "messenger",
+        customerId: senderId,
+      },
+    },
+  });
+
+  if (!existingConv) {
+    const limitReached = await isConversationLimitReached(businessId);
+    if (limitReached) {
+      console.warn(`[Messenger Webhook] Conversation limit reached for business: ${businessId}. Ignoring incoming message.`);
+      return;
+    }
+  }
+
+  let customerName = existingConv?.customerName;
+  if (!customerName || customerName === "Social Customer") {
+    const profile = await getMessengerUserProfile(senderId, connection.accessToken);
+    customerName = profile.name;
+  }
+
   // Create or update conversation
   const conversation = await prisma.conversation.upsert({
     where: {
@@ -34,11 +91,15 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
     update: {
       lastMessage: messageText || "Attachment/Other",
       lastMessageAt: new Date(),
+      branchId: connection.branchId || null,
+      customerName: customerName || undefined,
     },
     create: {
       businessId,
+      branchId: connection.branchId || null,
       platform: "messenger",
       customerId: senderId,
+      customerName: customerName || "Social Customer",
       lastMessage: messageText || "Attachment/Other",
       lastMessageAt: new Date(),
     },
@@ -54,6 +115,29 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
       platformMessageId: platformMessageId,
       rawPayload: webhookEvent,
     },
+  });
+
+  // Trigger notification for incoming Messenger message with throttling
+  NotificationService.shouldSendMessageNotification(conversation.id, "messenger").then((shouldNotify) => {
+    if (shouldNotify) {
+      NotificationService.createAndSendNotification({
+        title: "New Messenger Message",
+        message: `Message: "${messageText || "Attachment/Other"}"`,
+        type: "NEW_MESSAGE",
+        businessId: businessId,
+        branchId: connection.branchId || null,
+        conversationId: conversation.id,
+      }).catch(err => console.error("Error sending Messenger incoming message notification:", err));
+    }
+  }).catch(err => console.error("Error checking Messenger throttling:", err));
+
+  // Notify AI Agent of incoming Messenger message
+  notifyAiAgent({
+    businessId,
+    recipientId: senderId,
+    conversationId: conversation.id,
+    channel: "messenger",
+    message: messageText || ""
   });
 };
 
@@ -197,12 +281,29 @@ export const sendMediaMessageToUser = async (businessId, recipientId, type, medi
   }
 };
 
-export const getConversations = async (businessId) => {
+export const getConversations = async (businessId, branchId) => {
+  const whereClause = { businessId, platform: "messenger" };
+  if (branchId) {
+    whereClause.branchId = branchId;
+  }
+
   const conversations = await prisma.conversation.findMany({
-    where: { businessId },
+    where: whereClause,
     orderBy: { lastMessageAt: 'desc' },
   });
-  return conversations;
+
+  const conversationIds = conversations.map((c) => c.id);
+  const summaries = await prisma.chatSummary.findMany({
+    where: { conversationId: { in: conversationIds } },
+  });
+
+  return conversations.map((c) => {
+    const summary = summaries.find((s) => s.conversationId === c.id);
+    return {
+      ...c,
+      chatSummary: summary || null,
+    };
+  });
 };
 
 export const getMessages = async (conversationId) => {

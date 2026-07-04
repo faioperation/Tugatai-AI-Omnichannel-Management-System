@@ -2,6 +2,7 @@ import { envVars } from "../../config/env.js";
 import { WhatsappService } from "./whatsapp.service.js";
 import { handleWebhookEvent } from "./whatsapp.webhook.js";
 import prisma from "../../prisma/client.js";
+import { getBusinessAndBranchForUser } from "../../utils/workflowHelpers.js";
 
 export const WhatsappController = {
   verifyWebhook: (req, res) => {
@@ -29,11 +30,9 @@ export const WhatsappController = {
 
   connectAccount: async (req, res) => {
     try {
-      const business = await prisma.business.findFirst({ where: { ownerId: req.user.id } });
-      if (!business) return res.status(404).json({ success: false, message: "Business not found for this user" });
+      const { businessId } = await getBusinessAndBranchForUser(req.user);
+      if (!businessId) return res.status(404).json({ success: false, message: "Business not found for this user" });
       
-      const businessId = business.id;
-
       const account = await WhatsappService.connectAccount(businessId, req.body);
       res.json({ success: true, data: account });
     } catch (error) {
@@ -43,11 +42,18 @@ export const WhatsappController = {
 
   checkConnectionStatus: async (req, res) => {
     try {
-      const business = await prisma.business.findFirst({ where: { ownerId: req.user.id } });
-      if (!business) return res.status(404).json({ success: false, message: "Business not found for this user" });
+      const { businessId, branchId: userBranchId, isOwner } = await getBusinessAndBranchForUser(req.user);
+      if (!businessId) return res.status(404).json({ success: false, message: "Business not found for this user" });
       
+      const branchId = isOwner ? (req.query.branchId || null) : userBranchId;
+
+      const whereClause = { businessId, status: "ACTIVE" };
+      if (branchId) {
+        whereClause.branchId = branchId;
+      }
+
       const account = await prisma.whatsappAccount.findFirst({
-        where: { businessId: business.id, status: "ACTIVE" },
+        where: whereClause,
       });
 
       if (account) {
@@ -63,11 +69,11 @@ export const WhatsappController = {
 
   getConversations: async (req, res) => {
     try {
-      const business = await prisma.business.findFirst({ where: { ownerId: req.user.id } });
-      if (!business) return res.status(404).json({ success: false, message: "Business not found for this user" });
+      const { businessId, branchId: userBranchId, isOwner } = await getBusinessAndBranchForUser(req.user);
+      if (!businessId) return res.status(404).json({ success: false, message: "Business not found for this user" });
       
-      const businessId = business.id;
-      const data = await WhatsappService.getConversations(businessId);
+      const branchId = isOwner ? (req.query.branchId || null) : userBranchId;
+      const data = await WhatsappService.getConversations(businessId, branchId);
       res.json({ success: true, data });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
@@ -76,10 +82,9 @@ export const WhatsappController = {
 
   getMessages: async (req, res) => {
     try {
-      const business = await prisma.business.findFirst({ where: { ownerId: req.user.id } });
-      if (!business) return res.status(404).json({ success: false, message: "Business not found for this user" });
+      const { businessId } = await getBusinessAndBranchForUser(req.user);
+      if (!businessId) return res.status(404).json({ success: false, message: "Business not found for this user" });
       
-      const businessId = business.id;
       const { id: conversationId } = req.params;
       const data = await WhatsappService.getMessages(businessId, conversationId);
       res.json({ success: true, data });
@@ -90,10 +95,9 @@ export const WhatsappController = {
 
   sendTextMessage: async (req, res) => {
     try {
-      const business = await prisma.business.findFirst({ where: { ownerId: req.user.id } });
-      if (!business) return res.status(404).json({ success: false, message: "Business not found for this user" });
+      const { businessId } = await getBusinessAndBranchForUser(req.user);
+      if (!businessId) return res.status(404).json({ success: false, message: "Business not found for this user" });
       
-      const businessId = business.id;
       const { conversationId, message } = req.body;
       const data = await WhatsappService.sendTextMessage(businessId, conversationId, message);
       res.json({ success: true, data });
@@ -104,10 +108,9 @@ export const WhatsappController = {
 
   sendMediaMessage: async (req, res) => {
     try {
-      const business = await prisma.business.findFirst({ where: { ownerId: req.user.id } });
-      if (!business) return res.status(404).json({ success: false, message: "Business not found for this user" });
+      const { businessId } = await getBusinessAndBranchForUser(req.user);
+      if (!businessId) return res.status(404).json({ success: false, message: "Business not found for this user" });
       
-      const businessId = business.id;
       const { conversationId, type } = req.body;
       
       let finalUrl = req.body.url;
@@ -125,6 +128,81 @@ export const WhatsappController = {
       res.json({ success: true, data });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  disconnectAccount: async (req, res) => {
+    try {
+      const { businessId } = await getBusinessAndBranchForUser(req.user);
+      if (!businessId) return res.status(404).json({ success: false, message: "Business not found for this user" });
+
+      const { accountId } = req.body;
+      if (!accountId) {
+        return res.status(400).json({ success: false, message: "Account ID is required" });
+      }
+
+      await WhatsappService.disconnectAccount(businessId, accountId);
+      res.json({ success: true, message: "WhatsApp account disconnected successfully" });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  authWhatsApp: async (req, res, next) => {
+    try {
+      const { businessId } = await getBusinessAndBranchForUser(req.user);
+      if (!businessId) {
+        return res.status(404).json({ success: false, message: "Business not found for this user" });
+      }
+      const branchId = req.query.branchId || null;
+
+      const redirectUri = envVars.WHATSAPP_REDIRECT_URI;
+      const appId = envVars.META_APP_ID;
+      const permissions = "whatsapp_business_management,whatsapp_business_messaging";
+      
+      const state = JSON.stringify({ businessId, branchId });
+      const graphVersion = envVars.META_GRAPH_VERSION || "v23.0";
+      const extras = JSON.stringify({ setup: { setup_program: "whatsapp" } });
+
+      const configIdParam = envVars.WHATSAPP_CONFIG_ID ? `&config_id=${envVars.WHATSAPP_CONFIG_ID}` : '';
+      const authUrl = `https://www.facebook.com/${graphVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${permissions}&state=${encodeURIComponent(state)}&extras=${encodeURIComponent(extras)}${configIdParam}`;
+
+      res.json({
+        success: true,
+        message: "WhatsApp Embedded Signup URL generated successfully.",
+        data: { url: authUrl },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  authWhatsAppCallback: async (req, res, next) => {
+    try {
+      const { code, state, error, error_description } = req.query;
+
+      if (error) {
+        return res.status(400).json({ success: false, message: `WhatsApp OAuth Error: ${error_description}` });
+      }
+
+      if (!code || !state) {
+        return res.status(400).json({ success: false, message: "Missing code or state from WhatsApp OAuth" });
+      }
+
+      const parsedState = JSON.parse(state);
+      const businessId = parsedState.businessId;
+      const branchId = parsedState.branchId || null;
+      const redirectUri = envVars.WHATSAPP_REDIRECT_URI;
+
+      const accounts = await WhatsappService.connectOAuthAccount(businessId, branchId, code, redirectUri);
+
+      res.json({
+        success: true,
+        message: "WhatsApp account connected successfully.",
+        data: { accounts },
+      });
+    } catch (error) {
+      next(error);
     }
   },
 };

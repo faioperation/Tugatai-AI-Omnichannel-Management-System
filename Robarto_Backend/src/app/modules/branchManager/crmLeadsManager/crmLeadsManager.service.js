@@ -1,11 +1,14 @@
 import prisma from "../../../prisma/client.js";
+// Triggering nodemon restart with schema update
 import DevBuildError from "../../../lib/DevBuildError.js";
 import { StatusCodes } from "http-status-codes";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
+import { extractLeadPayload } from "../../../utils/workflowHelpers.js";
 
 const createCrmLeadService = async (payload) => {
+    const cleanPayload = await extractLeadPayload(payload.businessId, payload);
     const result = await prisma.crmLead.create({
-        data: payload,
+        data: cleanPayload,
     });
     return result;
 };
@@ -40,11 +43,22 @@ const getAllCrmLeadsService = async (query = {}, filter = {}) => {
         };
     }
 
-    const result = await prisma.crmLead.findMany(queryParams);
-    const total = await prisma.crmLead.count({ where: queryParams.where });
+    const [result, total, totalBooked, callLead] = await Promise.all([
+        prisma.crmLead.findMany(queryParams),
+        prisma.crmLead.count({ where: queryParams.where }),
+        prisma.crmLead.count({ where: { ...queryParams.where, status: "BOOKED" } }),
+        prisma.crmLead.count({ where: { ...queryParams.where, source: "COLD_CALL" } }),
+    ]);
+
+    const meta = queryBuilder.getMeta(total);
 
     return {
-        meta: queryBuilder.getMeta(total),
+        meta: {
+            ...meta,
+            totalCount: total,
+            totalBooked,
+            callLead,
+        },
         data: result,
     };
 };
@@ -96,9 +110,10 @@ const updateCrmLeadService = async (id, filter, payload) => {
         throw new DevBuildError("CRM Lead not found or you don't have access", StatusCodes.NOT_FOUND);
     }
 
+    const cleanPayload = await extractLeadPayload(isExist.businessId, payload);
     const result = await prisma.crmLead.update({
         where: { id },
-        data: payload,
+        data: cleanPayload,
     });
     
     return result;
