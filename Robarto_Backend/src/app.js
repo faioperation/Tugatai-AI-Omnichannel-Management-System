@@ -14,6 +14,7 @@ import "./app/config/passport.config.js";
 dotenv.config();
 
 const app = express();
+app.set("trust proxy", 1);
 
 // Global middlewares
 const allowedOrigins = [
@@ -21,7 +22,8 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://matrix-ai-app.vercel.app",
-  "https://matrix-ai-landing-page.vercel.app"
+  "https://matrix-ai-landing-page.vercel.app",
+  "https://test8.fireai.agency"
 ];
 
 app.use(cors({
@@ -30,9 +32,7 @@ app.use(cors({
     if (!origin) return callback(null, true);
 
     const isAllowed = allowedOrigins.includes(origin) ||
-      /^http:\/\/localhost:\d+$/.test(origin) ||
-      /\.ngrok-free\.dev$/.test(origin) ||
-      /\.ngrok\.app$/.test(origin);
+      /^http:\/\/localhost:\d+$/.test(origin);
 
     if (isAllowed) {
       callback(null, true);

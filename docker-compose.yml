@@ -1,5 +1,3 @@
-version: "3.8"
-
 networks:
   roberto-internal:
     driver: bridge
@@ -67,6 +65,8 @@ services:
       PORT: 8001
       NODE_ENV: production
       AI_API_TAREQ: http://ai-chatbot:8005
+    ports:
+      - "8005:8001"
     volumes:
       - uploads_data:/usr/src/app/uploads
     depends_on:
@@ -163,7 +163,7 @@ services:
     env_file:
       - ./roberto-landing-page/.env.local
     ports:
-      - "3000:3000"
+      - "8004:3000"
     networks:
       - roberto-ingress
     depends_on:
@@ -182,6 +182,8 @@ services:
       dockerfile: Dockerfile
     container_name: roberto-dashboard
     restart: always
+    ports:
+      - "8008:80"
     networks:
       - roberto-ingress
       - roberto-internal
