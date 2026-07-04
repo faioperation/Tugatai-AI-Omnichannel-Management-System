@@ -12,10 +12,18 @@ RUN npx prisma generate
 FROM node:20-alpine AS production
 WORKDIR /usr/src/app
 ENV NODE_ENV=production
+
+# Install postgresql-client for pg_isready health checks
+RUN apk add --no-cache postgresql-client
+
 COPY --from=builder /usr/src/app/package*.json ./
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/src ./src
 COPY --from=builder /usr/src/app/prisma ./prisma
-RUN mkdir -p uploads
+COPY --from=builder /usr/src/app/docker-entrypoint.sh ./docker-entrypoint.sh
+COPY --from=builder /usr/src/app/prisma.config.ts ./prisma.config.ts
+
+RUN chmod +x docker-entrypoint.sh && mkdir -p uploads
 EXPOSE 8001
-CMD ["node", "src/server.js"]
+
+ENTRYPOINT ["./docker-entrypoint.sh"]

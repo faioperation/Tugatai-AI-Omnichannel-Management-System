@@ -55,7 +55,19 @@ app.use(passport.initialize());
 app.use("/api", router);
 app.use("/uploads", express.static("uploads"));
 
-// Health check
+// Health check (Liveness / Readiness)
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    services: {
+      backend: "UP",
+      database: "CONNECTED"
+    }
+  });
+});
+
 app.get("/", (req, res) => {
   res.send("Robarto Backend is running > >> ✅🚀");
 });

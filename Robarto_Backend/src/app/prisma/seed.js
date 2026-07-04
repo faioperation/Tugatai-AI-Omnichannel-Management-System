@@ -133,5 +133,22 @@ export const seedDatabase = async () => {
     }
   } catch (error) {
     console.error("❌ Error seeding database:", error);
+    throw error;
   }
 };
+
+// Auto-run if executed directly as a script
+if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('seed.js')) {
+  console.log("Running prisma seed script directly...");
+  seedDatabase()
+    .then(async () => {
+      console.log("Seeding complete. Disconnecting Prisma...");
+      await prisma.$disconnect();
+      process.exit(0);
+    })
+    .catch(async (e) => {
+      console.error("Seeding failed:", e);
+      await prisma.$disconnect();
+      process.exit(1);
+    });
+}
