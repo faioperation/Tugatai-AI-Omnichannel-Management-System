@@ -6,6 +6,7 @@ from agent.memory import get_history, save_message, save_conversation_id
 from agent.prompt_builder import build_prompt
 from agent.tools import get_all_tools
 from agent.tools.http_fallback import build_candidates, get_with_fallback
+from agent.message_parser import parse_incoming_message, message_to_history_text
 from rag.retriever import retrieve
 from channels.router import send_response
 from core.config import (
@@ -186,9 +187,20 @@ async def run_agent(
     recipient_id: str,
     conversation_id: str,
     channel: str,
-    message: str,
+    message,  # NOTE: now can be a plain string (legacy) OR a list of typed
+              # blocks: [{"type": "text"/"image"/"document", ...}, ...]
     branch_id: str = None
 ):
+    # ── Step 0: Parse the (possibly multimodal) incoming message ─────
+    # `llm_message_content` is what actually goes to the LLM this turn:
+    #   - a plain string, if there's no image
+    #   - a LangChain multimodal content list, if an image is present
+    # `history_text` is the plain-text version used for long-term memory
+    # and the summary job (image URLs are never stored long-term — they
+    # expire and add no value to future context).
+    llm_message_content = parse_incoming_message(message)
+    history_text = message_to_history_text(message)
+
     # ── Step 1: Fetch business profile ──────────────────────────────
     business_data = await fetch_business(business_id)
     business_profile = business_data.get("profile", None)
@@ -200,11 +212,13 @@ async def run_agent(
     active_campaigns = await fetch_campaigns(branch_id)
 
     # ── Step 4: Decide knowledge source ──────────────────────────────
+    # RAG retrieval needs a plain text query — use the text-only version
+    # even when the actual message to the LLM is multimodal.
     context = None
     if training_config:
         print(f"[KNOWLEDGE SOURCE] Using business training config")
     else:
-        context = await retrieve(message, subject)
+        context = await retrieve(history_text, subject)
         print(f"[KNOWLEDGE SOURCE] Using Pinecone base-{subject}")
 
     # ── Step 5: Build system prompt ───────────────────────────────────
@@ -235,7 +249,8 @@ async def run_agent(
     all_messages = []
     for h in history:
         all_messages.append(h)
-    all_messages.append({"role": "user", "content": message})
+    # This turn's message may be plain text or multimodal (text + image)
+    all_messages.append({"role": "user", "content": llm_message_content})
 
     # ── Step 8: Run LangGraph ReAct agent ────────────────────────────
     # channel is passed so collect_lead can map it to the correct source
@@ -264,12 +279,15 @@ async def run_agent(
     print(f"Subject      : {subject}")
     print(f"Channel      : {channel}")
     print(f"Recipient    : {recipient_id}")
-    print(f"Customer Msg : {message}")
+    print(f"Customer Msg : {history_text}")
     print(f"AI Response  : {ai_response}")
     print(f"{'='*50}\n")
 
     # ── Step 11: Save to memory ───────────────────────────────────────
-    save_message(business_id, recipient_id, "user", message)
+    # IMPORTANT: store the plain-text version in history, not the raw
+    # multimodal content — image URLs expire and don't belong in long-term
+    # conversation memory or the summary job's input.
+    save_message(business_id, recipient_id, "user", history_text)
     save_message(business_id, recipient_id, "assistant", ai_response)
 
     # ── Step 12: Save conversation_id ────────────────────────────────
