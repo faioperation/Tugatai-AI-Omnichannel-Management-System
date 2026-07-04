@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'https://test8.fireai.agency/api/';
+  static const String baseUrl = 'https://test8.fireai.agency/api';
   
   // Auth endpoints
   static const String login = '$baseUrl/auth/login';
