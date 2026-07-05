@@ -498,6 +498,7 @@ model AppointmentBooking {
   customerName       String              @map("customer_name")
   customerNumber     String              @map("customer_number")
   email              String?
+  country            String?
   price              String
   note               String?             @db.Text
   status             BookingStatus       @default(PENDING)
@@ -543,6 +544,7 @@ model ParcelDelivery {
   customerName   String         @map("customer_name")
   customerNumber String         @map("customer_number")
   email          String?
+  country        String?
   price          String
   note           String?        @db.Text
   status         BookingStatus  @default(PENDING)
@@ -943,6 +945,7 @@ model Campaign {
   message        String       @db.Text
   status         String       @default("PENDING")
   isExpire       Boolean      @default(true) @map("is_expire")
+  country        String?
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
   deletedAt      DateTime?    @map("deleted_at")

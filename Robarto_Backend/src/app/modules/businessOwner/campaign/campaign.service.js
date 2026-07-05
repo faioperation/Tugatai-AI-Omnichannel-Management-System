@@ -17,7 +17,7 @@ const formatCampaign = (campaign) => {
 };
 
 const createCampaignService = async (businessId, payload) => {
-    const { title, selectedPeople, message, branchId } = payload;
+    const { title, selectedPeople, message, branchId, country } = payload;
     const rawScheduledTime = payload.scheduledTime || payload.scheduled_time;
     const rawEndDate = payload.endDate || payload.end_date;
 
@@ -47,6 +47,7 @@ const createCampaignService = async (businessId, payload) => {
             isExpire: parsedEndDate ? new Date() > parsedEndDate : false,
             message,
             status: "PENDING",
+            country: country || null,
         },
     });
 

@@ -14,6 +14,7 @@ const createCampaignSchema = z.object({
         end_date: z.string().optional().nullable(),
         message: z.string({ required_error: "Message is required" }),
         branchId: z.string().uuid().optional().nullable(),
+        country: z.string().optional().nullable(),
     }).refine(data => data.scheduledTime || data.scheduled_time, {
         message: "Scheduled time is required",
         path: ["scheduledTime"]
@@ -34,6 +35,7 @@ const updateCampaignSchema = z.object({
         end_date: z.string().optional().nullable(),
         message: z.string().optional(),
         branchId: z.string().uuid().optional().nullable(),
+        country: z.string().optional().nullable(),
     }),
 });
 

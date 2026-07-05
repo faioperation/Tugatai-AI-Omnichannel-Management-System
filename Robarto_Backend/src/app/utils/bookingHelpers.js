@@ -46,7 +46,7 @@ export const getBookingModel = (businessType) => {
  */
 export const buildMainPayload = (businessId, payload) => {
     const extracted = { businessId };
-    const fields = ["branchId", "createdById", "customerName", "customerNumber", "email", "note", "status", "conversationId"];
+    const fields = ["branchId", "createdById", "customerName", "customerNumber", "email", "country", "note", "status", "conversationId"];
     for (const f of fields) {
         if (payload[f] !== undefined) extracted[f] = payload[f];
     }
