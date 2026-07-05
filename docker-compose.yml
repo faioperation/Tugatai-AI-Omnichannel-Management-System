@@ -162,8 +162,8 @@ services:
     build:
       context: ./roberto-landing-page
       dockerfile: Dockerfile
-    args:
-      NEXT_PUBLIC_API_URL: https://test8.fireai.agency/api
+      args:
+        NEXT_PUBLIC_API_URL: https://test8.fireai.agency/api
     container_name: roberto-frontend
     restart: always
     env_file:
