@@ -118,6 +118,8 @@ services:
     environment:
       ROBERTO_API_BASE: http://backend:8001/api
       ROBERTO_API_BASE_PUBLIC: http://backend:8001/api
+    ports:
+      - "8009:8005"
     networks:
       - roberto-internal
       - roberto-ingress
@@ -141,6 +143,8 @@ services:
       - ./Roberto_Voice_AI/.env
     environment:
       BACKEND_URL: http://backend:8001/api
+    ports:
+      - "8011:8002"
     networks:
       - roberto-internal
       - roberto-ingress
