@@ -120,22 +120,14 @@ const Navbar = () => {
             >
 
               <Image
-                src="/logo.png"
+                src="/OmnirraAI.png"
                 alt="Logo"
-                width={120}
-                height={40}
+                width={250}
+                height={50}
                 className="h-12 w-auto object-contain"
               />
 
-              <div>
-                <p className="text-2xl font-bold text-[#EB232D] font-inter">
-                    MATRIX
-                </p>
-
-                {/* <span className="text-xs font-marope text-[#1E8380]">
-                    Cargo Logistics
-                </span> */}
-              </div>
+              
             </motion.div>
           </Link>
 

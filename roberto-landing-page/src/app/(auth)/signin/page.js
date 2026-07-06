@@ -76,9 +76,10 @@ const Signin = () => {
         {/* Logo and Header */}
         <div className="flex flex-col items-center mb-8">
           <Link href="/">
-            <div className="bg-[#EA2B33] rounded-xl flex items-center justify-center mb-5 p-2 cursor-pointer hover:opacity-90 transition-opacity">
-              <Image src={"/logo.png"} alt="logo" width={60} height={80} className="object-contain" />
-            </div>
+            {/* <div className="bg-[#EA2B33] rounded-xl flex items-center justify-center mb-5 p-2 cursor-pointer hover:opacity-90 transition-opacity"> */}
+            {/* <div className="rounded-xl flex items-center justify-center mb-5 p-2 cursor-pointer hover:opacity-90 transition-opacity"> */}
+              <Image src={"/authLogo.png"} alt="logo" width={200} height={200} className="object-contain" />
+            
           </Link>
           <h1 className="text-[28px] font-medium text-black mb-2 tracking-tight">
             Sign in
@@ -118,14 +119,14 @@ const Signin = () => {
             <button
               type="submit"
               disabled={mutation.isPending}
-              className={`w-full py-3.5 rounded-xl bg-[#EA2B33] text-white font-semibold text-[15px] hover:bg-[#d1232a] transition-colors ${mutation.isPending ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full py-3.5 rounded-xl bg-[#9810FA] text-white font-semibold text-[15px] hover:bg-[#800cd6] transition-colors ${mutation.isPending ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {mutation.isPending ? "Signing in..." : "Sign in"}
             </button>
             
             <p className="text-center text-[14px] text-[#5B5B5B] mt-2">
               Don't have an account?{" "}
-              <Link href="/signup" className="text-[#EA2B33] font-semibold hover:underline">
+              <Link href="/signup" className="text-[#9810FA] font-semibold hover:underline">
                 Sign up
               </Link>
             </p>
