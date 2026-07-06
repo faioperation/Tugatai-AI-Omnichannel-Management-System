@@ -21,23 +21,16 @@ const Footer = () => {
           <div className="lg:col-span-2 flex flex-col gap-6">
             <Link href="/">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#EB232D] flex items-center justify-center p-1.5 shadow-lg shadow-red-500/20">
+                {/* <div className="w-12 h-12 rounded-xl bg-[#EB232D] flex items-center justify-center p-1.5 shadow-lg shadow-red-500/20"> */}
                   <Image
-                    src="/logo.png"
+                    src="/OmnirraAI.png"
                     alt="Logo"
-                    width={48}
-                    height={48}
+                    width={250}
+                    height={50}
                     className="h-full w-auto object-contain"
                   />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-[#EB232D] font-inter uppercase">
-                      Matrix
-                  </p>
-                  {/* <span className="text-xs font-inter text-[#1E8380]">
-                      Cargo Logistics
-                  </span> */}
-                </div>
+              
+                
               </div>
             </Link>
             
@@ -94,7 +87,7 @@ const Footer = () => {
           className="py-8 border-t border-white/10"
         >
           <p className="text-sm font-inter text-[#99A1AF]">
-            © {new Date().getFullYear()} Matrix. All rights reserved.
+            © {new Date().getFullYear()} Omnirra. All rights reserved.
           </p>
         </motion.div>
       </Container>

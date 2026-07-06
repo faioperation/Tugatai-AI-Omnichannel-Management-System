@@ -67,13 +67,13 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center py-8 px-4">
-      <div className="bg-white rounded-[24px] w-full max-w-[600px] h-auto min-h-[800px] px-2 md:py-7 py-5  md:px-14   shadow-2xl">
+      <div className="bg-white rounded-[24px] w-full max-w-[600px] h-auto min-h-[800px] px-2 md:py-5 py-5  md:px-14   shadow-2xl">
         {/* Logo and Header */}
         <div className="flex flex-col items-center mb-8">
           <Link href="/">
-            <div className="bg-[#EA2B33] rounded-xl flex items-center justify-center mb-5 cursor-pointer hover:opacity-90 transition-opacity">
-              <Image src={"/logo.png"} alt="logo" width={60} height={100} />
-            </div>
+            {/* <div className="bg-[#EA2B33] rounded-xl flex items-center justify-center mb-5 cursor-pointer hover:opacity-90 transition-opacity"> */}
+              <Image src={"/authLogo.png"} alt="logo" width={180} height={180} />
+            
           </Link>
           <h1 className="text-[28px] font-medium text-black mb-2 tracking-tight">
             Sign up
@@ -217,14 +217,14 @@ const Signup = () => {
             <div className="">
             <p className="text-[14px] text-[#5B5B5B]">
               Already have an account?{" "}
-              <Link href="/signin" className="text-[#EA2B33] font-semibold hover:underline">
+              <Link href="/signin" className="text-[#9810FA] font-semibold hover:underline">
                 Sign in
               </Link>
             </p>
           </div>
             <button
               onClick={prevStep}
-              className="px-8 py-2.5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-[#374151] font-semibold text-sm hover:bg-gray-100 transition-colors w-full sm:w-auto"
+              className={`px-8 py-2.5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-[#374151] font-semibold text-sm hover:bg-gray-100 transition-colors w-full sm:w-auto ${activeTab === 0 ? 'invisible pointer-events-none' : ''}`}
             >
               Cancel
             </button>
@@ -233,7 +233,7 @@ const Signup = () => {
                 activeTab === 1 ? () => mutation.mutate(formData) : nextStep
               }
               disabled={mutation.isPending}
-              className={`px-10 py-2.5 rounded-xl bg-[#EA2B33] text-white font-semibold text-sm hover:bg-[#d1232a] transition-colors w-full sm:w-auto ${mutation.isPending ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`px-10 py-2.5 rounded-xl bg-[#9810FA] text-white font-semibold text-sm hover:bg-[#800cd6] transition-colors w-full sm:w-auto ${mutation.isPending ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {mutation.isPending ? "Creating..." : activeTab === 1 ? "Create" : "Next"}
             </button>
