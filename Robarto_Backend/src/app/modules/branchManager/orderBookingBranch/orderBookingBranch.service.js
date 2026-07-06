@@ -262,10 +262,33 @@ const deleteBookingService = async (id, filter) => {
     });
 };
 
+const getBookingCountriesService = async (businessId, branchId) => {
+    const businessType = await resolveBusinessType(businessId);
+    const { model } = getBookingModel(businessType);
+
+    const result = await model.findMany({
+        where: {
+            businessId,
+            branchId,
+            country: {
+                not: null,
+                not: "",
+            },
+        },
+        select: {
+            country: true,
+        },
+        distinct: ["country"],
+    });
+
+    return result.map((b) => b.country);
+};
+
 export const OrderBookingBranchService = {
     createBookingService,
     getAllBookingsService,
     getBookingByIdService,
     updateBookingService,
     deleteBookingService,
+    getBookingCountriesService,
 };

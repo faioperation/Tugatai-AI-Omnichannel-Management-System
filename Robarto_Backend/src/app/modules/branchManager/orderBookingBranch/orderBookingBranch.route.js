@@ -21,6 +21,12 @@ router.get(
 );
 
 router.get(
+    "/countries",
+    checkAuthMiddleware(Role.BRANCH_MANAGER),
+    OrderBookingBranchController.getBookingCountries
+);
+
+router.get(
     "/:id",
     checkAuthMiddleware(Role.BRANCH_MANAGER),
     OrderBookingBranchController.getBookingById
