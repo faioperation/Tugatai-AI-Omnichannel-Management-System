@@ -85,6 +85,17 @@ def make_create_booking(branch_id: str = None, conversation_id: str = None):
           For ORDER_BOOKING, relevant keys include:
             productType, deliveryDate, deliveryAddress, courierService,
             packageColor, fragile
+
+        NOTE ON THE RETURN VALUE:
+        This tool's return string tells YOU (the agent) whether the booking was
+        actually saved on the backend or not:
+        - If it starts with "✅" → the booking was genuinely saved. You can
+          confidently tell the customer their booking is confirmed.
+        - If it starts with "⚠️" → the booking was NOT saved (backend rejected it
+          or was unreachable). Do NOT tell the customer the booking is confirmed.
+          Instead, apologize briefly for a system hiccup, tell them you have all
+          their details, and let them know the team will confirm manually shortly
+          (or use handoff_human if this keeps failing).
         """
         cat = (category or "").strip().upper()
         if cat not in VALID_CATEGORIES:
@@ -142,6 +153,7 @@ def make_create_booking(branch_id: str = None, conversation_id: str = None):
             if resp is not None:
                 print(f"[BOOKING] Final status: {resp.status_code}")
                 print(f"[BOOKING] Response: {resp.text[:500]}")
+
                 if resp.status_code in (200, 201):
                     return (
                         f"✅ Booking confirmed for {customer_name}!\n"
@@ -149,16 +161,34 @@ def make_create_booking(branch_id: str = None, conversation_id: str = None):
                         f"Our team will contact you at {customer_number} shortly."
                     )
 
+                # Backend reached but REJECTED the booking (400/401/422/500/...).
+                # This is a REAL failure — never tell the LLM it succeeded.
+                print(f"[BOOKING ERROR] Backend rejected booking: "
+                      f"{resp.status_code} - {resp.text[:300]}")
+                return (
+                    f"⚠️ Booking was NOT saved. Backend rejected the request "
+                    f"(status {resp.status_code}): {resp.text[:200]}. "
+                    f"Do not tell the customer the booking is confirmed — "
+                    f"apologize for a system hiccup and let them know the team "
+                    f"will confirm manually shortly."
+                )
+
+            # resp is None → every candidate 404'd or was unreachable
+            print(f"[BOOKING ERROR] No route responded for business_id={business_id}")
             return (
-                f"✅ Booking received!\n"
-                f"Our team will contact you at {customer_number} to confirm."
+                f"Booking was NOT saved — could not reach the backend. "
+                f"Do not tell the customer the booking is confirmed — apologize "
+                f"for a system hiccup and let them know the team will confirm "
+                f"manually shortly."
             )
 
         except Exception as e:
             print(f"[BOOKING ERROR] {e}")
             return (
-                f"✅ Booking received!\n"
-                f"Our team will contact you at {customer_number} to confirm."
+                f"Booking was NOT saved due to an internal error ({e}). "
+                f"Do not tell the customer the booking is confirmed — apologize "
+                f"for a system hiccup and let them know the team will confirm "
+                f"manually shortly."
             )
 
     return create_booking
