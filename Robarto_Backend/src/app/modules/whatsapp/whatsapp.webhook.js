@@ -2,6 +2,7 @@ import prisma from "../../prisma/client.js";
 import { notifyAiAgent } from "../../utils/aiAgent.js";
 import { NotificationService } from "../notification/notification.service.js";
 import { isConversationLimitReached } from "../../utils/limitChecker.js";
+import { envVars } from "../../config/env.js";
 
 export const handleWebhookEvent = async (body) => {
   if (body.object === "whatsapp_business_account") {
@@ -148,13 +149,21 @@ const processIncomingMessages = async (value) => {
         data: { lastMessageId: message.id },
       });
 
+      // Construct AI message body (if text, send body; if media, send proxy media URL)
+      let aiMessage = "";
+      if (type === "text") {
+        aiMessage = text || "";
+      } else if (mediaUrl) {
+        aiMessage = `[Media ${type}: ${envVars.BACKEND_URL}/v1/whatsapp/media/${mediaUrl}]`;
+      }
+
       // Notify AI Agent of incoming WhatsApp message
       notifyAiAgent({
         businessId,
         recipientId: waUserId,
         conversationId: conversation.id,
         channel: "whatsapp",
-        message: text || ""
+        message: aiMessage
       });
     }
   }

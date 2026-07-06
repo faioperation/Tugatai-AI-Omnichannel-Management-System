@@ -142,13 +142,20 @@ export const handleIncomingMessage = async (instagramAccountId, webhookEvent) =>
     }
   }).catch(err => console.error("Error checking Instagram throttling:", err));
 
+  // Construct AI message body (if text, send text; if media, send media URL)
+  let aiMessage = messageText || "";
+  if (!aiMessage && attachments && attachments.length > 0) {
+    const attachmentUrl = attachments[0].payload?.url || "";
+    aiMessage = `[Media ${attachments[0].type}: ${attachmentUrl}]`;
+  }
+
   // Notify AI Agent of incoming Instagram message
   notifyAiAgent({
     businessId,
     recipientId: senderId,
     conversationId: conversation.id,
     channel: "instagram",
-    message: messageText || ""
+    message: aiMessage
   });
 };
 

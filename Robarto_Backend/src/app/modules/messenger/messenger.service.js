@@ -79,6 +79,14 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
     customerName = profile.name;
   }
 
+  // Could be an image or other attachment
+  const attachments = webhookEvent.message?.attachments;
+  let lastMessageContent = messageText;
+  if (!lastMessageContent && attachments && attachments.length > 0) {
+    lastMessageContent = `[Media: ${attachments[0].type}]`;
+  }
+  if (!lastMessageContent) lastMessageContent = "Attachment/Other";
+
   // Create or update conversation
   const conversation = await prisma.conversation.upsert({
     where: {
@@ -89,7 +97,7 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
       },
     },
     update: {
-      lastMessage: messageText || "Attachment/Other",
+      lastMessage: lastMessageContent,
       lastMessageAt: new Date(),
       branchId: connection.branchId || null,
       customerName: customerName || undefined,
@@ -100,7 +108,7 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
       platform: "messenger",
       customerId: senderId,
       customerName: customerName || "Social Customer",
-      lastMessage: messageText || "Attachment/Other",
+      lastMessage: lastMessageContent,
       lastMessageAt: new Date(),
     },
   });
@@ -114,6 +122,8 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
       messageText: messageText,
       platformMessageId: platformMessageId,
       rawPayload: webhookEvent,
+      type: attachments ? "media" : "text",
+      mediaUrl: attachments ? attachments[0].payload?.url : null,
     },
   });
 
@@ -122,7 +132,7 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
     if (shouldNotify) {
       NotificationService.createAndSendNotification({
         title: "New Messenger Message",
-        message: `Message: "${messageText || "Attachment/Other"}"`,
+        message: `Message: "${messageText || lastMessageContent}"`,
         type: "NEW_MESSAGE",
         businessId: businessId,
         branchId: connection.branchId || null,
@@ -131,13 +141,20 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
     }
   }).catch(err => console.error("Error checking Messenger throttling:", err));
 
+  // Construct AI message body (if text, send text; if media, send media URL)
+  let aiMessage = messageText || "";
+  if (!aiMessage && attachments && attachments.length > 0) {
+    const attachmentUrl = attachments[0].payload?.url || "";
+    aiMessage = `[Media ${attachments[0].type}: ${attachmentUrl}]`;
+  }
+
   // Notify AI Agent of incoming Messenger message
   notifyAiAgent({
     businessId,
     recipientId: senderId,
     conversationId: conversation.id,
     channel: "messenger",
-    message: messageText || ""
+    message: aiMessage
   });
 };
 
