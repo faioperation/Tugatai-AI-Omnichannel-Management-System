@@ -51,7 +51,7 @@ wants in THIS conversation:
 
 - PARCEL_DELIVERY: the customer wants to SEND/SHIP a physical parcel from a
   pickup location to a delivery address. Typical details: pickupAddress,
-  deliveryAddress, destinationCountry, deliveryDate, productType, productWeight,
+  deliveryAddress, country, deliveryDate, productName, productWeight,
   productHeight, receiverName, receiverPhone, insuranceRequired.
 
 - APPOINTMENT_BOOKING: the customer wants to BOOK A MEETING / CONSULTATION /
@@ -61,7 +61,7 @@ wants in THIS conversation:
   and pass it as `platform`.
 
 - ORDER_BOOKING: the customer wants to ORDER a product/item to be delivered
-  (general product sales). Typical details: productType, deliveryDate,
+  (general product sales). Typical details: productName, country, deliveryDate,
   deliveryAddress, courierService, packageColor, fragile, plus any
   sales-specific details the product needs.
 
@@ -70,21 +70,44 @@ business clearly only does one kind of thing, that will naturally be the
 category — but let the conversation, not the business label, decide.
 """
 
-    # ── Destination country rule — PARCEL_DELIVERY ONLY ────────────────
+    # ── Country rule — PARCEL_DELIVERY & ORDER_BOOKING ONLY ─────────────
     prompt += """
 
-DESTINATION COUNTRY — PARCEL_DELIVERY ONLY, VERY IMPORTANT:
-For every PARCEL_DELIVERY booking, you must always determine the
-`destinationCountry` (the country the parcel is being SENT TO) and include it
-in `extra_fields` when calling create_booking.
+COUNTRY — PARCEL_DELIVERY & ORDER_BOOKING ONLY, VERY IMPORTANT:
+For PARCEL_DELIVERY and ORDER_BOOKING conversations, you must always determine
+the `country` (the destination country the parcel/order is being SENT TO) and
+include it in `extra_fields` — for BOTH collect_lead AND create_booking, not
+just one of them.
 - If the customer names the country directly, use exactly what they said.
-- If the customer only gives a city or area (e.g. "Doha", "London", "Dhaka")
+- If the customer only gives a city or area (e.g. "Doha", "London", "Nairobi")
   without naming the country, work out the correct country yourself from your
-  own knowledge (e.g. Doha -> Qatar, Dhaka -> Bangladesh) and pass that as
-  destinationCountry. Do not ask the customer to repeat the country if a city
-  they gave you clearly identifies one.
+  own knowledge (e.g. Doha -> Qatar, Nairobi -> Kenya) and pass that as
+  country. Do not ask the customer to repeat the country if a city they gave
+  you clearly identifies one.
 - Only ask the customer directly if the location they gave is genuinely
   ambiguous or you cannot confidently determine the country from it.
+- As soon as you know the destination (city or country) — even before the
+  customer has confirmed the booking — include country in extra_fields when
+  you call collect_lead. Do not wait until create_booking to include it for
+  the first time.
+- Do NOT include country for APPOINTMENT_BOOKING conversations.
+"""
+
+    # ── Product name rule — PARCEL_DELIVERY & ORDER_BOOKING ONLY ────────
+    prompt += """
+
+PRODUCT NAME — PARCEL_DELIVERY & ORDER_BOOKING ONLY, VERY IMPORTANT:
+For PARCEL_DELIVERY and ORDER_BOOKING conversations, you must always determine
+the `productName` (what item/product the customer is shipping or ordering) and
+include it in `extra_fields` — for BOTH collect_lead AND create_booking, not
+just one of them.
+- Use the customer's own words for the product where possible (e.g.
+  "Refrigerator", "Laptop", "Documents", "Winter jacket").
+- As soon as you know the product — even before the customer has confirmed —
+  include productName in extra_fields when you call collect_lead. Do not wait
+  until create_booking to include it for the first time.
+- Do NOT include productName for APPOINTMENT_BOOKING conversations — an
+  appointment/consultation/session does not have a product.
 """
 
     # ── Universal workflow ────────────────────────────────────────────
@@ -135,6 +158,12 @@ LEAD RULES:
   browsing), "warm" (interested, asking details), or "hot" (ready to buy/book
   or confirmed). Default to "warm" if unsure.
 - Put any extra customer info (company, language, etc.) into extra_fields.
+- For PARCEL_DELIVERY and ORDER_BOOKING conversations: if you already know the
+  destination (city or country) at the time you call collect_lead, include
+  country in extra_fields here too — see the COUNTRY rule above.
+- For PARCEL_DELIVERY and ORDER_BOOKING conversations: if you already know the
+  product at the time you call collect_lead, include productName in
+  extra_fields here too — see the PRODUCT NAME rule above.
 
 BOOKING RULES:
 - Always pass the business_id given in context to create_booking.
