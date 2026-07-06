@@ -25,6 +25,8 @@ WhatsappRoutes.post(
 WhatsappRoutes.get("/whatsapp/auth", WhatsappController.authWhatsApp);
 WhatsappRoutes.get("/whatsapp/status", WhatsappController.checkConnectionStatus);
 
+WhatsappRoutes.get("/whatsapp/media/:mediaId", WhatsappController.getMedia);
+
 WhatsappRoutes.get("/whatsapp/conversations", WhatsappController.getConversations);
 WhatsappRoutes.get("/whatsapp/conversations/:id/messages", WhatsappController.getMessages);
 

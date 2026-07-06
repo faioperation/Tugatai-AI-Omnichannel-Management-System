@@ -205,4 +205,32 @@ export const WhatsappController = {
       next(error);
     }
   },
+
+  getMedia: async (req, res, next) => {
+    try {
+      const { businessId } = await getBusinessAndBranchForUser(req.user);
+      if (!businessId) {
+        return res.status(404).json({ success: false, message: "Business not found for this user" });
+      }
+
+      const { mediaId } = req.params;
+      const { stream, mimeType, fileSize } = await WhatsappService.getMediaStream(businessId, mediaId);
+
+      res.setHeader("Content-Type", mimeType);
+      if (fileSize) {
+        res.setHeader("Content-Length", fileSize);
+      }
+      
+      if (req.query.download === "true") {
+        res.setHeader("Content-Disposition", `attachment; filename="${mediaId}"`);
+      } else {
+        res.setHeader("Content-Disposition", `inline; filename="${mediaId}"`);
+      }
+
+      stream.pipe(res);
+    } catch (error) {
+      console.error("Error streaming WhatsApp media:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
 };

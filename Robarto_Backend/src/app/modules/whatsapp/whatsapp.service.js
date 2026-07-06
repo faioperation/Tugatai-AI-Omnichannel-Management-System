@@ -259,4 +259,26 @@ export const WhatsappService = {
 
     return connectedAccounts;
   },
+
+  getMediaStream: async (businessId, mediaId) => {
+    const account = await prisma.whatsappAccount.findFirst({
+      where: { businessId, status: "ACTIVE" },
+    });
+    if (!account) {
+      throw new Error("Active WhatsApp account not found for this business");
+    }
+
+    const mediaInfo = await MetaGraphAPI.getMediaUrl(mediaId, account.accessToken);
+    if (!mediaInfo || !mediaInfo.url) {
+      throw new Error("Failed to retrieve media URL from WhatsApp");
+    }
+
+    const streamResponse = await MetaGraphAPI.downloadMedia(mediaInfo.url, account.accessToken);
+
+    return {
+      stream: streamResponse.data,
+      mimeType: mediaInfo.mime_type || streamResponse.headers["content-type"],
+      fileSize: mediaInfo.file_size || streamResponse.headers["content-length"],
+    };
+  },
 };
