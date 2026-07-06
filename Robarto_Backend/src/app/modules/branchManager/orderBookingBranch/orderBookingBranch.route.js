@@ -27,6 +27,12 @@ router.get(
 );
 
 router.get(
+    "/product-types",
+    checkAuthMiddleware(Role.BRANCH_MANAGER),
+    OrderBookingBranchController.getBookingProductTypes
+);
+
+router.get(
     "/:id",
     checkAuthMiddleware(Role.BRANCH_MANAGER),
     OrderBookingBranchController.getBookingById

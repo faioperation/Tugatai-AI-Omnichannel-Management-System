@@ -82,8 +82,26 @@ const getAllBookingsService = async (query = {}, filter = {}) => {
     const businessType = await resolveBusinessType(businessId);
     const { model, detailsRelation } = getBookingModel(businessType);
 
+    const searchConfig = ["customerName", "customerNumber", "email", "country", "price", "note"];
+    if (businessType !== "APPOINTMENT_BOOKING") {
+        searchConfig.push("productName");
+    }
+    if (businessType === "ORDER_BOOKING") {
+        searchConfig.push({
+            orderDetails: ["deliveryAddress", "productType"]
+        });
+    } else if (businessType === "PARCEL_DELIVERY") {
+        searchConfig.push({
+            parcelDetails: ["pickupAddress", "deliveryAddress", "productType", "productHeight"]
+        });
+    } else if (businessType === "APPOINTMENT_BOOKING") {
+        searchConfig.push({
+            appointmentDetails: ["platform", "duration"]
+        });
+    }
+
     const queryBuilder = new QueryBuilder(query)
-        .search(["customerName", "customerNumber", "email"])
+        .search(searchConfig)
         .filter()
         .sort()
         .paginate()
@@ -91,6 +109,21 @@ const getAllBookingsService = async (query = {}, filter = {}) => {
 
     const queryParams = queryBuilder.build();
     queryParams.where = { ...queryParams.where, ...filter };
+
+    // productType filter — nested relation filter based on businessType
+    const productType = query.productType;
+    if (productType) {
+        const detailsFilterKey =
+            businessType === "ORDER_BOOKING" ? "orderDetails" :
+            businessType === "PARCEL_DELIVERY" ? "parcelDetails" :
+            businessType === "APPOINTMENT_BOOKING" ? "appointmentDetails" : null;
+        if (detailsFilterKey) {
+            queryParams.where = {
+                ...queryParams.where,
+                [detailsFilterKey]: { productType },
+            };
+        }
+    }
 
     if (!queryParams.select) {
         queryParams.include = {
@@ -284,6 +317,38 @@ const getBookingCountriesService = async (businessId, branchId) => {
     return result.map((b) => b.country);
 };
 
+/**
+ * Returns distinct productTypes for a given business & branch.
+ * Only applicable for ORDER_BOOKING and PARCEL_DELIVERY (have productType in details).
+ */
+const getBookingProductTypesService = async (businessId, branchId) => {
+    const businessType = await resolveBusinessType(businessId);
+
+    const detailsModelMap = {
+        ORDER_BOOKING: "orderDetails",
+        PARCEL_DELIVERY: "parcelDetails",
+    };
+
+    const detailsModelName = detailsModelMap[businessType];
+    if (!detailsModelName) return [];
+
+    const where = {
+        businessId,
+        branchId,
+        productType: { not: null },
+    };
+
+    const result = await prisma[detailsModelName].findMany({
+        where,
+        select: { productType: true },
+        distinct: ["productType"],
+    });
+
+    return result
+        .map((r) => r.productType)
+        .filter((t) => t && t.trim() !== "");
+};
+
 export const OrderBookingBranchService = {
     createBookingService,
     getAllBookingsService,
@@ -291,4 +356,5 @@ export const OrderBookingBranchService = {
     updateBookingService,
     deleteBookingService,
     getBookingCountriesService,
+    getBookingProductTypesService,
 };

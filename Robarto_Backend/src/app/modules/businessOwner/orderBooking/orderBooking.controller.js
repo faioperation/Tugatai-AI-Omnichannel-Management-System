@@ -56,6 +56,14 @@ const getBookingCountries = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
+const getBookingProductTypes = async (req, res, next) => {
+    try {
+        const branchId = req.query.branchId || null;
+        const result = await BookingService.getBookingProductTypesService(req.business.id, branchId);
+        sendResponse(res, { statusCode: StatusCodes.OK, success: true, message: "Product types retrieved successfully", data: result });
+    } catch (error) { next(error); }
+};
+
 export const BookingController = {
     createBooking,
     getAllBookings,
@@ -63,4 +71,5 @@ export const BookingController = {
     updateBooking,
     deleteBooking,
     getBookingCountries,
+    getBookingProductTypes,
 };
