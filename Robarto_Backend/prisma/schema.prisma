@@ -454,6 +454,7 @@ model OrderBooking {
   customerNumber String        @map("customer_number")
   email          String?
   country        String?
+  productName    String?       @map("product_name")
   price          String
   note           String?       @db.Text
   status         BookingStatus @default(PENDING)
@@ -545,6 +546,7 @@ model ParcelDelivery {
   customerNumber String         @map("customer_number")
   email          String?
   country        String?
+  productName    String?        @map("product_name")
   price          String
   note           String?        @db.Text
   status         BookingStatus  @default(PENDING)

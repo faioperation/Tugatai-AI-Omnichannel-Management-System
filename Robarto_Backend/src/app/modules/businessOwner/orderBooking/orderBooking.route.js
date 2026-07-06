@@ -21,6 +21,18 @@ router.get(
 );
 
 router.get(
+    "/countries",
+    checkAuthMiddleware(Role.BUSINESS_OWNER),
+    BookingController.getBookingCountries
+);
+
+router.get(
+    "/product-types",
+    checkAuthMiddleware(Role.BUSINESS_OWNER),
+    BookingController.getBookingProductTypes
+);
+
+router.get(
     "/:id",
     checkAuthMiddleware(Role.BUSINESS_OWNER),
     BookingController.getBookingById

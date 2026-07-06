@@ -66,10 +66,28 @@ const deleteBooking = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
+const getBookingCountries = async (req, res, next) => {
+    try {
+        const { businessId, branchId } = await resolveBranchManager(req.user?.email);
+        const result = await OrderBookingBranchService.getBookingCountriesService(businessId, branchId);
+        sendResponse(res, { statusCode: StatusCodes.OK, success: true, message: "Booking countries retrieved successfully", data: result });
+    } catch (error) { next(error); }
+};
+
+const getBookingProductTypes = async (req, res, next) => {
+    try {
+        const { businessId, branchId } = await resolveBranchManager(req.user?.email);
+        const result = await OrderBookingBranchService.getBookingProductTypesService(businessId, branchId);
+        sendResponse(res, { statusCode: StatusCodes.OK, success: true, message: "Product types retrieved successfully", data: result });
+    } catch (error) { next(error); }
+};
+
 export const OrderBookingBranchController = {
     createBooking,
     getAllBookings,
     getBookingById,
     updateBooking,
     deleteBooking,
+    getBookingCountries,
+    getBookingProductTypes,
 };

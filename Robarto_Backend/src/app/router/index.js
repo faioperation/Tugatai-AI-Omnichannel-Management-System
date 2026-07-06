@@ -47,12 +47,12 @@ import { DemoBookingRoutes } from "../modules/demoBooking/demoBooking.route.js";
 export const router = Router();
 
 const moduleRoutes = [
+  // Private / Authenticated Routes
   { path: "/notifications", route: NotificationRoutes },
   { path: "/user", route: UserRoutes },
   { path: "/auth", route: AuthRouter },
   { path: "/otp", route: OtpRouter },
   { path: "/system-owner/businesses", route: BusinessRoutes },
-  { path: "/global/business", route: GlobalBusinessRoutes },
   { path: "/system-owner/subscription-plans", route: SubscriptionPlanRoutes },
   { path: "/system-owner/activity-logs", route: ActivityLogRoutes },
   { path: "/system-owner/agent-trainings", route: AgentTrainingRoutes },
@@ -71,19 +71,8 @@ const moduleRoutes = [
   { path: "/v1", route: WhatsappRoutes },
   { path: "/v1", route: InstagramRoutes },
   { path: "/v1", route: GoogleCalendarRoutes },
-  { path: "/v1/public/facebook", route: PublicFacebookRoutes },
-  { path: "/v1/public/instagram", route: PublicInstagramRoutes },
-  { path: "/v1/public/whatsapp", route: PublicWhatsappRoutes },
   { path: "/payment", route: PaymentRouter },
-  { path: "/leads", route: PublicLeadRoutes },
-  { path: "/bookings", route: PublicBookingRoutes },
-  { path: "/v1/public/agent-training", route: PublicAgentTrainingRoutes },
-  { path: "/v1/public/pricings", route: PublicPricingRoutes },
-  { path: "/v1/public/chat-summaries", route: PublicChatSummaryRoutes },
   { path: "/chat-summaries", route: ChatSummaryRoutes },
-  { path: "/webhook", route: VapiRoutes },
-  { path: "/public/subscription-plans", route: PublicSubscriptionRoutes },
-  { path: "/v1/public/campaigns", route: PublicCampaignRoutes },
   { path: "/business-owner/dashboard", route: DashboardOverviewBRoutes },
   { path: "/branch-manager/dashboard", route: DashboardOverviewMRoutes },
   { path: "/system-owner/telephony", route: TelephonyRoutes },
@@ -91,7 +80,21 @@ const moduleRoutes = [
   { path: "/conversation-off", route: ConversationOffRoutes },
   { path: "/pricing-calculator", route: PricingCalculatorRoutes },
   { path: "/conversations", route: AllConversationsRoutes },
+  { path: "/webhook", route: VapiRoutes },
   { path: "/demo-bookings", route: DemoBookingRoutes },
+
+  // Public API Folder Routes (At the absolute bottom)
+  { path: "/global/business", route: GlobalBusinessRoutes },
+  { path: "/v1/public/facebook", route: PublicFacebookRoutes },
+  { path: "/v1/public/instagram", route: PublicInstagramRoutes },
+  { path: "/v1/public/whatsapp", route: PublicWhatsappRoutes },
+  { path: "/v1/public/leads", route: PublicLeadRoutes },
+  { path: "/v1/public/bookings", route: PublicBookingRoutes },
+  { path: "/v1/public/agent-training", route: PublicAgentTrainingRoutes },
+  { path: "/v1/public/pricings", route: PublicPricingRoutes },
+  { path: "/v1/public/chat-summaries", route: PublicChatSummaryRoutes },
+  { path: "/public/subscription-plans", route: PublicSubscriptionRoutes },
+  { path: "/v1/public/campaigns", route: PublicCampaignRoutes },
 ];
 
 moduleRoutes.forEach((route) => {

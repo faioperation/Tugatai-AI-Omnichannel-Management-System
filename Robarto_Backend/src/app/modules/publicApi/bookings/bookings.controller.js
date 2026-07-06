@@ -63,6 +63,7 @@ export const createBooking = async (req, res, next) => {
           customerName,
           customerNumber,
           email: req.body.email || null,
+          productName: req.body.productName || null,
           price: price ? String(price) : "0",
           note: req.body.note || req.body.orderNote || null,
           status: req.body.status || "PENDING",
