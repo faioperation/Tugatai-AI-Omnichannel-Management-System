@@ -48,6 +48,9 @@ services:
   backend:
     build:
       context: ./Robarto_Backend
+      dockerfile: Dockerfile
+      args:
+        DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     image: omnirraai/backend:latest
     restart: unless-stopped
     env_file:
