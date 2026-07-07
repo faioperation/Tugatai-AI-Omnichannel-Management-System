@@ -2,7 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import { sendResponse } from "../../../utils/sendResponse.js";
 import { AgentTrainingService } from "./agentTraining.service.js";
 import { envVars } from "../../../config/env.js";
-import { extractTextFromFile } from "../../../utils/textExtractor.js";
+import { extractTextFromFile, extractExcelData } from "../../../utils/textExtractor.js";
 import prisma from "../../../prisma/client.js";
 
 const mapFiles = async (filesArray) => {
@@ -11,13 +11,29 @@ const mapFiles = async (filesArray) => {
     for (const file of filesArray) {
         const filePath = `./uploads/agentTraining/${file.filename}`;
         const extractedText = await extractTextFromFile(filePath, file.mimetype);
-        result.push({
+        
+        const fileObj = {
             url: `${envVars.BACKEND_URL}/uploads/agentTraining/${file.filename}`,
             path: `/uploads/agentTraining/${file.filename}`,
             rowText: extractedText,
             mimetype: file.mimetype,
             originalname: file.originalname
-        });
+        };
+
+        // Check if the uploaded file is an Excel spreadsheet to extract raw JSON data
+        if (
+            file.mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+            file.mimetype === "application/vnd.ms-excel" ||
+            file.originalname.endsWith(".xlsx") ||
+            file.originalname.endsWith(".xls")
+        ) {
+            const excelJson = await extractExcelData(filePath);
+            if (excelJson) {
+                fileObj.jsonData = excelJson;
+            }
+        }
+
+        result.push(fileObj);
     }
     return result;
 };
