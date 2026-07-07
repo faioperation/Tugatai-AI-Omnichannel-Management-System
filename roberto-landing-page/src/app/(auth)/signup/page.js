@@ -18,16 +18,30 @@ const Signup = () => {
     businessType: "ORDER_BOOKING",
     industry: "",
     description: "",
-    country: "",
-    address: "",
     ownerName: "",
     ownerEmail: "",
     ownerPassword: "",
     ownerPhone: "",
+    branch: {
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+    },
   });
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleBranchChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      branch: {
+        ...prev.branch,
+        [field]: value
+      }
+    }));
   };
 
   const mutation = useMutation({
@@ -55,10 +69,10 @@ const Signup = () => {
     }
   });
 
-  const tabs = ["Business Info", "Owner Details"];
+  const tabs = ["Business Info", "Branch Details", "Owner Details"];
 
   const nextStep = () => {
-    if (activeTab < 1) setActiveTab(activeTab + 1);
+    if (activeTab < 2) setActiveTab(activeTab + 1);
   };
 
   const prevStep = () => {
@@ -118,7 +132,7 @@ const Signup = () => {
                   options={[
                     { label: "Order Booking", value: "ORDER_BOOKING" },
                     { label: "Appointment Booking", value: "APPOINTMENT_BOOKING" },
-                    { label: "Cargo", value: "PARCEL_DELIVERY" },
+                    { label: "Parcel Delivery", value: "PARCEL_DELIVERY" },
                   ]}
                   value={formData.businessType}
                   onSelect={(val) => handleInputChange("businessType", val)}
@@ -134,26 +148,6 @@ const Signup = () => {
                   value={formData.industry}
                   onChange={(e) => handleInputChange("industry", e.target.value)}
                 />
-                <div className="grid grid-cols-2 gap-4">
-                  <InputField
-                    label="Country"
-                    placeholder="e.g. Qatar"
-                    labelClass="text-[13px] font-semibold"
-                    inputClass="!p-3 !text-sm !rounded-xl"
-                    type="text"
-                    value={formData.country}
-                    onChange={(e) => handleInputChange("country", e.target.value)}
-                  />
-                  <InputField
-                    label="Address"
-                    placeholder="e.g. Doha"
-                    labelClass="text-[13px] font-semibold"
-                    inputClass="!p-3 !text-sm !rounded-xl"
-                    type="text"
-                    value={formData.address}
-                    onChange={(e) => handleInputChange("address", e.target.value)}
-                  />
-                </div>
 
                 <div className="flex flex-col w-full gap-2">
                   <label className="font-inter text-[#000000] text-[13px] font-semibold">
@@ -170,6 +164,47 @@ const Signup = () => {
             )}
 
             {activeTab === 1 && (
+              <>
+                <InputField
+                  label="Branch Name"
+                  placeholder="Enter branch name"
+                  labelClass="text-[13px] font-semibold"
+                  inputClass="!p-3 !text-sm !rounded-xl"
+                  type="text"
+                  value={formData.branch.name}
+                  onChange={(e) => handleBranchChange("name", e.target.value)}
+                />
+                <InputField
+                  label="Branch Email"
+                  placeholder="email@branch.com"
+                  labelClass="text-[13px] font-semibold"
+                  inputClass="!p-3 !text-sm !rounded-xl"
+                  type="email"
+                  value={formData.branch.email}
+                  onChange={(e) => handleBranchChange("email", e.target.value)}
+                />
+                <InputField
+                  label="Branch Phone"
+                  placeholder="+1 234 567 8900"
+                  labelClass="text-[13px] font-semibold"
+                  inputClass="!p-3 !text-sm !rounded-xl"
+                  type="tel"
+                  value={formData.branch.phone}
+                  onChange={(e) => handleBranchChange("phone", e.target.value)}
+                />
+                <InputField
+                  label="Branch Address"
+                  placeholder="e.g. Doha, Qatar"
+                  labelClass="text-[13px] font-semibold"
+                  inputClass="!p-3 !text-sm !rounded-xl"
+                  type="text"
+                  value={formData.branch.address}
+                  onChange={(e) => handleBranchChange("address", e.target.value)}
+                />
+              </>
+            )}
+
+            {activeTab === 2 && (
               <>
                 <InputField
                   label="Owner Name"
@@ -230,12 +265,12 @@ const Signup = () => {
             </button>
             <button
               onClick={
-                activeTab === 1 ? () => mutation.mutate(formData) : nextStep
+                activeTab === 2 ? () => mutation.mutate(formData) : nextStep
               }
               disabled={mutation.isPending}
               className={`px-10 py-2.5 rounded-xl bg-[#9810FA] text-white font-semibold text-sm hover:bg-[#800cd6] transition-colors w-full sm:w-auto ${mutation.isPending ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              {mutation.isPending ? "Creating..." : activeTab === 1 ? "Create" : "Next"}
+              {mutation.isPending ? "Creating..." : activeTab === 2 ? "Create" : "Next"}
             </button>
           </div>
           
