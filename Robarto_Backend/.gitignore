@@ -53,3 +53,7 @@ src/app/config/roberto-notification-firebase-adminsdk-fbsvc-ebd70cfbdc.json
 ✅ Robarto bac.postman_collection.json
 
 prisma/migrations
+
+
+secrets/*
+!secrets/.gitkeep

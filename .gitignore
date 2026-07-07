@@ -45,3 +45,7 @@ app.*.map.json
 # Flutter build directory
 build/*
 !build/web/
+
+
+secrets/*
+!secrets/.gitkeep
