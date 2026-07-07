@@ -9,8 +9,6 @@ COPY pubspec.* ./
 
 RUN flutter pub get
 
-RUN apk add --no-cache curl
-
 COPY . .
 
 RUN flutter build web --release
@@ -19,6 +17,8 @@ RUN flutter build web --release
 # Production Stage
 ############################
 FROM nginx:1.29-alpine
+
+RUN apk add --no-cache curl
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
