@@ -141,7 +141,7 @@ services:
 
   dashboard:
     build:
-      context: ./roberto-multi-tenant-mobile-dashboard
+      context: ./roberto-multi-tenent-mobile-dashboard
     image: omnirraai/dashboard:latest
     restart: unless-stopped
     healthcheck:
