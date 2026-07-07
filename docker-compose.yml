@@ -61,7 +61,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER}
-      RUN_SEED: "true"
+      RUN_SEED: "false"
     depends_on:
       postgres:
         condition: service_healthy
