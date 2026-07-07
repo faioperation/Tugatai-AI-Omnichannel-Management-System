@@ -1,10 +1,40 @@
+# Git
 .git
+.github
+
+# IDE
 .idea
-.metadata
-build/
+.vscode
+
+# Flutter
 .dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+build/
+
+# Platforms (Web only deployment)
 android/
 ios/
 macos/
 windows/
+linux/
+
+# Logs
 *.log
+
+# Environment
+.env
+.env.*
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+
+# Docs
+README.md
+
+# OS
+.DS_Store
+Thumbs.db
