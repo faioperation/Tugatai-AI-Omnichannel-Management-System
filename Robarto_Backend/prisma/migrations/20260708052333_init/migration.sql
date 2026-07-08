@@ -628,8 +628,8 @@ CREATE TABLE "agent_training" (
     "product_information" JSONB,
     "policies_guidelines" JSONB,
     "faq" JSONB,
-    "business_id" TEXT NOT NULL,
     "row_text" TEXT,
+    "business_id" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "deleted_at" TIMESTAMP(3),
@@ -977,6 +977,9 @@ ALTER TABLE "whatsapp_messages" ADD CONSTRAINT "whatsapp_messages_conversation_i
 
 -- AddForeignKey
 ALTER TABLE "whatsapp_messages" ADD CONSTRAINT "whatsapp_messages_contact_id_fkey" FOREIGN KEY ("contact_id") REFERENCES "whatsapp_contacts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "agent_training" ADD CONSTRAINT "agent_training_business_id_fkey" FOREIGN KEY ("business_id") REFERENCES "businesses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "chat_summaries" ADD CONSTRAINT "chat_summaries_business_id_fkey" FOREIGN KEY ("business_id") REFERENCES "businesses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
