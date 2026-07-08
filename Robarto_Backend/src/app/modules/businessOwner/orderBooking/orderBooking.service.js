@@ -302,7 +302,8 @@ const getBookingCountriesService = async (businessId, branchId) => {
     const bookingWhere = {
         businessId,
         country: {
-            notIn: [null, ""],
+            not: null,
+            notIn: [""],
         },
     };
     if (branchId) {
@@ -320,7 +321,8 @@ const getBookingCountriesService = async (businessId, branchId) => {
     const leadWhere = {
         businessId,
         country: {
-            notIn: [null, ""],
+            not: null,
+            notIn: [""],
         },
     };
     if (branchId) {
