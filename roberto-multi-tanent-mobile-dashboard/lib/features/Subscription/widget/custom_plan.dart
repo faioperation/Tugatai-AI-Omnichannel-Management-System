@@ -92,13 +92,15 @@ class CustomPlan extends StatelessWidget {
               // FEATURES
               ...features.map((f) => _FeatureItem(text: f)).toList(),
 
-              if (buttonText != null && onButtonPressed != null) ...[
+              if (buttonText != null) ...[
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      backgroundColor: onButtonPressed == null
+                          ? Colors.grey.shade400
+                          : Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
