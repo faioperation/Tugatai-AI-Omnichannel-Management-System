@@ -11,7 +11,7 @@ import path from "path";
 /**
  * Helper to call the external voice agent creation API
  */
-const callExternalCreateAgent = async (agentName, file) => {
+const callExternalCreateAgent = async (agentName, file, productFile = null) => {
     const apiBaseUrl = envVars.VOICE_AGENT_API;
     if (!apiBaseUrl) {
         throw new DevBuildError("VOICE_AGENT_API is not defined in environment variables", StatusCodes.INTERNAL_SERVER_ERROR);
@@ -24,6 +24,12 @@ const callExternalCreateAgent = async (agentName, file) => {
         const formData = new FormData();
         formData.append("business_id", agentName);
         formData.append("rules_file", blob, file.originalname);
+
+        if (productFile) {
+            const productFileBuffer = fs.readFileSync(productFile.path);
+            const productBlob = new Blob([productFileBuffer], { type: productFile.mimetype });
+            formData.append("product_file", productBlob, productFile.originalname);
+        }
 
         console.log(`[Voice Agent API] Calling create endpoint at: ${apiBaseUrl}/api/agents/create`);
         const response = await axios.post(`${apiBaseUrl}/api/agents/create`, formData, {
@@ -41,6 +47,43 @@ const callExternalCreateAgent = async (agentName, file) => {
         );
         throw new DevBuildError(
             error.response?.data?.message || error.response?.data?.detail || "Failed to create agent on external voice agent API",
+            error.response?.status || StatusCodes.INTERNAL_SERVER_ERROR
+        );
+    }
+};
+
+/**
+ * Helper to call the external update product file API
+ */
+const callExternalUpdateProductFile = async (assistantId, productFile) => {
+    const apiBaseUrl = envVars.VOICE_AGENT_API;
+    if (!apiBaseUrl) {
+        throw new DevBuildError("VOICE_AGENT_API is not defined in environment variables", StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+
+    try {
+        const fileBuffer = fs.readFileSync(productFile.path);
+        const blob = new Blob([fileBuffer], { type: productFile.mimetype });
+
+        const formData = new FormData();
+        formData.append("product_file", blob, productFile.originalname);
+
+        console.log(`[Voice Agent API] Calling update product file endpoint at: ${apiBaseUrl}/api/agents/${assistantId}/product-file`);
+        const response = await axios.put(`${apiBaseUrl}/api/agents/${assistantId}/product-file`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+
+        console.log("[Voice Agent API] Update Product File Response:", response.data);
+        return response.data;
+    } catch (error) {
+        console.error(
+            "[Voice Agent API] Error during updating product file:",
+            error.response?.data ? JSON.stringify(error.response.data, null, 2) : error.message
+        );
+        throw new DevBuildError(
+            error.response?.data?.message || error.response?.data?.detail || "Failed to update product file on external voice agent API",
             error.response?.status || StatusCodes.INTERNAL_SERVER_ERROR
         );
     }
@@ -85,7 +128,7 @@ const mergeRulesFiles = async (files) => {
     };
 };
 
-const createAgentService = async (businessId, agentName, files, branchId) => {
+const createAgentService = async (businessId, agentName, files, productFile, branchId) => {
     const targetBranchId = (branchId === "null" || branchId === "") ? null : branchId;
     if (targetBranchId) {
         const existingAgent = await prisma.agent.findFirst({
@@ -108,16 +151,18 @@ const createAgentService = async (businessId, agentName, files, branchId) => {
     }
 
     // Call external Voice Agent API
-    const externalResponse = await callExternalCreateAgent(agentName, fileToUse);
+    const externalResponse = await callExternalCreateAgent(agentName, fileToUse, productFile);
     const vapiId = externalResponse?.assistant_id || externalResponse?.id || externalResponse?.vapiId || externalResponse?.assistantId || null;
 
     const relativePath = `/uploads/agents/${fileToUse.filename}`;
+    const relativeProductPath = productFile ? `/uploads/agents/${productFile.filename}` : null;
 
     const result = await prisma.agent.create({
         data: {
             businessId,
             branchId: targetBranchId,
             rulesFile: relativePath,
+            productFile: relativeProductPath,
             vapiId,
             metadata: externalResponse ? { ...externalResponse, agentName } : { agentName },
         },
@@ -165,7 +210,7 @@ const getAgentByIdService = async (id, query = {}) => {
     return result;
 };
 
-const updateAgentService = async (id, payload, files) => {
+const updateAgentService = async (id, payload, files, productFile) => {
     const existingAgent = await prisma.agent.findUnique({
         where: { id },
     });
@@ -208,7 +253,7 @@ const updateAgentService = async (id, payload, files) => {
         }
 
         const agentNameForApi = payload.agentName || existingMetadata.agentName || "";
-        const externalResponse = await callExternalCreateAgent(agentNameForApi, fileToUse);
+        const externalResponse = await callExternalCreateAgent(agentNameForApi, fileToUse, productFile);
 
         updateData.rulesFile = `/uploads/agents/${fileToUse.filename}`;
         updateData.vapiId = externalResponse?.assistant_id || externalResponse?.id || externalResponse?.vapiId || externalResponse?.assistantId || null;
@@ -225,12 +270,79 @@ const updateAgentService = async (id, payload, files) => {
                 if (err) console.error("[Service] Error deleting old rules file:", err.message);
             });
         }
+    } else if (productFile) {
+        const assistantId = existingAgent.vapiId;
+        if (!assistantId) {
+            throw new DevBuildError("Assistant ID (vapiId) not found for this agent", StatusCodes.BAD_REQUEST);
+        }
+
+        const externalResponse = await callExternalUpdateProductFile(assistantId, productFile);
+        updateData.metadata = {
+            ...updatedMetadata,
+            ...(externalResponse || {}),
+        };
+    }
+
+    if (productFile) {
+        updateData.productFile = `/uploads/agents/${productFile.filename}`;
+        if (existingAgent.productFile) {
+            const oldProductPath = `.${existingAgent.productFile}`;
+            fs.unlink(oldProductPath, (err) => {
+                if (err) console.error("[Service] Error deleting old product file:", err.message);
+            });
+        }
     }
 
     const result = await prisma.agent.update({
         where: { id },
         data: updateData,
     });
+
+    return result;
+};
+
+const updateProductFileService = async (id, productFile) => {
+    const existingAgent = await prisma.agent.findUnique({
+        where: { id },
+    });
+
+    if (!existingAgent) {
+        throw new DevBuildError("Agent not found", StatusCodes.NOT_FOUND);
+    }
+
+    const assistantId = existingAgent.vapiId;
+    if (!assistantId) {
+        throw new DevBuildError("Assistant ID (vapiId) not found for this agent", StatusCodes.BAD_REQUEST);
+    }
+
+    if (!productFile) {
+        throw new DevBuildError("product_file is required", StatusCodes.BAD_REQUEST);
+    }
+
+    // Call external voice agent PUT endpoint
+    const externalResponse = await callExternalUpdateProductFile(assistantId, productFile);
+
+    const relativeProductPath = `/uploads/agents/${productFile.filename}`;
+
+    // Update in DB
+    const result = await prisma.agent.update({
+        where: { id },
+        data: {
+            productFile: relativeProductPath,
+            metadata: {
+                ...(existingAgent.metadata || {}),
+                ...(externalResponse || {}),
+            }
+        },
+    });
+
+    // Optionally delete old product file to save space
+    if (existingAgent.productFile) {
+        const oldPath = `.${existingAgent.productFile}`;
+        fs.unlink(oldPath, (err) => {
+            if (err) console.error("[Service] Error deleting old product file:", err.message);
+        });
+    }
 
     return result;
 };
@@ -252,6 +364,14 @@ const deleteAgentService = async (id) => {
         });
     }
 
+    // Delete local product file
+    if (existingAgent.productFile) {
+        const filePath = `.${existingAgent.productFile}`;
+        fs.unlink(filePath, (err) => {
+            if (err) console.error("[Service] Error deleting product file:", err.message);
+        });
+    }
+
     const result = await prisma.agent.delete({
         where: { id },
     });
@@ -264,5 +384,6 @@ export const AgentService = {
     getAllAgentsService,
     getAgentByIdService,
     updateAgentService,
+    updateProductFileService,
     deleteAgentService,
 };

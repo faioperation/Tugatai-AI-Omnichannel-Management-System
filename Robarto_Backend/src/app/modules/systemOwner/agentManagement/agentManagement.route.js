@@ -8,11 +8,16 @@ import { createMulterUpload } from "../../../config/multer.config.js";
 
 const router = express.Router();
 const upload = createMulterUpload({ folder: "agents", allowedTypes: /.*/ });
+const uploadFields = upload.fields([
+    { name: "rules_file", maxCount: 10 },
+    { name: "product_file", maxCount: 1 },
+    { name: "productFile", maxCount: 1 }
+]);
 
 router.post(
     "/create",
     checkAuthMiddleware(Role.SYSTEM_OWNER),
-    upload.array("rules_file", 10),
+    uploadFields,
     validateRequest(AgentValidation.createAgentSchema),
     AgentController.createAgent
 );
@@ -32,9 +37,19 @@ router.get(
 router.patch(
     "/:id",
     checkAuthMiddleware(Role.SYSTEM_OWNER),
-    upload.array("rules_file", 10),
+    uploadFields,
     validateRequest(AgentValidation.updateAgentSchema),
     AgentController.updateAgent
+);
+
+router.put(
+    "/:id/product-file",
+    checkAuthMiddleware(Role.SYSTEM_OWNER),
+    upload.fields([
+        { name: "product_file", maxCount: 1 },
+        { name: "productFile", maxCount: 1 }
+    ]),
+    AgentController.updateProductFile
 );
 
 router.delete(
