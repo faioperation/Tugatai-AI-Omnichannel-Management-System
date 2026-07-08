@@ -58,9 +58,10 @@ def health_check():
     return {
         "status": "ok",
         "service": "Roberto Voice Agent API",
-        "version": "3.0",
+        "version": "3.1",
         "endpoints": {
-            "create_assistant": "POST /api/create-assistant",
+            "create_assistant": "POST /api/agents/create",
+            "update_product_file": "PUT /api/agents/{id}/product-file",
             "list_assistants": "GET /api/assistants",
             "get_assistant": "GET /api/assistant/{id}",
             "patch_assistant": "PATCH /api/assistant/{id}",
@@ -73,4 +74,4 @@ def health_check():
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8002, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
