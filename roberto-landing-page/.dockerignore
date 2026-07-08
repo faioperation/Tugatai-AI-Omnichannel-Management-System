@@ -9,7 +9,9 @@ node_modules
 .idea
 
 .env
-.env.*
+-.env.*
++.env.*
++!.env.production
 
 coverage
 

@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'https://api.omnirraai.com';
+  static const String baseUrl = 'https://api.omnirraai.com/api';
   
   // Auth endpoints
   static const String login = '$baseUrl/auth/login';
