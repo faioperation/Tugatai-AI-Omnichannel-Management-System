@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 class AppColor {
   // Brand Colors
-  static const Color primary = Color(0xffE9252B);
+  //static const Color primary = Color(0xffE9252B);
+  static const Color primary = Color(0xff8468B5);
   static const Color secondary = Color(0xffFFDEDE);
   
   // Semantic Colors (Light)

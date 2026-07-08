@@ -14,6 +14,8 @@ class BookingRepository {
     String search = '',
     String status = '',
     String? branchId,
+    String country = '',
+    String productType = '',
   }) async {
     try {
       final queryParams = {
@@ -22,10 +24,12 @@ class BookingRepository {
         if (search.isNotEmpty) 'search': search,
         if (status.isNotEmpty && status != 'All status') 'status': status.toUpperCase(),
         if (branchId != null) 'branchId': branchId,
+        if (country.isNotEmpty && country != 'All countries') 'country': country,
+        if (productType.isNotEmpty && productType != 'All types') 'productType': productType,
       };
 
       final queryString = Uri(queryParameters: queryParams).query;
-      final baseUrl = isBranchManager ? ApiConstants.branchManagerBookingsAll : '${ApiConstants.baseUrl}/business-owner/bookings/all';
+      final baseUrl = isBranchManager ? ApiConstants.branchManagerBookingsAll : ApiConstants.businessOwnerBookingsAll;
       final url = '$baseUrl?$queryString';
 
       final response = await _networkClient.getRequest(url);
@@ -221,6 +225,59 @@ class BookingRepository {
         return {
           'success': false,
           'message': response.errorMassage ?? 'Failed to create Google Calendar event',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> getBookingCountries(String branchId) async {
+    try {
+      final endpoint = isBranchManager 
+          ? ApiConstants.branchManagerBookingCountries 
+          : ApiConstants.businessOwnerBookingCountries;
+      final url = '$endpoint?branchId=$branchId';
+      final response = await _networkClient.getRequest(url);
+
+      if (response.isSuccess) {
+        return response.responseData is Map<String, dynamic>
+            ? response.responseData as Map<String, dynamic>
+            : {'success': true, 'data': response.responseData};
+      } else {
+        return {
+          'success': false,
+          'message': response.errorMassage ?? 'Failed to get booking countries',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> getBookingProductTypes(String branchId) async {
+    try {
+      final endpoint = isBranchManager 
+          ? ApiConstants.branchManagerBookingProductTypes 
+          : ApiConstants.businessOwnerBookingProductTypes;
+      // Branch manager endpoint does not require branchId query param
+      final url = isBranchManager ? endpoint : '$endpoint?branchId=$branchId';
+      final response = await _networkClient.getRequest(url);
+
+      if (response.isSuccess) {
+        return response.responseData is Map<String, dynamic>
+            ? response.responseData as Map<String, dynamic>
+            : {'success': true, 'data': response.responseData};
+      } else {
+        return {
+          'success': false,
+          'message': response.errorMassage ?? 'Failed to get booking product types',
         };
       }
     } catch (e) {

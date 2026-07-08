@@ -3,6 +3,7 @@ class AgentModel {
   final String businessId;
   final String branchId;
   final String? rulesFile;
+  final String? productFile;
   final String? vapiId;
   final AgentMetadata? metadata;
   final String? createdAt;
@@ -17,6 +18,7 @@ class AgentModel {
     required this.businessId,
     required this.branchId,
     this.rulesFile,
+    this.productFile,
     this.vapiId,
     this.metadata,
     this.createdAt,
@@ -34,6 +36,7 @@ class AgentModel {
       businessId: json['businessId'] ?? '',
       branchId: json['branchId'] ?? '',
       rulesFile: json['rulesFile'],
+      productFile: json['productFile'],
       vapiId: json['vapiId'],
       metadata: json['metadata'] != null
           ? AgentMetadata.fromJson(json['metadata'])
