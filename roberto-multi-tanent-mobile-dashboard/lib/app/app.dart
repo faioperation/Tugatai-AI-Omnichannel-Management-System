@@ -36,6 +36,7 @@ import 'package:roberto/features/AiAgent/bloc/agent_management_event.dart';
 import 'package:roberto/features/Pricing/data/repositories/pricing_repository.dart';
 import 'package:roberto/features/Pricing/bloc/pricing_bloc.dart';
 import 'package:roberto/features/Inbox/data/repositories/inbox_repository.dart';
+import 'package:roberto/core/services/firebase_messaging_service.dart';
 
 class Roberto extends StatelessWidget {
   const Roberto({super.key});
@@ -215,6 +216,7 @@ class Roberto extends StatelessWidget {
               ),
             ],
             child: MaterialApp(
+              navigatorKey: navigatorKey,
               title: "MATRIX AI",
               debugShowCheckedModeBanner: false,
               theme: AppTheme.lightTheme,

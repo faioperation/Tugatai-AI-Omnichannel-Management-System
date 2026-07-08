@@ -49,7 +49,9 @@ class OrderMod {
   final String? productHeight;
   final String? productWeight;
   final String? receiverPhone;
+  final String? productName;
   final String? customRequirement;
+  final String? country;
   final Map<String, dynamic> rawAdditionalDetails;
 
   // UI Helpers
@@ -91,7 +93,9 @@ class OrderMod {
     this.productHeight,
     this.productWeight,
     this.receiverPhone,
+    this.productName,
     this.customRequirement,
+    this.country,
     this.rawAdditionalDetails = const {},
   })  : avatarInitials = customerName.isNotEmpty ? customerName.substring(0, 1).toUpperCase() : 'U',
         avatarColor = _generateColor(customerName);
@@ -184,11 +188,13 @@ class OrderMod {
       pickupAddress: detailsMap['pickupAddress'],
       deliveryDate: detailsMap['deliveryDate'],
       deliveryAddress: detailsMap['deliveryAddress'],
-      productType: detailsMap['productType'],
+      productType: detailsMap['productType'] ?? json['productType'],
       productHeight: detailsMap['productHeight']?.toString(),
       productWeight: detailsMap['productWeight']?.toString(),
       receiverPhone: detailsMap['receiverPhone'],
+      productName: detailsMap['productName'] ?? json['productName'],
       customRequirement: detailsMap['customRequirement'],
+      country: detailsMap['country'] ?? json['country'],
       rawAdditionalDetails: detailsMap,
     );
   }

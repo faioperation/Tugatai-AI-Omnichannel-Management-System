@@ -21,6 +21,26 @@ class NotificationRepository {
     }
   }
 
+  Future<void> registerFCMToken(String token, String deviceType) async {
+    final response = await networkClient.postRequest(
+      ApiConstants.notificationsToken,
+      body: {
+        'token': token,
+        'deviceType': deviceType,
+      },
+    );
+
+    if (response.isSuccess && response.responseData != null) {
+      if (response.responseData['success'] == true) {
+        return; // Success
+      } else {
+        throw Exception(response.responseData['message'] ?? 'Failed to register token.');
+      }
+    } else {
+      throw Exception(response.errorMassage ?? 'Network error occurred.');
+    }
+  }
+
   Future<void> markAllAsRead() async {
     final response = await networkClient.patchRequest(ApiConstants.notificationsReadAll, body: {});
 

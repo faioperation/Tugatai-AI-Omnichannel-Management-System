@@ -36,9 +36,9 @@ class _ManagementScreenState extends State<ManagementScreen> {
               child: child,
             ),
             child: _selectedTab == 0
-                ? const CustomBranchmanagement(
-                    key: ValueKey('Branch Management'))
-                : const CustomUsermanagement(key: ValueKey('User Management')),
+                ? const CustomUsermanagement(key: ValueKey('User Management'))
+                : const CustomBranchmanagement(
+                    key: ValueKey('Branch Management')),
           ),
         ],
       ),
@@ -51,7 +51,7 @@ class _ManagementScreenState extends State<ManagementScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          _selectedTab == 0 ? 'Branch Management' : 'User Management',
+          _selectedTab == 0 ? 'User Management' : 'Branch Management',
           style: TextStyle(
             fontSize: isMobile ? 22 : 28,
             fontWeight: FontWeight.bold,
@@ -60,7 +60,7 @@ class _ManagementScreenState extends State<ManagementScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          _selectedTab == 0 ? 'Manage your business locations and branches' : 'Manage your business users and permissions',
+          _selectedTab == 0 ? 'Manage your business users and permissions' : 'Manage your business locations and branches',
           style: TextStyle(
             fontSize: isMobile ? 13 : 15,
             color: theme.textTheme.bodySmall?.color,
@@ -73,7 +73,7 @@ class _ManagementScreenState extends State<ManagementScreen> {
       onTap: () {
         showDialog(
           context: context,
-          builder: (context) => _selectedTab == 0 ? const CustomAddbranch() : const CustomAdduser(),
+          builder: (context) => _selectedTab == 0 ? const CustomAdduser() : const CustomAddbranch(),
         );
       },
       borderRadius: BorderRadius.circular(12),
@@ -89,7 +89,7 @@ class _ManagementScreenState extends State<ManagementScreen> {
             Icon(Icons.add, color: Colors.white, size: isMobile ? 16 : 18),
             const SizedBox(width: 6),
             Text(
-              _selectedTab == 0 ? "Add Branch" : "Add User",
+              _selectedTab == 0 ? "Add User" : "Add Branch",
               style: TextStyle(
                 color: Colors.white,
                 fontSize: isMobile ? 13 : 14,
@@ -127,8 +127,8 @@ class _ManagementScreenState extends State<ManagementScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildTab(context, index: 0, label: 'Branch Management'),
-            _buildTab(context, index: 1, label: 'User Management'),
+            _buildTab(context, index: 0, label: 'User Management'),
+            _buildTab(context, index: 1, label: 'Branch Management'),
           ],
         ),
       ),

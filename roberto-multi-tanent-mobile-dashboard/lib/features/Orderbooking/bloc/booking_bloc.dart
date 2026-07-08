@@ -23,6 +23,8 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         search: event.search,
         status: event.status,
         branchId: event.branchId,
+        country: event.country,
+        productType: event.productType,
       );
 
       if (response['success'] == true) {

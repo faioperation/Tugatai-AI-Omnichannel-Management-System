@@ -32,18 +32,7 @@ class _CustomPlansState extends State<CustomPlans> {
     }
   }
 
-  String _getIconPath(String slug) {
-    switch (slug.toLowerCase()) {
-      case 'connect':
-        return 'assets/half.svg';
-      case 'convert':
-        return 'assets/full.svg';
-      case 'control':
-        return 'assets/enter.svg';
-      default:
-        return 'assets/half.svg';
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -69,67 +58,89 @@ class _CustomPlansState extends State<CustomPlans> {
             ),
           );
         } else if (state is BusinessSubscriptionLoaded) {
-          if (state.subscriptions.isEmpty) {
-            return _buildStandardPlans(context);
+          String? activePlanSlug;
+          bool isExpired = false;
+          String expiredBillingCycle = "monthly";
+          String expiredPlanId = "";
+
+          if (state.subscriptions.isNotEmpty) {
+            final sub = state.subscriptions.first;
+            isExpired = sub.isExpired;
+            expiredBillingCycle = sub.billingCycle;
+            if (sub.plan != null) {
+              expiredPlanId = sub.plan!.id;
+              if (!isExpired) {
+                activePlanSlug = sub.plan!.slug.toLowerCase();
+              }
+            }
           }
 
-          final sub = state.subscriptions.first;
-          final plan = sub.plan;
-          if (plan == null) {
-            return const Center(child: Text("No subscription plan details found"));
-          }
-
-          return Center(
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 450),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (sub.isExpired && widget.role == UserRole.branchManager)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 20),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
-                        border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.warning_amber_rounded, color: Colors.red),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              "Your business subscription has expired. Please inform your owner to renew the subscription to continue using the platform.",
-                              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  CustomPlan(
-                    title: plan.name,
-                    subtitle: plan.description,
-                    price: "\$${plan.monthlyPrice.toInt()}",
-                    iconPath: _getIconPath(plan.slug),
-                    features: plan.features.map((f) => f.value).toList(),
-                    buttonText: sub.isExpired
-                        ? (widget.role == UserRole.businessOwner ? "Renew Plan" : "Plan Expired")
-                        : "Plan Active",
-                    onButtonPressed: (sub.isExpired && widget.role == UserRole.businessOwner)
-                        ? () {
-                            context.read<BusinessSubscriptionBloc>().add(
-                                  CreateCheckoutSessionRequested(
-                                    planId: plan.id,
-                                    billingCycle: sub.billingCycle,
-                                  ),
-                                );
-                          }
-                        : null,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isExpired && widget.role == UserRole.branchManager)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.1),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
-              ),
-            ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Colors.red),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          "Your business subscription has expired. Please inform your owner to renew the subscription to continue using the platform.",
+                          style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (isExpired && widget.role == UserRole.businessOwner)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.1),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: Colors.red),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          "Your business subscription has expired. Please renew your plan to continue using the platform.",
+                          style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: () {
+                          context.read<BusinessSubscriptionBloc>().add(
+                                CreateCheckoutSessionRequested(
+                                  planId: expiredPlanId,
+                                  billingCycle: expiredBillingCycle,
+                                ),
+                              );
+                        },
+                        child: const Text("Renew Plan"),
+                      ),
+                    ],
+                  ),
+                ),
+              _buildStandardPlans(context, activePlanSlug: activePlanSlug),
+            ],
           );
         }
         return const SizedBox();
@@ -137,18 +148,20 @@ class _CustomPlansState extends State<CustomPlans> {
     );
   }
 
-  Widget _buildStandardPlans(BuildContext context) {
+  Widget _buildStandardPlans(BuildContext context, {String? activePlanSlug}) {
     final width = MediaQuery.of(context).size.width;
     final bool isDesktop = width > 900;
     final bool isTablet = width > 600;
 
-    final plans = [
-      const CustomPlan(
-        title: "CONNECT",
-        subtitle: "Best for businesses getting started with AI automation",
-        price: "\$700",
-        iconPath: "assets/half.svg",
-        features: [
+    final plansData = [
+      {
+        "id": "cmrbukpf7000007pbll9dpt93",
+        "title": "CONNECT",
+        "slug": "connect",
+        "subtitle": "Best for businesses getting started with AI automation",
+        "price": "\$700",
+        "iconPath": "assets/half.svg",
+        "features": [
           "2 channels",
           "up to 1,000 chats/month",
           "shared inbox",
@@ -160,13 +173,15 @@ class _CustomPlansState extends State<CustomPlans> {
           "no campaigns",
           "no voice AI",
         ],
-      ),
-      const CustomPlan(
-        title: "CONVERT",
-        subtitle: "Best for growing businesses that need more leads, bookings, and automation",
-        price: "\$1250",
-        iconPath: "assets/full.svg",
-        features: [
+      },
+      {
+        "id": "cmrbukv2d000b07pbhsx7ay93",
+        "title": "CONVERT",
+        "slug": "convert",
+        "subtitle": "Best for growing businesses that need more leads, bookings, and automation",
+        "price": "\$1250",
+        "iconPath": "assets/full.svg",
+        "features": [
           "everything in CONNECT, plus:",
           "multi-channel",
           "up to 5,000 chats/month",
@@ -181,13 +196,15 @@ class _CustomPlansState extends State<CustomPlans> {
           "analytics dashboard",
           "AI assist for agents",
         ],
-      ),
-      const CustomPlan(
-        title: "CONTROL",
-        subtitle: "Best for high-volume teams and serious businesses",
-        price: "\$2050",
-        iconPath: "assets/enter.svg",
-        features: [
+      },
+      {
+        "id": "cmrbukz8p000p07pb5h8wr84c",
+        "title": "CONTROL",
+        "slug": "control",
+        "subtitle": "Best for high-volume teams and serious businesses",
+        "price": "\$2050",
+        "iconPath": "assets/enter.svg",
+        "features": [
           "everything in CONVERT, plus:",
           "unlimited or high-volume chats",
           "multi-branch / multi-country",
@@ -199,12 +216,38 @@ class _CustomPlansState extends State<CustomPlans> {
           "priority support",
           "voice AI included or as premium add-on",
         ],
-      ),
+      },
     ];
+
+    final List<Widget> planWidgets = plansData.map((data) {
+      final String planId = data["id"] as String;
+      final String slug = data["slug"] as String;
+      final bool isActive = activePlanSlug != null && activePlanSlug == slug;
+
+      return CustomPlan(
+        title: data["title"] as String,
+        subtitle: data["subtitle"] as String,
+        price: data["price"] as String,
+        iconPath: data["iconPath"] as String,
+        features: List<String>.from(data["features"] as List),
+        buttonText: isActive ? "Plan Active" : "Upgrade",
+        onButtonPressed: isActive
+            ? null
+            : () {
+                context.read<BusinessSubscriptionBloc>().add(
+                      CreateCheckoutSessionRequested(
+                        planId: planId,
+                        billingCycle: "monthly",
+                      ),
+                    );
+              },
+      );
+    }).toList();
 
     if (isDesktop) {
       return Row(
-        children: plans
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: planWidgets
             .map((p) => Expanded(
                   child: Padding(
                     padding: const EdgeInsets.only(right: 16),
@@ -217,19 +260,20 @@ class _CustomPlansState extends State<CustomPlans> {
       return Column(
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: plans[0]),
+              Expanded(child: planWidgets[0]),
               const SizedBox(width: 16),
-              Expanded(child: plans[1]),
+              Expanded(child: planWidgets[1]),
             ],
           ),
           const SizedBox(height: 16),
-          plans[2],
+          planWidgets[2],
         ],
       );
     } else {
       return Column(
-        children: plans
+        children: planWidgets
             .map((p) => Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: p,

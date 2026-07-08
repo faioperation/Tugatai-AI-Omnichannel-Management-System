@@ -38,6 +38,9 @@ import 'package:roberto/features/management/bloc/management_state.dart';
 import 'package:roberto/features/businesssubscription/bloc/business_subscription_bloc.dart';
 import 'package:roberto/features/businesssubscription/bloc/business_subscription_event.dart';
 import 'package:roberto/features/businesssubscription/bloc/business_subscription_state.dart';
+import 'package:roberto/core/services/local_storage_service.dart';
+import 'package:roberto/core/services/firebase_messaging_service.dart';
+import 'package:roberto/features/notification/data/repositories/notification_repository.dart';
 
 class DashboardShell extends StatefulWidget {
   final UserRole role;
@@ -80,7 +83,8 @@ class _DashboardShellState extends State<DashboardShell> {
   @override
   void initState() {
     super.initState();
-    _selectedBranch = widget.assignedBranch ?? _branches[0];
+    final savedBranch = LocalStorageService.selectedBranch;
+    _selectedBranch = savedBranch ?? widget.assignedBranch ?? _branches[0];
     if (widget.initialItem != null) {
       _activeItem = widget.initialItem!;
     }
@@ -94,6 +98,10 @@ class _DashboardShellState extends State<DashboardShell> {
     // Fetch initial data
     context.read<ProfileBloc>().add(FetchProfileRequested());
     context.read<NotificationBloc>().add(FetchNotificationsRequested());
+    
+    // Register FCM Token for logged in user
+    FirebaseMessagingService().registerCurrentToken(context.read<NotificationRepository>());
+
     if (widget.role == UserRole.businessOwner) {
       context.read<ManagementBloc>().add(FetchBranchesRequested());
     }
@@ -243,6 +251,14 @@ class _DashboardShellState extends State<DashboardShell> {
                 setState(() {
                   _selectedBranch = dynamicBranches.first;
                 });
+                final firstB = dynamicBranches.first;
+                if (firstB['id'] != null && firstB['name'] != null) {
+                  LocalStorageService.saveSelectedBranch(
+                    id: firstB['id']!,
+                    name: firstB['name']!,
+                    address: firstB['address'] ?? '',
+                  );
+                }
               }
             }
           },
@@ -417,12 +433,17 @@ class _DashboardShellState extends State<DashboardShell> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
               children: [
-                SvgPicture.asset('assets/logo.svg', height: 60),
-                const SizedBox(height: 10),
-                const Text(
-                  "MATRIX AI",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                Image.asset(
+                  Theme.of(context).brightness == Brightness.dark
+                      ? 'assets/Omnirra_AI_logo_white.png'
+                      : 'assets/Omnirra_AI_logo_black.png',
+                  height: 90,
                 ),
+                const SizedBox(height: 10),
+                // const Text(
+                //   "OMNIRRA AI",
+                //   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                // ),
               ],
             ),
           ),
@@ -511,6 +532,13 @@ class _DashboardShellState extends State<DashboardShell> {
                                                   _selectedBranch = branch;
                                                   _isBranchDropdownOpen = false;
                                                 });
+                                                if (branch['id'] != null && branch['name'] != null) {
+                                                  LocalStorageService.saveSelectedBranch(
+                                                    id: branch['id']!,
+                                                    name: branch['name']!,
+                                                    address: branch['address'] ?? '',
+                                                  );
+                                                }
                                               },
                                               child: Padding(
                                                 padding:
