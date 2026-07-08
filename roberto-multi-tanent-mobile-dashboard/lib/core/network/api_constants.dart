@@ -1,6 +1,8 @@
 class ApiConstants {
+  //static const String baseUrl = 'https://test8.fireai.agency/api';
+  //static const String baseUrl = 'https://accustomed-maryalice-bubbleless.ngrok-free.dev/api';
   static const String baseUrl = 'https://api.omnirraai.com/api';
-  
+
   // Auth endpoints
   static const String login = '$baseUrl/auth/login';
   static const String forgotPassword = '$baseUrl/auth/forgot-password';
@@ -25,6 +27,7 @@ class ApiConstants {
   // Notification endpoints
   static const String notifications = '$baseUrl/notifications';
   static const String notificationsReadAll = '$baseUrl/notifications/read-all';
+  static const String notificationsToken = '$baseUrl/notifications/token';
 
   // Business (Tenant) endpoints
   static const String systemOwnerBusinesses = '$baseUrl/system-owner/businesses/all';
@@ -75,6 +78,13 @@ class ApiConstants {
   static const String branchManagerBookingsAll = '$baseUrl/branch-manager/bookings/all';
   static const String branchManagerBookingsCreate = '$baseUrl/branch-manager/bookings/create';
   static const String branchManagerBookingsSingle = '$baseUrl/branch-manager/bookings'; // + /:id
+  static const String branchManagerBookingCountries = '$baseUrl/branch-manager/bookings/countries';
+  static const String branchManagerBookingProductTypes = '$baseUrl/branch-manager/bookings/product-types';
+
+  // Business Owner Booking endpoints
+  static const String businessOwnerBookingsAll = '$baseUrl/business-owner/bookings/all';
+  static const String businessOwnerBookingCountries = '$baseUrl/business-owner/bookings/countries';
+  static const String businessOwnerBookingProductTypes = '$baseUrl/business-owner/bookings/product-types';
 
   // Inbox & Conversations
   static const String allConversations = '$baseUrl/conversations/all-conversations';

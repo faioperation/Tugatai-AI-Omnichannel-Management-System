@@ -14,6 +14,8 @@ class GetBookings extends BookingEvent {
   final String search;
   final String status;
   final String branchId;
+  final String country;
+  final String productType;
 
   const GetBookings({
     this.page = 1,
@@ -21,10 +23,12 @@ class GetBookings extends BookingEvent {
     this.search = '',
     this.status = '',
     required this.branchId,
+    this.country = '',
+    this.productType = '',
   });
 
   @override
-  List<Object?> get props => [page, limit, search, status, branchId];
+  List<Object?> get props => [page, limit, search, status, branchId, country, productType];
 }
 
 class CreateBooking extends BookingEvent {

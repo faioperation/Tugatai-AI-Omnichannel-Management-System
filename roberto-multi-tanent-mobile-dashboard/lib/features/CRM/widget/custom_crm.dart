@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/common/custom_search.dart';
+import 'package:roberto/features/CRM/data/repositories/crm_repository.dart';
 import 'package:roberto/features/CRM/widget/custom_lead_row.dart';
 import 'package:roberto/features/TenantManagement/widget/custom_headder.dart';
 import 'package:roberto/common/custom_pagination.dart';
@@ -25,6 +26,9 @@ class CustomCrm extends StatefulWidget {
 
 class _CustomCrmState extends State<CustomCrm> {
   String _selectedStatus = "All Status";
+  String _selectedCountry = 'All countries';
+  List<String> _countries = [];
+  bool _countriesLoading = false;
   int _currentPage = 1;
   static const int _itemsPerPage = 20;
 
@@ -32,6 +36,7 @@ class _CustomCrmState extends State<CustomCrm> {
   void initState() {
     super.initState();
     _fetchData();
+    _loadCountries();
   }
 
   @override
@@ -39,11 +44,33 @@ class _CustomCrmState extends State<CustomCrm> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.branchId != widget.branchId) {
       _fetchData();
+      _loadCountries();
     }
   }
 
   void _fetchData() {
     context.read<CrmBloc>().add(FetchLeads(branchId: widget.branchId ?? '', role: widget.role));
+  }
+
+  Future<void> _loadCountries() async {
+    final branchId = widget.branchId ?? '';
+    if (branchId.isEmpty) return;
+    if (mounted) setState(() => _countriesLoading = true);
+    try {
+      final crmRepo = context.read<CrmRepository>();
+      final res = await crmRepo.getCrmCountries(branchId, isBranchManager: widget.role == UserRole.branchManager);
+      if (res['success'] == true && mounted) {
+        final List<dynamic> data = res['data'] ?? [];
+        setState(() {
+          _countries = data.map((e) => e.toString()).toList();
+          _countriesLoading = false;
+        });
+      } else if (mounted) {
+        setState(() => _countriesLoading = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _countriesLoading = false);
+    }
   }
 
   Color _getTagColor(String? status) {
@@ -171,11 +198,18 @@ class _CustomCrmState extends State<CustomCrm> {
                               // Status Button
                               _buildStatusButton(context),
                               const SizedBox(width: 10),
+                               // Country Button
+                              _buildCountryButton(context),
+                              const SizedBox(width: 10),
                               // Refresh
                               IconButton(
                                 icon: const Icon(Icons.refresh),
                                 onPressed: () {
-                                  context.read<CrmBloc>().add(FetchLeads(branchId: widget.branchId ?? '', role: widget.role));
+                                  context.read<CrmBloc>().add(FetchLeads(
+                                    branchId: widget.branchId ?? '',
+                                    role: widget.role,
+                                    country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
+                                  ));
                                 },
                               )
                             ],
@@ -200,10 +234,16 @@ class _CustomCrmState extends State<CustomCrm> {
                             const Expanded(child: CustomSearch()),
                             const SizedBox(width: 10),
                             _buildStatusButton(context),
+                            const SizedBox(width: 8),
+                            _buildCountryButton(context),
                             IconButton(
                               icon: const Icon(Icons.refresh),
                               onPressed: () {
-                                context.read<CrmBloc>().add(FetchLeads(branchId: widget.branchId ?? '', role: widget.role));
+                                context.read<CrmBloc>().add(FetchLeads(
+                                  branchId: widget.branchId ?? '',
+                                  role: widget.role,
+                                  country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
+                                ));
                               },
                             )
                           ],
@@ -322,6 +362,11 @@ class _CustomCrmState extends State<CustomCrm> {
           _selectedStatus = status;
           _currentPage = 1;
         });
+        context.read<CrmBloc>().add(FetchLeads(
+          branchId: widget.branchId ?? '',
+          role: widget.role,
+          country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
+        ));
       },
       itemBuilder: (BuildContext context) {
         return statuses.map((String status) {
@@ -349,6 +394,68 @@ class _CustomCrmState extends State<CustomCrm> {
             const SizedBox(width: 6),
             Text(
               _selectedStatus,
+              style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface),
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              Icons.keyboard_arrow_down,
+              size: 18,
+              color: theme.colorScheme.onSurface,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCountryButton(BuildContext context) {
+    final theme = Theme.of(context);
+    if (_countriesLoading) {
+      return SizedBox(
+        height: 40,
+        width: 40,
+        child: Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))),
+      );
+    }
+    final countryList = ['All countries', ..._countries];
+    return PopupMenuButton<String>(
+      onSelected: (String country) {
+        setState(() {
+          _selectedCountry = country;
+          _currentPage = 1;
+        });
+        context.read<CrmBloc>().add(FetchLeads(
+          branchId: widget.branchId ?? '',
+          role: widget.role,
+          country: country == 'All countries' ? '' : country,
+        ));
+      },
+      itemBuilder: (BuildContext context) {
+        return countryList.map((String c) {
+          return PopupMenuItem<String>(
+            value: c,
+            child: Text(c),
+          );
+        }).toList();
+      },
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: theme.dividerTheme.color ?? Colors.grey.shade300),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.public,
+              size: 18,
+              color: theme.textTheme.bodySmall?.color,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              _selectedCountry,
               style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface),
             ),
             const SizedBox(width: 6),

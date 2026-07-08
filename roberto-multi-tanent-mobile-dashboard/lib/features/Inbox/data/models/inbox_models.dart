@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class ConversationMod {
   final String id;
   final String businessId;
@@ -185,14 +187,55 @@ class MessageMod {
 
     String messageText = json['messageText'] ?? json['text'] ?? '';
 
+    String? mediaUrl = json['mediaUrl'];
+    String type = json['type'] ?? 'text';
+    
+    if (json['rawPayload'] != null) {
+      try {
+        var rawPayload = json['rawPayload'];
+        while (rawPayload is String) {
+          // ignore: prefer_typing_uninitialized_variables
+          rawPayload = jsonDecode(rawPayload);
+        }
+        if (rawPayload is Map && rawPayload['message'] != null && rawPayload['message']['attachments'] != null) {
+          final attachments = rawPayload['message']['attachments'] as List;
+          if (attachments.isNotEmpty) {
+            final firstAttachment = attachments.first;
+            
+            // Extract URL if mediaUrl is missing
+            if ((mediaUrl == null || mediaUrl.isEmpty) && firstAttachment['payload'] != null && firstAttachment['payload']['url'] != null) {
+              mediaUrl = firstAttachment['payload']['url'];
+            }
+            
+            // Update type based on attachment type
+            if (firstAttachment['type'] != null) {
+              final attType = firstAttachment['type'].toString().toLowerCase();
+              if (attType == 'image' || attType == 'audio' || attType == 'video') {
+                type = attType;
+              } else if (attType == 'file' || attType == 'document') {
+                type = 'document';
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Ignore parsing errors for rawPayload
+      }
+    }
+
+    // Fallback if type is still 'media' (from Instagram payload)
+    if (type == 'media') {
+      type = 'image'; // default to image if we couldn't parse a better type
+    }
+
     return MessageMod(
       id: json['id'] ?? '',
       conversationId: json['conversationId'] ?? '',
       senderType: senderType,
       senderId: json['senderId'] ?? '',
-      type: json['type'] ?? 'text',
+      type: type,
       messageText: messageText,
-      mediaUrl: json['mediaUrl'],
+      mediaUrl: mediaUrl,
       filePath: json['filePath'],
       aiReply: json['aiReply'] ?? false,
       createdAt: json['createdAt'] ?? '',

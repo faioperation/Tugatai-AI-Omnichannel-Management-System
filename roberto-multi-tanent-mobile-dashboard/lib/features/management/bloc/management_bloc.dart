@@ -14,6 +14,7 @@ class ManagementBloc extends Bloc<ManagementEvent, ManagementState> {
     on<FetchBranchManagersRequested>(_onFetchBranchManagers);
     on<CreateBranchManagerRequested>(_onCreateBranchManager);
     on<DeleteBranchManagerRequested>(_onDeleteBranchManager);
+    on<UpdateBranchManagerRequested>(_onUpdateBranchManager);
     on<FetchBranchesRequested>(_onFetchBranches);
     on<CreateBranchRequested>(_onCreateBranch);
     on<UpdateBranchRequested>(_onUpdateBranch);
@@ -59,6 +60,26 @@ class ManagementBloc extends Bloc<ManagementEvent, ManagementState> {
     try {
       await repository.deleteBranchManager(event.id);
       emit(const ManagementOperationSuccess(message: "Branch Manager deleted successfully"));
+      add(FetchBranchManagersRequested());
+    } catch (e) {
+      emit(ManagementError(message: e.toString().replaceAll('Exception: ', '')));
+    }
+  }
+
+  Future<void> _onUpdateBranchManager(
+    UpdateBranchManagerRequested event,
+    Emitter<ManagementState> emit,
+  ) async {
+    emit(ManagementLoading());
+    try {
+      await repository.updateBranchManager(
+        id: event.id,
+        name: event.name,
+        email: event.email,
+        password: event.password,
+        status: event.status,
+      );
+      emit(const ManagementOperationSuccess(message: "Branch Manager updated successfully"));
       add(FetchBranchManagersRequested());
     } catch (e) {
       emit(ManagementError(message: e.toString().replaceAll('Exception: ', '')));
