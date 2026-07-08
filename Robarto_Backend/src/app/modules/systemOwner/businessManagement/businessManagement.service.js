@@ -74,22 +74,36 @@ const createBusinessService = async (payload) => {
             throw new DevBuildError("Owner user is required to create a business", StatusCodes.BAD_REQUEST);
         }
 
-        // Create the Business record
+        // Create the Business record with optional nested branch
+        const businessData = {
+            ownerId:      user.id,
+            name:         payload.businessName,
+            email:        payload.ownerEmail,
+            phone:        payload.ownerPhone,
+            industry:     payload.industry || null,
+            businessType: payload.businessType ? mapBusinessType(payload.businessType) : null,
+            status:       payload.status || "ACTIVE",
+            description:  payload.description || null,
+            planId:       payload.planId || null,
+            planCycle:    payload.planCycle || "MONTHLY",
+            createdById:  payload.createdById || null,
+            credits:      payload.credits || 0,
+        };
+
+        if (payload.branch) {
+            businessData.branches = {
+                create: {
+                    name:        payload.branch.name,
+                    email:       payload.branch.email || null,
+                    phone:       payload.branch.phone || null,
+                    address:     payload.branch.address || null,
+                    createdById: payload.createdById || null,
+                }
+            };
+        }
+
         const business = await transactionClient.business.create({
-            data: {
-                ownerId:      user.id,
-                name:         payload.businessName,
-                email:        payload.ownerEmail,
-                phone:        payload.ownerPhone,
-                industry:     payload.industry || null,
-                businessType: payload.businessType ? mapBusinessType(payload.businessType) : null,
-                status:       payload.status || "ACTIVE",
-                description:  payload.description || null,
-                planId:       payload.planId || null,
-                planCycle:    payload.planCycle || "MONTHLY",
-                createdById:  payload.createdById || null,
-                credits:      payload.credits || 0,
-            }
+            data: businessData
         });
 
         // Create active subscription + invoice if a planId is provided

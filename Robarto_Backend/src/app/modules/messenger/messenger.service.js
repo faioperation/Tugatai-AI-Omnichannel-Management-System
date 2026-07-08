@@ -5,6 +5,7 @@ import { AppError } from "../../errorHelper/appError.js";
 import { notifyAiAgent } from "../../utils/aiAgent.js";
 import { NotificationService } from "../notification/notification.service.js";
 import { isConversationLimitReached } from "../../utils/limitChecker.js";
+import { downloadAndSaveMedia } from "../../utils/mediaDownloader.js";
 
 const getGraphUrl = () => `https://graph.facebook.com/${envVars.META_GRAPH_VERSION || "v23.0"}`;
 
@@ -79,6 +80,14 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
     customerName = profile.name;
   }
 
+  // Could be an image or other attachment
+  const attachments = webhookEvent.message?.attachments;
+  let lastMessageContent = messageText;
+  if (!lastMessageContent && attachments && attachments.length > 0) {
+    lastMessageContent = `[Media: ${attachments[0].type}]`;
+  }
+  if (!lastMessageContent) lastMessageContent = "Attachment/Other";
+
   // Create or update conversation
   const conversation = await prisma.conversation.upsert({
     where: {
@@ -89,7 +98,7 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
       },
     },
     update: {
-      lastMessage: messageText || "Attachment/Other",
+      lastMessage: lastMessageContent,
       lastMessageAt: new Date(),
       branchId: connection.branchId || null,
       customerName: customerName || undefined,
@@ -100,10 +109,25 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
       platform: "messenger",
       customerId: senderId,
       customerName: customerName || "Social Customer",
-      lastMessage: messageText || "Attachment/Other",
+      lastMessage: lastMessageContent,
       lastMessageAt: new Date(),
     },
   });
+
+  let localMediaUrl = null;
+  if (attachments && attachments.length > 0) {
+    const attachmentUrl = attachments[0].payload?.url;
+    if (attachmentUrl) {
+      try {
+        const downloadRes = await downloadAndSaveMedia(attachmentUrl, "messenger", "msg");
+        if (downloadRes.success) {
+          localMediaUrl = downloadRes.publicUrl;
+        }
+      } catch (downloadErr) {
+        console.error("[Messenger Service] Error downloading messenger media:", downloadErr);
+      }
+    }
+  }
 
   // Save the message
   await prisma.message.create({
@@ -114,6 +138,8 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
       messageText: messageText,
       platformMessageId: platformMessageId,
       rawPayload: webhookEvent,
+      type: attachments ? "media" : "text",
+      mediaUrl: localMediaUrl || (attachments ? attachments[0].payload?.url : null),
     },
   });
 
@@ -122,7 +148,7 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
     if (shouldNotify) {
       NotificationService.createAndSendNotification({
         title: "New Messenger Message",
-        message: `Message: "${messageText || "Attachment/Other"}"`,
+        message: `Message: "${messageText || lastMessageContent}"`,
         type: "NEW_MESSAGE",
         businessId: businessId,
         branchId: connection.branchId || null,
@@ -131,13 +157,20 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
     }
   }).catch(err => console.error("Error checking Messenger throttling:", err));
 
+  // Construct AI message body (if text, send text; if media, send media URL)
+  let aiMessage = messageText || "";
+  if (!aiMessage && attachments && attachments.length > 0) {
+    const attachmentUrl = localMediaUrl || attachments[0].payload?.url || "";
+    aiMessage = `[Media ${attachments[0].type}: ${attachmentUrl}]`;
+  }
+
   // Notify AI Agent of incoming Messenger message
   notifyAiAgent({
     businessId,
     recipientId: senderId,
     conversationId: conversation.id,
     channel: "messenger",
-    message: messageText || ""
+    message: aiMessage
   });
 };
 

@@ -1,5 +1,6 @@
 import prisma from "../../prisma/client.js";
 import { MetaGraphAPI } from "./whatsapp.meta.js";
+import { envVars } from "../../config/env.js";
 
 export const WhatsappService = {
   connectAccount: async (businessId, payload) => {
@@ -75,9 +76,20 @@ export const WhatsappService = {
   },
 
   getMessages: async (businessId, conversationId) => {
-    return await prisma.whatsappMessage.findMany({
+    const messages = await prisma.whatsappMessage.findMany({
       where: { businessId, conversationId },
       orderBy: { createdAt: "asc" },
+    });
+
+    return messages.map(msg => {
+      if (
+        msg.mediaUrl && 
+        !msg.mediaUrl.startsWith("http://") && 
+        !msg.mediaUrl.startsWith("https://")
+      ) {
+        msg.mediaUrl = `${envVars.BACKEND_URL}/v1/whatsapp/media/${msg.mediaUrl}`;
+      }
+      return msg;
     });
   },
 
@@ -258,5 +270,27 @@ export const WhatsappService = {
     }
 
     return connectedAccounts;
+  },
+
+  getMediaStream: async (businessId, mediaId) => {
+    const account = await prisma.whatsappAccount.findFirst({
+      where: { businessId, status: "ACTIVE" },
+    });
+    if (!account) {
+      throw new Error("Active WhatsApp account not found for this business");
+    }
+
+    const mediaInfo = await MetaGraphAPI.getMediaUrl(mediaId, account.accessToken);
+    if (!mediaInfo || !mediaInfo.url) {
+      throw new Error("Failed to retrieve media URL from WhatsApp");
+    }
+
+    const streamResponse = await MetaGraphAPI.downloadMedia(mediaInfo.url, account.accessToken);
+
+    return {
+      stream: streamResponse.data,
+      mimeType: mediaInfo.mime_type || streamResponse.headers["content-type"],
+      fileSize: mediaInfo.file_size || streamResponse.headers["content-length"],
+    };
   },
 };

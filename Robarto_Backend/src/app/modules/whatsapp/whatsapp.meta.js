@@ -104,5 +104,24 @@ export const MetaGraphAPI = {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     return response.data.data;
+  },
+
+  getMediaUrl: async (mediaId, accessToken) => {
+    const url = `https://graph.facebook.com/${envVars.META_GRAPH_VERSION || "v23.0"}/${mediaId}`;
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+    };
+    const response = await axios.get(url, { headers });
+    return response.data; // { url, mime_type, file_size, id }
+  },
+
+  downloadMedia: async (lookasideUrl, accessToken) => {
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+    };
+    return await axios.get(lookasideUrl, {
+      headers,
+      responseType: "stream",
+    });
   }
 };

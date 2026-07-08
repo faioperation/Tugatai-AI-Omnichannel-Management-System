@@ -10,7 +10,7 @@ export const checkAuthMiddleware =
       console.log("🔥 Auth middleware hit:", req.originalUrl);
 
       try {
-        let token = req.headers.authorization;
+        let token = req.headers.authorization || req.query.token;
 
         if (!token) {
           return res.status(401).json({
@@ -19,7 +19,7 @@ export const checkAuthMiddleware =
           });
         }
 
-        const jwtToken = token.replace(/^Bearer\s*/i, "");
+        const jwtToken = String(token).replace(/^Bearer\s*/i, "");
         const decoded = jwt.verify(jwtToken, envVars.JWT_SECRET_TOKEN);
 
         // Determine which table to search based on the role or route

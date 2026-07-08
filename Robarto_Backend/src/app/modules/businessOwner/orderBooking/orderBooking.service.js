@@ -126,6 +126,7 @@ const getAllBookingsService = async (query = {}) => {
                 ...queryParams.where,
                 [detailsFilterKey]: { productType },
             };
+            delete queryParams.where.productType;
         }
     }
 

@@ -337,6 +337,7 @@ model Business {
   whatsappConversations WhatsappConversation[] @relation("BusinessWhatsappConversations")
   whatsappMessages      WhatsappMessage[]      @relation("BusinessWhatsappMessages")
   chatSummaries         ChatSummary[]
+  agentTrainings        AgentTraining[]
   auditLogs             AuditLog[]             @relation("BusinessAuditLogs")
   notifications         Notification[]         @relation("BusinessNotifications")
 
@@ -886,11 +887,13 @@ model AgentTraining {
   productInformation  Json?     @map("product_information")
   policiesGuidelines  Json?     @map("policies_guidelines")
   faq                 Json?
-  businessId          String    @map("business_id")
   rowText             String?   @map("row_text")
+  businessId          String    @map("business_id")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
   deletedAt           DateTime? @map("deleted_at")
+
+  business            Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@map("agent_training")
 }
