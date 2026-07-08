@@ -2,6 +2,8 @@ import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import path from "path";
+import { fileURLToPath } from "url";
 
 import { notFound } from "./app/middleware/notFound.js";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandeler.js";
@@ -55,9 +57,14 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsPath = path.join(__dirname, "..", "uploads");
+
 // Routes
 app.use("/api", router);
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(uploadsPath));
+app.use("/api/uploads", express.static(uploadsPath));
 
 // Health check (Liveness / Readiness)
 app.get("/health", (req, res) => {
