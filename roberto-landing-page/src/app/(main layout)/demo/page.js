@@ -69,7 +69,7 @@ const DemoPage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-5xl md:text-6xl font-bold font-inter mb-4 text-white"
           >
-            Talk to MATRIX
+            Talk to OMNIRRA
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -77,7 +77,7 @@ const DemoPage = () => {
             transition={{ delay: 0.1 }}
             className="text-[#AD46FF] font-medium text-sm md:text-base font-inter max-w-2xl mx-auto"
           >
-            Questions about setup, pricing, or performance? We'll tell you straight if MATRIX is a fit.
+            Questions about setup, pricing, or performance? We'll tell you straight if OMNIRRA is a fit.
           </motion.p>
         </div>
 
@@ -100,8 +100,8 @@ const DemoPage = () => {
               <p className="text-[#A3A3A3] text-sm leading-relaxed mb-6 font-inter">
                 Product questions, technical issues, or general support. We usually reply within 1 business day.
               </p>
-              <a href="mailto:support@matrix.ai" className="text-[#AD46FF] hover:text-white transition-colors text-sm font-semibold font-inter">
-                support@matrix.ai
+              <a href="mailto:support@omnirra.ai" className="text-[#AD46FF] hover:text-white transition-colors text-sm font-semibold font-inter">
+                support@omnirra.ai
               </a>
             </motion.div>
 
@@ -122,7 +122,7 @@ const DemoPage = () => {
                 Discuss your use case, traffic volume, or booking targets. Best for businesses considering Growth or Scale plans.
               </p>
               <a href="mailto:hello@matrix.ai" className="text-[#AD46FF] hover:text-white transition-colors text-sm font-semibold font-inter">
-                hello@matrix.ai
+                hello@omnirra.ai
               </a>
             </motion.div>
           </div>
@@ -135,7 +135,7 @@ const DemoPage = () => {
             className="bg-[#0A0A0A] border border-white/10 rounded-3xl p-8 shadow-2xl relative"
           >
             <h2 className="text-xl font-bold text-white mb-6 font-inter leading-tight">
-              Book a Live Demo. Let's see if MATRIX fits your business.
+              Book a Live Demo. Let's see if OMNIRRA fits your business.
             </h2>
             
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">

@@ -63,7 +63,23 @@ def make_collect_lead(branch_id: str = None, channel: str = None, conversation_i
           these automatically as custom metadata. Use clear camelCase keys, e.g.
           {"companyName": "Innovation Corp", "employeeCount": "150",
            "preferredLanguage": "English"}.
+          For PARCEL_DELIVERY and ORDER_BOOKING conversations, if you already
+          know the destination and/or the product at this point, include them
+          here too, e.g. {"country": "Kenya", "productName": "Refrigerator"} —
+          infer the country from a city name if the customer only gave a city
+          (e.g. Nairobi -> Kenya).
           Only include what the customer actually told you - never invent values.
+
+        NOTE ON THE RETURN VALUE:
+        This tool's return string tells YOU (the agent) whether the lead was
+        actually saved on the backend or not:
+        - If it starts with "✅" → the lead was genuinely saved. You can tell the
+          customer their information has been recorded.
+        - If it starts with "⚠️" → the lead was NOT saved (backend rejected it or
+          was unreachable). Do NOT tell the customer their info was saved. Instead
+          acknowledge you have their details, apologize briefly for a system
+          hiccup, and let them know the team will confirm shortly (or use
+          handoff_human if this keeps failing).
         """
         # Channel থেকে source map করো — code-এ inject, LLM থেকে না
         source = CHANNEL_SOURCE_MAP.get((channel or "").lower(), "WHATSAPP")
@@ -113,13 +129,35 @@ def make_collect_lead(branch_id: str = None, channel: str = None, conversation_i
             if resp is not None:
                 print(f"[LEAD] Final status: {resp.status_code}")
                 print(f"[LEAD] Response: {resp.text[:500]}")
+
                 if resp.status_code in (200, 201):
                     return f"✅ Lead saved successfully for {name}."
 
-            return f"✅ Lead noted for {name}."
+                # Backend reached but REJECTED the lead (400/401/422/500/...).
+                # This is a REAL failure — never tell the LLM it succeeded.
+                print(f"[LEAD ERROR] Backend rejected lead: "
+                      f"{resp.status_code} - {resp.text[:300]}")
+                return (
+                    f"⚠️ Lead was NOT saved. Backend rejected the request "
+                    f"(status {resp.status_code}): {resp.text[:200]}. "
+                    f"Do not tell the customer it was saved — acknowledge their "
+                    f"details and let them know the team will confirm shortly."
+                )
+
+            # resp is None → every candidate 404'd or was unreachable
+            print(f"[LEAD ERROR] No route responded for business_id={business_id}")
+            return (
+                f"⚠️ Lead was NOT saved — could not reach the backend. "
+                f"Do not tell the customer it was saved — acknowledge their "
+                f"details and let them know the team will confirm shortly."
+            )
 
         except Exception as e:
             print(f"[LEAD ERROR] {e}")
-            return f"✅ Lead noted for {name}."
+            return (
+                f"⚠️ Lead was NOT saved due to an internal error ({e}). "
+                f"Do not tell the customer it was saved — acknowledge their "
+                f"details and let them know the team will confirm shortly."
+            )
 
     return collect_lead

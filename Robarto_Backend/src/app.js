@@ -23,7 +23,11 @@ const allowedOrigins = [
   "http://localhost:5174",
   "https://matrix-ai-app.vercel.app",
   "https://matrix-ai-landing-page.vercel.app",
-  "https://test8.fireai.agency"
+  "https://test8.fireai.agency",
+  "https://omnirraai.com",
+  "https://dashboard.omnirraai.com",
+  "https://chatbot.omnirraai.com",
+  "https://voice-agent.omnirraai.com"
 ];
 
 app.use(cors({
@@ -52,7 +56,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
 // Routes
-app.use("/", router);
+app.use("/api", router);
 app.use("/uploads", express.static("uploads"));
 
 // Health check (Liveness / Readiness)
