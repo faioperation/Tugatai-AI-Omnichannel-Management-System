@@ -3,6 +3,8 @@ import { notifyAiAgent } from "../../utils/aiAgent.js";
 import { NotificationService } from "../notification/notification.service.js";
 import { isConversationLimitReached } from "../../utils/limitChecker.js";
 import { envVars } from "../../config/env.js";
+import { MetaGraphAPI } from "./whatsapp.meta.js";
+import { downloadAndSaveMedia } from "../../utils/mediaDownloader.js";
 
 export const handleWebhookEvent = async (body) => {
   if (body.object === "whatsapp_business_account") {
@@ -105,12 +107,30 @@ const processIncomingMessages = async (value) => {
       const type = message.type;
       let text = null;
       let mediaUrl = null;
+      let localMediaUrl = null;
 
       if (type === "text") {
         text = message.text.body;
       } else if (["image", "video", "audio", "document", "sticker"].includes(type)) {
         const mediaObj = message[type];
         mediaUrl = mediaObj.id; // Store Media ID, to be fetched if necessary
+
+        try {
+          const mediaInfo = await MetaGraphAPI.getMediaUrl(mediaUrl, account.accessToken);
+          if (mediaInfo && mediaInfo.url) {
+            const downloadRes = await downloadAndSaveMedia(
+              mediaInfo.url,
+              "whatsapp",
+              "wa",
+              { Authorization: `Bearer ${account.accessToken}` }
+            );
+            if (downloadRes.success) {
+              localMediaUrl = downloadRes.publicUrl;
+            }
+          }
+        } catch (downloadErr) {
+          console.error("[WhatsApp Webhook] Error downloading WhatsApp media:", downloadErr);
+        }
       }
 
       await prisma.whatsappMessage.create({
@@ -123,7 +143,7 @@ const processIncomingMessages = async (value) => {
           direction: "INCOMING",
           type,
           text,
-          mediaUrl,
+          mediaUrl: localMediaUrl || mediaUrl,
           rawPayload: message,
           status: "DELIVERED",
         },
@@ -154,7 +174,8 @@ const processIncomingMessages = async (value) => {
       if (type === "text") {
         aiMessage = text || "";
       } else if (mediaUrl) {
-        aiMessage = `[Media ${type}: ${envVars.BACKEND_URL}/v1/whatsapp/media/${mediaUrl}]`;
+        const urlToSend = localMediaUrl || `${envVars.BACKEND_URL}/v1/whatsapp/media/${mediaUrl}`;
+        aiMessage = `[Media ${type}: ${urlToSend}]`;
       }
 
       // Notify AI Agent of incoming WhatsApp message

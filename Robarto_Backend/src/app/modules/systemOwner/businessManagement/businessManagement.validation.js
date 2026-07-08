@@ -14,6 +14,12 @@ const createBusinessSchema = z.object({
         planCycle: z.enum(["MONTHLY", "YEARLY"]).optional(),
         createdById: z.string().uuid("Invalid user ID format").optional(),
         credits: z.number().int().optional(),
+        branch: z.object({
+            name: z.string({ required_error: "Branch name is required" }),
+            email: z.string().email("Invalid branch email").optional().or(z.literal('')),
+            phone: z.string().optional(),
+            address: z.string().optional(),
+        }).optional(),
     }),
 });
 

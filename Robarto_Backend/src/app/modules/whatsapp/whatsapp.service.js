@@ -1,5 +1,6 @@
 import prisma from "../../prisma/client.js";
 import { MetaGraphAPI } from "./whatsapp.meta.js";
+import { envVars } from "../../config/env.js";
 
 export const WhatsappService = {
   connectAccount: async (businessId, payload) => {
@@ -75,9 +76,20 @@ export const WhatsappService = {
   },
 
   getMessages: async (businessId, conversationId) => {
-    return await prisma.whatsappMessage.findMany({
+    const messages = await prisma.whatsappMessage.findMany({
       where: { businessId, conversationId },
       orderBy: { createdAt: "asc" },
+    });
+
+    return messages.map(msg => {
+      if (
+        msg.mediaUrl && 
+        !msg.mediaUrl.startsWith("http://") && 
+        !msg.mediaUrl.startsWith("https://")
+      ) {
+        msg.mediaUrl = `${envVars.BACKEND_URL}/v1/whatsapp/media/${msg.mediaUrl}`;
+      }
+      return msg;
     });
   },
 

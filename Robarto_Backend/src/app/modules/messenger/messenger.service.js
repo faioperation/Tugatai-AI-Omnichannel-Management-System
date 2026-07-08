@@ -5,6 +5,7 @@ import { AppError } from "../../errorHelper/appError.js";
 import { notifyAiAgent } from "../../utils/aiAgent.js";
 import { NotificationService } from "../notification/notification.service.js";
 import { isConversationLimitReached } from "../../utils/limitChecker.js";
+import { downloadAndSaveMedia } from "../../utils/mediaDownloader.js";
 
 const getGraphUrl = () => `https://graph.facebook.com/${envVars.META_GRAPH_VERSION || "v23.0"}`;
 
@@ -113,6 +114,21 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
     },
   });
 
+  let localMediaUrl = null;
+  if (attachments && attachments.length > 0) {
+    const attachmentUrl = attachments[0].payload?.url;
+    if (attachmentUrl) {
+      try {
+        const downloadRes = await downloadAndSaveMedia(attachmentUrl, "messenger", "msg");
+        if (downloadRes.success) {
+          localMediaUrl = downloadRes.publicUrl;
+        }
+      } catch (downloadErr) {
+        console.error("[Messenger Service] Error downloading messenger media:", downloadErr);
+      }
+    }
+  }
+
   // Save the message
   await prisma.message.create({
     data: {
@@ -123,7 +139,7 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
       platformMessageId: platformMessageId,
       rawPayload: webhookEvent,
       type: attachments ? "media" : "text",
-      mediaUrl: attachments ? attachments[0].payload?.url : null,
+      mediaUrl: localMediaUrl || (attachments ? attachments[0].payload?.url : null),
     },
   });
 
@@ -144,7 +160,7 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
   // Construct AI message body (if text, send text; if media, send media URL)
   let aiMessage = messageText || "";
   if (!aiMessage && attachments && attachments.length > 0) {
-    const attachmentUrl = attachments[0].payload?.url || "";
+    const attachmentUrl = localMediaUrl || attachments[0].payload?.url || "";
     aiMessage = `[Media ${attachments[0].type}: ${attachmentUrl}]`;
   }
 
