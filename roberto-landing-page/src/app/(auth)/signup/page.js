@@ -132,7 +132,7 @@ const Signup = () => {
                   options={[
                     { label: "Order Booking", value: "ORDER_BOOKING" },
                     { label: "Appointment Booking", value: "APPOINTMENT_BOOKING" },
-                    { label: "Parcel Delivery", value: "PARCEL_DELIVERY" },
+                    { label: "Cargo", value: "PARCEL_DELIVERY" },
                   ]}
                   value={formData.businessType}
                   onSelect={(val) => handleInputChange("businessType", val)}
