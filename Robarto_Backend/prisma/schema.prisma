@@ -899,15 +899,16 @@ model AgentTraining {
 }
 
 model Agent {
-  id         String    @id @default(uuid())
-  businessId String    @map("business_id")
-  branchId   String?   @map("branch_id")
-  rulesFile  String    @map("rules_file")
-  vapiId     String?   @map("vapi_id")
-  metadata   Json?
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  deletedAt  DateTime? @map("deleted_at")
+  id          String    @id @default(uuid())
+  businessId  String    @map("business_id")
+  branchId    String?   @map("branch_id")
+  rulesFile   String    @map("rules_file")
+  productFile String?   @map("product_file")
+  vapiId      String?   @map("vapi_id")
+  metadata    Json?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   @@map("agents")
 }

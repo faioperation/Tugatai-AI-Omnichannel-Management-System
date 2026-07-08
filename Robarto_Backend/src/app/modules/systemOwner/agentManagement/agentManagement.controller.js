@@ -7,16 +7,19 @@ const formatAgentResponse = (agent) => {
     if (!agent) return null;
     return {
         ...agent,
-        rulesFile: agent.rulesFile ? `${envVars.BACKEND_URL}${agent.rulesFile}` : null
+        rulesFile: agent.rulesFile ? `${envVars.BACKEND_URL}${agent.rulesFile}` : null,
+        productFile: agent.productFile ? `${envVars.BACKEND_URL}${agent.productFile}` : null
     };
 };
 
 const createAgent = async (req, res, next) => {
     try {
         const { businessId, agentName, branchId } = req.body;
-        const files = req.files; // Array of files from multer
+        const rulesFiles = req.files && req.files["rules_file"] ? req.files["rules_file"] : [];
+        const productFiles = req.files && (req.files["product_file"] || req.files["productFile"]) ? (req.files["product_file"] || req.files["productFile"]) : [];
+        const productFile = productFiles[0] || null;
 
-        const result = await AgentService.createAgentService(businessId, agentName, files, branchId);
+        const result = await AgentService.createAgentService(businessId, agentName, rulesFiles, productFile, branchId);
 
         sendResponse(res, {
             success: true,
@@ -65,13 +68,34 @@ const updateAgent = async (req, res, next) => {
     try {
         const { id } = req.params;
         const payload = req.body;
-        const files = req.files; // Array of files from multer
+        const rulesFiles = req.files && req.files["rules_file"] ? req.files["rules_file"] : [];
+        const productFiles = req.files && (req.files["product_file"] || req.files["productFile"]) ? (req.files["product_file"] || req.files["productFile"]) : [];
+        const productFile = productFiles[0] || null;
 
-        const result = await AgentService.updateAgentService(id, payload, files);
+        const result = await AgentService.updateAgentService(id, payload, rulesFiles, productFile);
 
         sendResponse(res, {
             success: true,
             message: "Agent updated successfully",
+            statusCode: StatusCodes.OK,
+            data: formatAgentResponse(result),
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updateProductFile = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const productFiles = req.files && (req.files["product_file"] || req.files["productFile"]) ? (req.files["product_file"] || req.files["productFile"]) : [];
+        const productFile = productFiles[0] || null;
+
+        const result = await AgentService.updateProductFileService(id, productFile);
+
+        sendResponse(res, {
+            success: true,
+            message: "Agent product file updated successfully",
             statusCode: StatusCodes.OK,
             data: formatAgentResponse(result),
         });
@@ -101,5 +125,6 @@ export const AgentController = {
     getAllAgents,
     getAgentById,
     updateAgent,
+    updateProductFile,
     deleteAgent,
 };
