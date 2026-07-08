@@ -300,22 +300,51 @@ const getBookingCountriesService = async (businessId, branchId) => {
     const businessType = await resolveBusinessType(businessId);
     const { model } = getBookingModel(businessType);
 
-    const result = await model.findMany({
-        where: {
-            businessId,
-            branchId,
-            country: {
-                not: null,
-                not: "",
-            },
+    const bookingWhere = {
+        businessId,
+        country: {
+            notIn: [null, ""],
         },
+    };
+    if (branchId) {
+        bookingWhere.branchId = branchId;
+    }
+
+    const bookingResult = await model.findMany({
+        where: bookingWhere,
         select: {
             country: true,
         },
         distinct: ["country"],
     });
 
-    return result.map((b) => b.country);
+    const leadWhere = {
+        businessId,
+        country: {
+            notIn: [null, ""],
+        },
+    };
+    if (branchId) {
+        leadWhere.branchId = branchId;
+    }
+
+    const leadResult = await prisma.crmLead.findMany({
+        where: leadWhere,
+        select: {
+            country: true,
+        },
+        distinct: ["country"],
+    });
+
+    const countriesSet = new Set();
+    bookingResult.forEach((b) => {
+        if (b.country) countriesSet.add(b.country.trim());
+    });
+    leadResult.forEach((l) => {
+        if (l.country) countriesSet.add(l.country.trim());
+    });
+
+    return Array.from(countriesSet);
 };
 
 /**
