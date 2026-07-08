@@ -6,7 +6,7 @@ from agent.memory import get_history, save_message, save_conversation_id
 from agent.prompt_builder import build_prompt
 from agent.tools import get_all_tools
 from agent.tools.http_fallback import build_candidates, get_with_fallback
-from agent.message_parser import parse_incoming_message, message_to_history_text
+from agent.message_parser import parse_incoming_message
 from rag.retriever import retrieve
 from channels.router import send_response
 from core.config import (
@@ -193,13 +193,15 @@ async def run_agent(
 ):
     # ── Step 0: Parse the (possibly multimodal) incoming message ─────
     # `llm_message_content` is what actually goes to the LLM this turn:
-    #   - a plain string, if there's no image
+    #   - a plain string, if there's no image/voice
     #   - a LangChain multimodal content list, if an image is present
     # `history_text` is the plain-text version used for long-term memory
-    # and the summary job (image URLs are never stored long-term — they
-    # expire and add no value to future context).
-    llm_message_content = parse_incoming_message(message)
-    history_text = message_to_history_text(message)
+    # and the summary job (image bytes are never stored long-term — only a
+    # placeholder; voice notes ARE stored as their transcribed text, since
+    # the transcription IS the customer's message).
+    # This now also downloads + transcribes voice notes (Whisper) and
+    # downloads + base64-encodes images, so it must be awaited.
+    llm_message_content, history_text = await parse_incoming_message(message)
 
     # ── Step 1: Fetch business profile ──────────────────────────────
     business_data = await fetch_business(business_id)
