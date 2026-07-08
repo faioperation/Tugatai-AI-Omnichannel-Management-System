@@ -11,9 +11,10 @@ Two shapes are supported:
        "[Media document: https://yourdomain.com/uploads/.../file.pdf]"
        "[Media document: https://yourdomain.com/uploads/.../file.docx]"
        "[Media document: https://yourdomain.com/uploads/.../file.xlsx]"
+       "[Media document: https://yourdomain.com/uploads/.../file.csv]"
 
-   The document's actual format (PDF / DOCX / XLSX) is detected from the
-   URL's own file extension — the bracket marker itself just says
+   The document's actual format (PDF / DOCX / XLSX / CSV) is detected from
+   the URL's own file extension — the bracket marker itself just says
    "document" for all of these.
 
    The media URL points at the BACKEND's own protected media proxy (NOT a
@@ -42,6 +43,7 @@ transcribing the same media twice.
 
 import re
 import io
+import csv
 import base64
 from typing import Any, Union, Tuple
 from urllib.parse import urlparse
@@ -180,6 +182,30 @@ def _extract_xlsx_text(doc_bytes: bytes) -> str:
     return "\n".join(parts).strip()
 
 
+def _extract_csv_text(doc_bytes: bytes) -> str:
+    """
+    Decodes CSV bytes to text (trying common encodings) and reformats rows
+    for readability, the same "row | row | row" style used for XLSX sheets.
+    """
+    text = None
+    for encoding in ("utf-8-sig", "utf-8", "latin-1"):
+        try:
+            text = doc_bytes.decode(encoding)
+            break
+        except UnicodeDecodeError:
+            continue
+    if text is None:
+        text = doc_bytes.decode("utf-8", errors="replace")
+
+    parts = []
+    reader = csv.reader(io.StringIO(text))
+    for row in reader:
+        if any(cell.strip() for cell in row):
+            parts.append(" | ".join(row))
+
+    return "\n".join(parts).strip()
+
+
 async def _extract_document_text(url: str) -> str:
     """
     Downloads a document (PDF, DOCX, or XLSX — detected from the URL's
@@ -202,6 +228,8 @@ async def _extract_document_text(url: str) -> str:
             full_text = _extract_docx_text(doc_bytes)
         elif ext in ("xlsx", "xlsm"):
             full_text = _extract_xlsx_text(doc_bytes)
+        elif ext == "csv":
+            full_text = _extract_csv_text(doc_bytes)
         elif ext == "doc":
             print(f"[DOCUMENT WARN] Legacy .doc not supported: {url}")
             return "[Customer shared an older .doc file, which isn't supported — ask them to resend as .docx or .pdf]"
