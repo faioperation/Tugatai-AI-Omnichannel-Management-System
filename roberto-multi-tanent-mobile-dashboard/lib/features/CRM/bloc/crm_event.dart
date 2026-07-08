@@ -14,8 +14,6 @@ class FetchLeads extends CrmEvent {
   final int limit;
   final String searchParam;
   final UserRole role;
-  final String country;
-  final String productType;
 
   const FetchLeads({
     required this.branchId,
@@ -23,12 +21,10 @@ class FetchLeads extends CrmEvent {
     this.limit = 10,
     this.searchParam = '',
     this.role = UserRole.businessOwner,
-    this.country = '',
-    this.productType = '',
   });
 
   @override
-  List<Object> get props => [branchId, page, limit, searchParam, role, country, productType];
+  List<Object> get props => [branchId, page, limit, searchParam, role];
 }
 
 class CreateLead extends CrmEvent {
@@ -37,7 +33,6 @@ class CreateLead extends CrmEvent {
   final String email;
   final String phone;
   final String source;
-  final String country;
   final String address;
   final String note;
   final String status;
@@ -50,7 +45,6 @@ class CreateLead extends CrmEvent {
     required this.email,
     required this.phone,
     required this.source,
-    this.country = '',
     required this.address,
     required this.note,
     required this.status,
@@ -59,7 +53,7 @@ class CreateLead extends CrmEvent {
   });
 
   @override
-  List<Object?> get props => [branchId, name, email, phone, source, country, address, note, status, metadata, role];
+  List<Object?> get props => [branchId, name, email, phone, source, address, note, status, metadata, role];
 }
 
 class UpdateLead extends CrmEvent {

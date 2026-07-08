@@ -7,12 +7,7 @@ import 'package:mime/mime.dart';
 part 'network_response.dart';
 
 class NetworkClient {
-  final Logger _logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 0, // Hides the stack trace that looks like an error
-      errorMethodCount: 5,
-    ),
-  );
+  final Logger _logger = Logger();
   final String _defaultErrorMassage = 'Something went wrong';
 
   final VoidCallback onUnAuthorize;

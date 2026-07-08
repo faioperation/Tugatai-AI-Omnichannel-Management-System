@@ -50,34 +50,6 @@ class ManagementRepository {
     }
   }
 
-  Future<BranchManagerModel> updateBranchManager({
-    required String id,
-    required String name,
-    required String email,
-    String? password,
-    required String status,
-  }) async {
-    final Map<String, dynamic> body = {
-      'name': name,
-      'email': email,
-      'status': status,
-    };
-    if (password != null && password.isNotEmpty) {
-      body['password'] = password;
-    }
-
-    final response = await networkClient.patchRequest(
-      '${ApiConstants.businessOwnerBranchManagersDelete}/$id',
-      body: body,
-    );
-
-    if (response.isSuccess) {
-      return BranchManagerModel.fromJson(response.responseData['data']);
-    } else {
-      throw Exception(response.errorMassage ?? 'Failed to update branch manager');
-    }
-  }
-
   // Branch CRUD Methods
   Future<List<BranchModel>> getBranches() async {
     final response = await networkClient.getRequest(ApiConstants.businessOwnerBranchesAll);
