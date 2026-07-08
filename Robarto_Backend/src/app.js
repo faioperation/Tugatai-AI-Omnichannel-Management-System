@@ -25,7 +25,9 @@ const allowedOrigins = [
   "https://matrix-ai-landing-page.vercel.app",
   "https://test8.fireai.agency",
   "https://omnirraai.com",
-  "https://dashboard.omnirraai.com"
+  "https://dashboard.omnirraai.com",
+  "https://chatbot.omnirraai.com",
+  "https://voice-agent.omnirraai.com"
 ];
 
 app.use(cors({
