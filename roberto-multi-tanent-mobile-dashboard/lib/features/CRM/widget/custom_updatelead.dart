@@ -227,7 +227,7 @@ class _CustomUpdateLeadState extends State<CustomUpdateLead> {
               CustomTextfield(
                 controller: _noteController, 
                 hintText: "Note",
-                validator: (v) => null,
+                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
               ),
 
               const SizedBox(height: 15),

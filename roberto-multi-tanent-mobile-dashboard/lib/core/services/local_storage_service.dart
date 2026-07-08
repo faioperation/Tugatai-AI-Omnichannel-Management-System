@@ -19,26 +19,4 @@ class LocalStorageService {
     await _preferences.remove('accessToken');
     await _preferences.remove('refreshToken');
   }
-
-  static String? get fcmToken => _preferences.getString('fcm_token');
-
-  static Future<void> saveFcmToken(String token) async {
-    await _preferences.setString('fcm_token', token);
-  }
-
-  static Future<void> saveSelectedBranch({required String id, required String name, required String address}) async {
-    await _preferences.setString('selectedBranchId', id);
-    await _preferences.setString('selectedBranchName', name);
-    await _preferences.setString('selectedBranchAddress', address);
-  }
-
-  static Map<String, String>? get selectedBranch {
-    final id = _preferences.getString('selectedBranchId');
-    final name = _preferences.getString('selectedBranchName');
-    final address = _preferences.getString('selectedBranchAddress');
-    if (id != null && name != null) {
-      return {'id': id, 'name': name, 'address': address ?? ''};
-    }
-    return null;
-  }
 }

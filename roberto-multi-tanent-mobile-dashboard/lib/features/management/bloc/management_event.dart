@@ -33,25 +33,6 @@ class DeleteBranchManagerRequested extends ManagementEvent {
   List<Object?> get props => [id];
 }
 
-class UpdateBranchManagerRequested extends ManagementEvent {
-  final String id;
-  final String name;
-  final String email;
-  final String? password;
-  final String status;
-
-  const UpdateBranchManagerRequested({
-    required this.id,
-    required this.name,
-    required this.email,
-    this.password,
-    required this.status,
-  });
-
-  @override
-  List<Object?> get props => [id, name, email, password, status];
-}
-
 // Branch Events
 class FetchBranchesRequested extends ManagementEvent {}
 

@@ -34,7 +34,6 @@ class _InboxScreenState extends State<InboxScreen> {
   List<MessageMod> _messages = [];
   bool _messagesLoading = false;
   Timer? _messagePollTimer;
-  Timer? _conversationsPollTimer;
   bool _isAiOn = true;
 
   @override
@@ -42,13 +41,11 @@ class _InboxScreenState extends State<InboxScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchConversations();
-      _startConversationsPolling();
     });
   }
 
   @override
   void dispose() {
-    _conversationsPollTimer?.cancel();
     _messagePollTimer?.cancel();
     super.dispose();
   }
@@ -134,26 +131,6 @@ class _InboxScreenState extends State<InboxScreen> {
         );
       }
     }
-  }
-
-  Future<void> _fetchConversationsSilent() async {
-    try {
-      final inboxRepo = context.read<InboxRepository>();
-      final res = await inboxRepo.getConversations('all', branchId: widget.branchId);
-
-      if (res['success'] == true && mounted) {
-        setState(() {
-          _conversations = res['conversations'] as List<ConversationMod>;
-          
-          if (_selectedConversation != null) {
-            final match = _conversations.where((c) => c.id == _selectedConversation!.id);
-            if (match.isNotEmpty) {
-              _selectedConversation = match.first;
-            }
-          }
-        });
-      }
-    } catch (_) {}
   }
 
   void _openConversation(ConversationMod conv) {
@@ -242,26 +219,10 @@ class _InboxScreenState extends State<InboxScreen> {
       final res = await inboxRepo.getMessages(conversation.platform, conversation.id);
 
       if (res['success'] == true && mounted) {
-        final newMsgs = res['messages'] as List<MessageMod>;
-        
-        bool hasNewMessage = false;
-        if (newMsgs.length != _messages.length) {
-          hasNewMessage = true;
-        } else if (newMsgs.isNotEmpty && _messages.isNotEmpty) {
-          if (newMsgs.last.id != _messages.last.id || newMsgs.last.messageText != _messages.last.messageText) {
-            hasNewMessage = true;
-          }
-        }
-
         setState(() {
-          _messages = newMsgs;
+          _messages = res['messages'] as List<MessageMod>;
           _messagesLoading = false;
         });
-
-        if (hasNewMessage) {
-          _fetchConversationsSilent();
-        }
-
         _startMessagePolling(conversation);
       } else if (mounted) {
         setState(() {
@@ -282,17 +243,6 @@ class _InboxScreenState extends State<InboxScreen> {
     _messagePollTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (_selectedConversation?.id == conversation.id && mounted) {
         _fetchMessages(conversation, showLoading: false);
-      } else {
-        timer.cancel();
-      }
-    });
-  }
-
-  void _startConversationsPolling() {
-    _conversationsPollTimer?.cancel();
-    _conversationsPollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (mounted) {
-        _fetchConversationsSilent();
       } else {
         timer.cancel();
       }

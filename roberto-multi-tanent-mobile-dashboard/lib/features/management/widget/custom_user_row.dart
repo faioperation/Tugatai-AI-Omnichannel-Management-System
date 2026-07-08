@@ -105,7 +105,6 @@ class _CustomUserRowState extends State<CustomUserRow> {
                     context: context,
                     builder: (context) => CustomAdduser(
                       isEdit: true,
-                      managerId: widget.manager.id,
                       username: widget.manager.name,
                       mail: widget.manager.email,
                       status: _currentStatus,
@@ -188,7 +187,6 @@ class _CustomUserRowState extends State<CustomUserRow> {
                   context: context,
                   builder: (context) => CustomAdduser(
                     isEdit: true,
-                    managerId: widget.manager.id,
                     username: widget.manager.name,
                     mail: widget.manager.email,
                     status: _currentStatus,
@@ -249,14 +247,6 @@ class _CustomUserRowState extends State<CustomUserRow> {
               setState(() {
                 _currentStatus = value;
               });
-              context.read<ManagementBloc>().add(
-                UpdateBranchManagerRequested(
-                  id: widget.manager.id,
-                  name: widget.manager.name,
-                  email: widget.manager.email,
-                  status: value.toUpperCase(),
-                ),
-              );
             }
           },
         ),

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
@@ -6,8 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:roberto/features/Inbox/data/models/inbox_models.dart';
 import 'package:roberto/features/Inbox/data/repositories/inbox_repository.dart';
 import 'package:roberto/core/network/api_constants.dart';
-import 'package:http/http.dart' show get;
-import 'package:url_launcher/url_launcher.dart';
 
 class ChatView extends StatefulWidget {
   final ConversationMod? conversation;
@@ -203,9 +200,11 @@ class _ChatViewState extends State<ChatView> {
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: _buildMessageBubble(
-                              msg: msg,
+                              text: msg.messageText,
                               time: timeStr,
                               isMe: msg.isMe,
+                              mediaUrl: msg.mediaUrl,
+                              filePath: msg.filePath,
                               context: context,
                             ),
                           );
@@ -268,273 +267,38 @@ class _ChatViewState extends State<ChatView> {
     );
   }
 
-  String _getResolvedMediaUrl(String mediaIdOrUrl) {
-    if (mediaIdOrUrl.startsWith('http://') || mediaIdOrUrl.startsWith('https://') || mediaIdOrUrl.startsWith('blob:')) {
-      return mediaIdOrUrl;
-    }
-    final isMediaId = RegExp(r'^\d+$').hasMatch(mediaIdOrUrl);
-    if (isMediaId) {
-      final baseUrlWithoutApi = ApiConstants.baseUrl.replaceAll('/api', '');
-      return '$baseUrlWithoutApi/v1/whatsapp/media/$mediaIdOrUrl';
+  String _getFullImageUrl(String url) {
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
+      return url;
     }
     final base = ApiConstants.baseUrl.replaceAll('/api', '');
-    final path = mediaIdOrUrl.startsWith('/') ? mediaIdOrUrl : '/$mediaIdOrUrl';
+    final path = url.startsWith('/') ? url : '/$url';
     return '$base$path';
   }
 
-  Future<void> _downloadAndOpenMedia(String url, String fileName) async {
-    try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Downloading file...'), duration: Duration(seconds: 2)),
-      );
-      
-      final baseHost = Uri.parse(ApiConstants.baseUrl).host;
-      final isBackendUrl = url.contains(baseHost) || !url.startsWith('http');
-      
-      String finalUrl = url;
-      if (isBackendUrl && !finalUrl.contains('?download=')) {
-        finalUrl = finalUrl.contains('?') ? '$finalUrl&download=true' : '$finalUrl?download=true';
-      }
-
-      Map<String, String>? headers;
-      if (isBackendUrl) {
-        final inboxRepo = context.read<InboxRepository>();
-        headers = inboxRepo.networkClient.commonHeaders();
-      }
-      
-      var response = await get(Uri.parse(finalUrl), headers: headers);
-      
-      // Robust Fallback mechanism if 404 occurs on backend media URL
-      if (response.statusCode == 404 && isBackendUrl) {
-        final parts = url.split('/');
-        final lastPart = parts.isNotEmpty ? parts.last.split('?').first : '';
-        final qParam = finalUrl.contains('?download=true') ? '?download=true' : '';
-        
-        if (RegExp(r'^\d+$').hasMatch(lastPart)) {
-           // Try standard v1 endpoint
-           final fallbackUrl1 = '${ApiConstants.baseUrl.replaceAll('/api', '')}/v1/whatsapp/media/$lastPart$qParam';
-           response = await get(Uri.parse(fallbackUrl1), headers: headers);
-           
-           if (response.statusCode == 404) {
-             // Try api/v1 endpoint
-             final fallbackUrl2 = '${ApiConstants.baseUrl.replaceAll('/api', '')}/api/v1/whatsapp/media/$lastPart$qParam';
-             response = await get(Uri.parse(fallbackUrl2), headers: headers);
-           }
-        } else if (url.contains('/v1/')) {
-           final fallbackUrl = url.replaceAll('/v1/', '/api/v1/');
-           final fUrl = fallbackUrl.contains('?') ? fallbackUrl : '$fallbackUrl$qParam';
-           response = await get(Uri.parse(fUrl), headers: headers);
-        }
-      }
-      
-      if (response.statusCode == 200) {
-        final bytes = response.bodyBytes;
-        final tempDir = Directory.systemTemp;
-        final file = File('${tempDir.path}/$fileName');
-        await file.writeAsBytes(bytes);
-        
-        final uri = Uri.file(file.path);
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        throw Exception('Status code: ${response.statusCode}, URL: $url');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not open file: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
   Widget _buildMessageBubble({
-    required MessageMod msg,
+    required String text,
     required String time,
     required bool isMe,
+    String? mediaUrl,
+    String? filePath,
     required BuildContext context,
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final String? displayUrl = (msg.mediaUrl != null && msg.mediaUrl!.isNotEmpty)
-        ? msg.mediaUrl
-        : (msg.filePath != null && msg.filePath!.isNotEmpty ? msg.filePath : null);
+    final String? displayUrl = (mediaUrl != null && mediaUrl.isNotEmpty)
+        ? mediaUrl
+        : (filePath != null && filePath.isNotEmpty ? filePath : null);
 
-    final fullUrl = displayUrl != null ? _getResolvedMediaUrl(displayUrl) : '';
+    final showText = text.isNotEmpty && 
+        !( (text == '[Media: image]' || text == '[Media: Image]') && (displayUrl != null && displayUrl.isNotEmpty) );
+
+    final fullUrl = displayUrl != null ? _getFullImageUrl(displayUrl) : '';
     final isRemote = fullUrl.startsWith('http://') || fullUrl.startsWith('https://');
-    final baseHost = Uri.parse(ApiConstants.baseUrl).host;
-    final isBackendUrl = fullUrl.contains(baseHost) || (!fullUrl.startsWith('http') && !fullUrl.startsWith('blob:'));
-    
-    Map<String, String>? headers;
-    if (isRemote && isBackendUrl) {
-      headers = context.read<InboxRepository>().networkClient.commonHeaders();
-    } else if (isRemote) {
-      headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
-      };
-    }
-
-    final showText = msg.messageText.isNotEmpty && 
-        !( (msg.messageText == '[Media: image]' || msg.messageText == '[Media: Image]') && (displayUrl != null && displayUrl.isNotEmpty) );
-
-    Widget bubbleContent;
-
-    if (msg.type == 'image') {
-      bubbleContent = ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          onTap: () {
-            showDialog(
-              context: context,
-              builder: (context) => Dialog(
-                backgroundColor: Colors.transparent,
-                insetPadding: const EdgeInsets.all(10),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        color: Colors.transparent,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                    InteractiveViewer(
-                      child: Image.network(
-                        fullUrl,
-                        headers: headers,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                    Positioned(
-                      top: 10,
-                      right: 10,
-                      child: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-          child: Image.network(
-            fullUrl,
-            headers: headers,
-            width: 200,
-            height: 200,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                width: 200,
-                height: 120,
-                color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
-                child: const Icon(Icons.broken_image, color: Colors.grey),
-              );
-            },
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Container(
-                width: 200,
-                height: 120,
-                color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
-                child: const Center(
-                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColor.primary),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-    } else if (msg.type == 'audio') {
-      final safeName = displayUrl != null && displayUrl.isNotEmpty 
-          ? displayUrl.split('/').last.split('?').first 
-          : 'audio_message';
-      final fileName = safeName.isNotEmpty ? '$safeName.ogg' : 'audio_message.ogg';
-      bubbleContent = InkWell(
-        onTap: () => _downloadAndOpenMedia(fullUrl, fileName),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.play_circle_fill,
-              color: isMe ? Colors.white : AppColor.primary,
-              size: 32,
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "Voice Message",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isMe ? Colors.white : (isDark ? Colors.white : Colors.black),
-                  ),
-                ),
-                Text(
-                  "Tap to play/download",
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isMe ? Colors.white70 : Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    } else if (msg.type == 'document') {
-      final displayName = msg.messageText.isNotEmpty ? msg.messageText : 'document.pdf';
-      final safeName = displayUrl != null && displayUrl.isNotEmpty 
-          ? displayUrl.split('/').last.split('?').first 
-          : displayName;
-      final fileName = safeName.isNotEmpty ? '$safeName.pdf' : 'document.pdf';
-      bubbleContent = InkWell(
-        onTap: () => _downloadAndOpenMedia(fullUrl, fileName),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.insert_drive_file,
-              color: isMe ? Colors.white : AppColor.primary,
-              size: 32,
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  displayName.length > 20 ? '${displayName.substring(0, 17)}...' : displayName,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isMe ? Colors.white : (isDark ? Colors.white : Colors.black),
-                  ),
-                ),
-                Text(
-                  "Tap to open/download",
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isMe ? Colors.white70 : Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    } else {
-      bubbleContent = Text(
-        msg.messageText,
-        style: TextStyle(
-          color: isMe ? Colors.white : (isDark ? Colors.white : Colors.black),
-        ),
-      );
-    }
+    final Map<String, String>? headers = isRemote
+        ? context.read<InboxRepository>().networkClient.commonHeaders()
+        : null;
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -542,7 +306,6 @@ class _ChatViewState extends State<ChatView> {
         crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           Container(
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: isMe
@@ -554,16 +317,82 @@ class _ChatViewState extends State<ChatView> {
               crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                bubbleContent,
-                if (msg.type != 'text' && showText) ...[
-                  const SizedBox(height: 8),
+                if (displayUrl != null && displayUrl.isNotEmpty) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: InkWell(
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => Dialog(
+                            backgroundColor: Colors.transparent,
+                            insetPadding: const EdgeInsets.all(10),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                GestureDetector(
+                                  onTap: () => Navigator.pop(context),
+                                  child: Container(
+                                    color: Colors.transparent,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                  ),
+                                ),
+                                InteractiveViewer(
+                                  child: Image.network(
+                                    fullUrl,
+                                    headers: headers,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 10,
+                                  right: 10,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                                    onPressed: () => Navigator.pop(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                      child: Image.network(
+                        fullUrl,
+                        headers: headers,
+                        width: 200,
+                        height: 200,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 200,
+                            height: 120,
+                            color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                            child: const Icon(Icons.broken_image, color: Colors.grey),
+                          );
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            width: 200,
+                            height: 120,
+                            color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+                            child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColor.primary)),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  if (showText) const SizedBox(height: 8),
+                ],
+                if (showText)
                   Text(
-                    msg.messageText,
+                    text,
                     style: TextStyle(
                       color: isMe ? Colors.white : (isDark ? Colors.white : Colors.black),
                     ),
                   ),
-                ],
               ],
             ),
           ),

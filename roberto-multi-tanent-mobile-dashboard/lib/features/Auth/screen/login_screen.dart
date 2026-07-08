@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:roberto/app/app_routes.dart';
 import 'package:roberto/common/user_role.dart';
 import '../../../common/custom_button.dart';
@@ -90,11 +91,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                     Center(
-                      child: Image.asset(
-                        Theme.of(context).brightness == Brightness.dark
-                            ? 'assets/Omnirra_AI_logo_white.png'
-                            : 'assets/Omnirra_AI_logo_black.png',
-                        height: 120,
+                      child: SvgPicture.asset(
+                        'assets/logo.svg',
+                        height: 80,
                       ),
                     ),
                     const SizedBox(height: 20),
