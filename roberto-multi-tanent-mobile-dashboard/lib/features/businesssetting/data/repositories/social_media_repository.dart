@@ -134,4 +134,42 @@ class SocialMediaRepository {
     );
     return response.isSuccess && (response.responseData?['success'] == true);
   }
+
+  Future<String?> getGoogleCalendarAuthUrl(String branchId) async {
+    final response = await networkClient.getRequest(
+      '${ApiConstants.googleCalendarConnect}?branchId=$branchId',
+    );
+    if (response.isSuccess && response.responseData != null) {
+      if (response.responseData['success'] == true && response.responseData['data'] != null) {
+        return response.responseData['data']['url'];
+      }
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>> getGoogleCalendarStatus(String branchId) async {
+    final response = await networkClient.getRequest(
+      '${ApiConstants.googleCalendarStatus}?branchId=$branchId',
+    );
+    if (response.isSuccess && response.responseData != null) {
+      if (response.responseData['success'] == true) {
+        final data = response.responseData['data'];
+        if (data != null) {
+          return {
+            'connected': data['isConnected'] ?? false,
+            'email': data['email']
+          };
+        }
+      }
+    }
+    return {'connected': false, 'email': null};
+  }
+
+  Future<bool> disconnectGoogleCalendar(String branchId) async {
+    final response = await networkClient.postRequest(
+      ApiConstants.googleCalendarDisconnect,
+      body: {'branchId': branchId},
+    );
+    return response.isSuccess && (response.responseData?['success'] == true);
+  }
 }
