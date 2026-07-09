@@ -1,3 +1,4 @@
+import re
 import time
 import httpx
 from langchain_openai import ChatOpenAI
@@ -27,6 +28,33 @@ CACHE_TTL_SECONDS = 300  # 5 minutes
 
 _business_cache = {}
 _training_cache = {}
+
+
+def _strip_markdown(text: str) -> str:
+    """
+    Strips markdown formatting symbols from the response before it's sent to
+    the customer or saved to history.
+
+    WHY THIS EXISTS: the system prompt already instructs the model not to
+    use markdown (WhatsApp/Messenger/Instagram don't render it consistently
+    — see prompt_builder.py), but LLMs don't follow formatting instructions
+    with 100% reliability, especially in numbered/bulleted lists. This is a
+    code-level guarantee that catches whatever slips through, rather than
+    relying purely on the prompt.
+    """
+    if not text:
+        return text
+
+    # Bold: **text** -> text (must run before the single-asterisk pass)
+    text = re.sub(r"\*\*([^\n*]+?)\*\*", r"\1", text)
+    # Italics/emphasis: *text* -> text
+    text = re.sub(r"(?<!\*)\*([^\n*]+?)\*(?!\*)", r"\1", text)
+    # Markdown headers at line start: "# ", "## ", etc.
+    text = re.sub(r"(?m)^#{1,6}\s+", "", text)
+    # Inline code backticks: `text` -> text
+    text = re.sub(r"`([^`]+)`", r"\1", text)
+
+    return text
 
 
 def _cache_get(cache: dict, key: str):
@@ -280,6 +308,10 @@ async def run_agent(
 
     # ── Step 9: Extract final response ───────────────────────────────
     ai_response = result["messages"][-1].content
+    # Strip any markdown the model used anyway, despite the prompt's
+    # instruction not to (see _strip_markdown docstring) — this runs before
+    # the response is logged, saved to history, or sent to the customer.
+    ai_response = _strip_markdown(ai_response)
 
     # ── Step 10: Log for testing ──────────────────────────────────────
     print(f"\n{'='*50}")
