@@ -178,12 +178,27 @@ class _BusinessownerSettingsState extends State<BusinessownerSettings> {
                                 title: 'WhatsApp',
                                 subtitle: state.isWhatsAppConnected ? 'Connected' : 'Not Connected',
                                 isConnected: state.isWhatsAppConnected,
-                                isLoading: state.isLoading && !state.isFacebookConnected && !state.isInstagramConnected && !state.isWhatsAppConnected,
+                                isLoading: state.isLoading && !state.isFacebookConnected && !state.isInstagramConnected && !state.isWhatsAppConnected && !state.isGoogleCalendarConnected,
                                 onActionPressed: () {
                                   if (state.isWhatsAppConnected && state.whatsappAccountId != null) {
                                     context.read<SocialMediaBloc>().add(DisconnectWhatsApp(state.whatsappAccountId!, widget.branchId));
                                   } else {
                                     context.read<SocialMediaBloc>().add(ConnectWhatsApp(widget.branchId));
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 15),
+                              CustomMedia(
+                                iconPath: 'assets/system.svg',
+                                title: 'Google Calendar',
+                                subtitle: state.isGoogleCalendarConnected ? 'Connected (${state.googleCalendarEmail ?? ""})' : 'Not Connected',
+                                isConnected: state.isGoogleCalendarConnected,
+                                isLoading: state.isLoading && !state.isFacebookConnected && !state.isInstagramConnected && !state.isWhatsAppConnected && !state.isGoogleCalendarConnected,
+                                onActionPressed: () {
+                                  if (state.isGoogleCalendarConnected) {
+                                    context.read<SocialMediaBloc>().add(DisconnectGoogleCalendar(widget.branchId));
+                                  } else {
+                                    context.read<SocialMediaBloc>().add(ConnectGoogleCalendar(widget.branchId));
                                   }
                                 },
                               ),

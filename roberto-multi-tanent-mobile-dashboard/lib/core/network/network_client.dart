@@ -78,6 +78,23 @@ class NetworkClient {
     }
   }
 
+  Future<NetworkResponse> putRequest(String url,
+      {Map<String, dynamic>? body}) async {
+    try {
+      Uri uri = Uri.parse(url);
+      _logRequest(url, headers: commonHeaders(), body: body);
+      final Response response = await put(
+        uri,
+        headers: commonHeaders(),
+        body: jsonEncode(body),
+      );
+      _logResponse(response);
+      return _handleResponse(response);
+    } catch (e) {
+      return _handleError(e);
+    }
+  }
+
   Future<NetworkResponse> postMultipartRequest(String url,
       {required Map<String, String> body, Map<String, String>? files, Map<String, List<int>>? fileBytes, Map<String, String>? fileNames}) async {
     return _multipartRequest('POST', url, body: body, files: files, fileBytes: fileBytes, fileNames: fileNames);

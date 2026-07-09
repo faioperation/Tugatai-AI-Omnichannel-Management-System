@@ -14,6 +14,8 @@ class SocialMediaBloc extends Bloc<SocialMediaEvent, SocialMediaState> {
     on<DisconnectInstagram>(_onDisconnectInstagram);
     on<ConnectWhatsApp>(_onConnectWhatsApp);
     on<DisconnectWhatsApp>(_onDisconnectWhatsApp);
+    on<ConnectGoogleCalendar>(_onConnectGoogleCalendar);
+    on<DisconnectGoogleCalendar>(_onDisconnectGoogleCalendar);
   }
 
   Future<void> _onCheckSocialMediaStatus(CheckSocialMediaStatus event, Emitter<SocialMediaState> emit) async {
@@ -23,6 +25,7 @@ class SocialMediaBloc extends Bloc<SocialMediaEvent, SocialMediaState> {
         repository.getFacebookStatus(event.branchId),
         repository.getInstagramStatus(event.branchId),
         repository.getWhatsAppStatus(event.branchId),
+        repository.getGoogleCalendarStatus(event.branchId),
       ]);
 
       emit(state.copyWith(
@@ -33,6 +36,8 @@ class SocialMediaBloc extends Bloc<SocialMediaEvent, SocialMediaState> {
         instagramConnectionId: results[1]['id'],
         isWhatsAppConnected: results[2]['connected'],
         whatsappAccountId: results[2]['id'],
+        isGoogleCalendarConnected: results[3]['connected'],
+        googleCalendarEmail: results[3]['email'],
       ));
     } catch (e) {
       emit(state.copyWith(isLoading: false, error: e.toString()));
@@ -119,6 +124,34 @@ class SocialMediaBloc extends Bloc<SocialMediaEvent, SocialMediaState> {
         add(CheckSocialMediaStatus(event.branchId));
       } else {
         emit(state.copyWith(isLoading: false, error: 'Failed to disconnect WhatsApp.'));
+      }
+    } catch (e) {
+      emit(state.copyWith(isLoading: false, error: e.toString()));
+    }
+  }
+
+  Future<void> _onConnectGoogleCalendar(ConnectGoogleCalendar event, Emitter<SocialMediaState> emit) async {
+    emit(state.copyWith(isLoading: true, clearError: true, clearRedirectUrl: true));
+    try {
+      final url = await repository.getGoogleCalendarAuthUrl(event.branchId);
+      if (url != null) {
+        emit(state.copyWith(isLoading: false, redirectUrl: url));
+      } else {
+        emit(state.copyWith(isLoading: false, error: 'Failed to generate Google Calendar Auth URL.'));
+      }
+    } catch (e) {
+      emit(state.copyWith(isLoading: false, error: e.toString()));
+    }
+  }
+
+  Future<void> _onDisconnectGoogleCalendar(DisconnectGoogleCalendar event, Emitter<SocialMediaState> emit) async {
+    emit(state.copyWith(isLoading: true, clearError: true));
+    try {
+      final success = await repository.disconnectGoogleCalendar(event.branchId);
+      if (success) {
+        add(CheckSocialMediaStatus(event.branchId));
+      } else {
+        emit(state.copyWith(isLoading: false, error: 'Failed to disconnect Google Calendar.'));
       }
     } catch (e) {
       emit(state.copyWith(isLoading: false, error: e.toString()));
