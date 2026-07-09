@@ -199,7 +199,10 @@ class ChatList extends StatelessWidget {
                     preview,
                     style: TextStyle(
                       fontSize: 13,
-                      color: Theme.of(context).textTheme.bodySmall?.color,
+                      fontWeight: conv.seen ? FontWeight.normal : FontWeight.w700,
+                      color: conv.seen 
+                          ? Theme.of(context).textTheme.bodySmall?.color
+                          : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

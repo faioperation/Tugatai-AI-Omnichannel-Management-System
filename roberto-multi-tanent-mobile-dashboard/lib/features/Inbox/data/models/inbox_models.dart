@@ -12,6 +12,7 @@ class ConversationMod {
   final String lastMessageAt;
   final int unreadCount;
   final bool aiReply;
+  final bool seen;
   final ChatSummaryMod? chatSummary;
 
   ConversationMod({
@@ -26,6 +27,7 @@ class ConversationMod {
     required this.lastMessageAt,
     required this.unreadCount,
     required this.aiReply,
+    this.seen = false,
     this.chatSummary,
   });
 
@@ -44,6 +46,7 @@ class ConversationMod {
       lastMessageAt: json['lastMessageAt'] ?? '',
       unreadCount: json['unreadCount'] ?? 0,
       aiReply: json['aiReply'] ?? false,
+      seen: json['seen'] ?? false,
       chatSummary: json['chatSummary'] != null ? ChatSummaryMod.fromJson(json['chatSummary']) : null,
     );
   }
@@ -164,11 +167,7 @@ class MessageMod {
       if (direction == 'OUTGOING') {
         senderType = 'agent';
       } else if (direction == 'INCOMING') {
-        if (json['rawPayload'] == null) {
-          senderType = 'agent';
-        } else {
-          senderType = 'customer';
-        }
+        senderType = 'customer';
       } else {
         if (json['rawPayload'] == null) {
           senderType = 'agent';

@@ -166,6 +166,42 @@ class _InboxScreenState extends State<InboxScreen> {
     }
     _fetchMessages(conv);
     _fetchChatbotStatus(conv.id);
+    if (!conv.seen) {
+      _markAsSeen(conv.id);
+    }
+  }
+
+  Future<void> _markAsSeen(String conversationId) async {
+    try {
+      final inboxRepo = context.read<InboxRepository>();
+      final res = await inboxRepo.markConversationAsSeen(conversationId);
+      if (res['success'] == true && mounted) {
+        setState(() {
+          final idx = _conversations.indexWhere((c) => c.id == conversationId);
+          if (idx != -1) {
+             final old = _conversations[idx];
+             _conversations[idx] = ConversationMod(
+                id: old.id,
+                businessId: old.businessId,
+                branchId: old.branchId,
+                platform: old.platform,
+                customerId: old.customerId,
+                customerName: old.customerName,
+                customerPhone: old.customerPhone,
+                lastMessage: old.lastMessage,
+                lastMessageAt: old.lastMessageAt,
+                unreadCount: old.unreadCount,
+                aiReply: old.aiReply,
+                seen: true,
+                chatSummary: old.chatSummary,
+             );
+             if (_selectedConversation?.id == conversationId) {
+               _selectedConversation = _conversations[idx];
+             }
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _fetchChatbotStatus(String conversationId) async {

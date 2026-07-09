@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/Auth/widget/custom_textfield.dart';
 import 'package:roberto/features/Orderbooking/widget/order_mod.dart';
+import 'package:intl/intl.dart';
 
 class CreateOrderDialog extends StatefulWidget {
   final OrderMod? order;
@@ -135,6 +136,11 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
       'branchId',
       'country',
       'productName',
+      'id',
+      'businessId',
+      'parcelDeliveryId',
+      'createdAt',
+      'updatedAt',
     };
 
     if (o != null) {
@@ -315,7 +321,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Section: Booking Type (Dynamic Form Controller)
-                      if (widget.order != null || widget.businessType == null) ...[
+                      if (widget.order == null && widget.businessType == null) ...[
                         _buildSectionTitle('Booking Details', theme),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -716,6 +722,45 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                             );
                           },
                         ),
+                      if (widget.order != null) ...[
+                        const SizedBox(height: 24),
+                        _buildSectionTitle('Record Details', theme),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Created At', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    widget.order!.createdAt != null ? DateFormat('MMM dd, yyyy - hh:mm a').format(widget.order!.createdAt!) : (widget.order!.rawAdditionalDetails['createdAt']?.toString() ?? 'N/A'),
+                                    style: TextStyle(fontSize: 14, color: theme.hintColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Updated At', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    widget.order!.rawAdditionalDetails['updatedAt'] != null 
+                                      ? (DateTime.tryParse(widget.order!.rawAdditionalDetails['updatedAt'].toString()) != null 
+                                          ? DateFormat('MMM dd, yyyy - hh:mm a').format(DateTime.tryParse(widget.order!.rawAdditionalDetails['updatedAt'].toString())!)
+                                          : widget.order!.rawAdditionalDetails['updatedAt'].toString())
+                                      : 'N/A',
+                                    style: TextStyle(fontSize: 14, color: theme.hintColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
