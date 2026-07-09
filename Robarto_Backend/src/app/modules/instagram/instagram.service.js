@@ -349,5 +349,15 @@ export const getMessages = async (conversationId) => {
     where: { conversationId },
     orderBy: { createdAt: 'asc' },
   });
-  return messages;
+
+  return messages.map((msg) => {
+    if (msg.mediaUrl && !msg.mediaUrl.startsWith("http://") && !msg.mediaUrl.startsWith("https://")) {
+      if (msg.mediaUrl.startsWith("uploads/")) {
+        msg.mediaUrl = `${envVars.BACKEND_URL}/${msg.mediaUrl}`;
+      } else {
+        msg.mediaUrl = `${envVars.BACKEND_URL}/uploads/instagram/${msg.mediaUrl}`;
+      }
+    }
+    return msg;
+  });
 };

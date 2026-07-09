@@ -14,16 +14,32 @@ export const MessageHistoryService = {
         orderBy: { createdAt: "asc" },
       });
 
-      const formattedMessages = messages.map((msg) => ({
-        id: msg.id,
-        senderType: msg.senderType, // 'business' or 'customer'
-        senderId: msg.senderId,
-        type: msg.type || "text",
-        text: msg.messageText,
-        mediaUrl: msg.mediaUrl,
-        filePath: msg.filePath,
-        createdAt: msg.createdAt,
-      }));
+      const formattedMessages = messages.map((msg) => {
+        let resolvedMediaUrl = msg.mediaUrl;
+        if (
+          resolvedMediaUrl &&
+          !resolvedMediaUrl.startsWith("http://") &&
+          !resolvedMediaUrl.startsWith("https://")
+        ) {
+          if (resolvedMediaUrl.startsWith("uploads/")) {
+            resolvedMediaUrl = `${envVars.BACKEND_URL}/${resolvedMediaUrl}`;
+          } else {
+            const folder = standardConv.platform === "instagram" ? "instagram" : "messenger";
+            resolvedMediaUrl = `${envVars.BACKEND_URL}/uploads/${folder}/${resolvedMediaUrl}`;
+          }
+        }
+
+        return {
+          id: msg.id,
+          senderType: msg.senderType, // 'business' or 'customer'
+          senderId: msg.senderId,
+          type: msg.type || "text",
+          text: msg.messageText,
+          mediaUrl: resolvedMediaUrl,
+          filePath: msg.filePath,
+          createdAt: msg.createdAt,
+        };
+      });
 
       return {
         conversation: {
