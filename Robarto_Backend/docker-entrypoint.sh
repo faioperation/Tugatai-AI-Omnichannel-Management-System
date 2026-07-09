@@ -21,6 +21,8 @@ echo "✅ PostgreSQL is ready."
 echo "⚙️ Running Prisma migrations..."
 npx prisma migrate deploy
 
+npx prisma db push
+
 echo "✅ Prisma migrations completed."
 
 if [ "${RUN_SEED}" = "true" ]; then
