@@ -2,7 +2,7 @@ import time
 import httpx
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
-from agent.memory import get_history, save_message, save_conversation_id
+from agent.memory import get_history, save_message, save_conversation_id, fetch_conversation_history
 from agent.prompt_builder import build_prompt
 from agent.tools import get_all_tools
 from agent.tools.http_fallback import build_candidates, get_with_fallback
@@ -245,7 +245,14 @@ async def run_agent(
         system_prompt += f"\n\nNote: No branch_id is available for this conversation. Do not pass a branch_id to collect_lead or create_booking tools."
 
     # ── Step 6: Load conversation history ────────────────────────────
-    history = get_history(business_id, recipient_id)
+    # Primary source: the backend's own message-history API — this persists
+    # across our own restarts, since it lives in the backend's database, not
+    # our RAM. Falls back to local in-memory history only if the backend
+    # call fails/returns nothing (e.g. a brand-new conversation with no
+    # conversation_id yet, or a transient backend hiccup).
+    history = await fetch_conversation_history(conversation_id)
+    if not history:
+        history = get_history(business_id, recipient_id)
 
     # ── Step 7: Build messages with history ──────────────────────────
     all_messages = []
