@@ -27,4 +27,22 @@ export const AllConversationsController = {
       next(error);
     }
   },
+
+  updateSeenStatus: async (req, res, next) => {
+    try {
+      const { conversationId } = req.params;
+      const seen = req.body.seen !== undefined ? req.body.seen : true;
+
+      const updatedConversation = await AllConversationsService.updateSeenStatus(conversationId, seen);
+
+      sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Conversation seen status updated successfully",
+        data: updatedConversation,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

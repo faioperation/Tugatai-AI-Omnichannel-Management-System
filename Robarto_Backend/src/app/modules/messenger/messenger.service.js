@@ -102,6 +102,7 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
       lastMessageAt: new Date(),
       branchId: connection.branchId || null,
       customerName: customerName || undefined,
+      seen: false,
     },
     create: {
       businessId,
@@ -111,6 +112,7 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
       customerName: customerName || "Social Customer",
       lastMessage: lastMessageContent,
       lastMessageAt: new Date(),
+      seen: false,
     },
   });
 

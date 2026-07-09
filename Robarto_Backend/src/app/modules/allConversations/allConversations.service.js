@@ -63,6 +63,7 @@ export const AllConversationsService = {
         lastMessage: c.lastMessage,
         lastMessageAt: c.lastMessageAt,
         unreadCount: 0, // Standard conversations don't track unreadCount in DB explicitly
+        seen: c.seen,
         aiReply: c.aiReply,
         chatSummary: summary || null,
         createdAt: c.createdAt,
@@ -95,6 +96,7 @@ export const AllConversationsService = {
         lastMessage: lastMessageText,
         lastMessageAt: c.lastMessageAt,
         unreadCount: c.unreadCount || 0,
+        seen: c.seen,
         aiReply: c.aiReply,
         chatSummary: summary || null,
         createdAt: c.createdAt,
@@ -111,5 +113,37 @@ export const AllConversationsService = {
     });
 
     return allConversations;
+  },
+
+  updateSeenStatus: async (conversationId, seen) => {
+    // 1. Try updating in standard Conversation table
+    const standardExists = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
+
+    if (standardExists) {
+      return await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { seen },
+      });
+    }
+
+    // 2. Try updating in WhatsappConversation table
+    const whatsappExists = await prisma.whatsappConversation.findUnique({
+      where: { id: conversationId },
+    });
+
+    if (whatsappExists) {
+      const updateData = { seen };
+      if (seen) {
+        updateData.unreadCount = 0;
+      }
+      return await prisma.whatsappConversation.update({
+        where: { id: conversationId },
+        data: updateData,
+      });
+    }
+
+    throw new Error("Conversation not found");
   },
 };

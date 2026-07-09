@@ -103,6 +103,7 @@ export const handleIncomingMessage = async (instagramAccountId, webhookEvent) =>
       lastMessageAt: new Date(),
       branchId: connection.branchId || null,
       customerName: customerName || undefined,
+      seen: false,
     },
     create: {
       businessId,
@@ -112,6 +113,7 @@ export const handleIncomingMessage = async (instagramAccountId, webhookEvent) =>
       customerName: customerName || "Instagram User",
       lastMessage: lastMessageContent,
       lastMessageAt: new Date(),
+      seen: false,
     },
   });
 
