@@ -107,8 +107,19 @@ class ChatList extends StatelessWidget {
       }
     } catch (_) {}
     
-    final preview = conv.lastMessage;
-    
+    final bool isOutgoing = conv.lastMessageDirection == 'OUTGOING';
+
+    // Build display preview from lastMessage
+    String rawPreview = conv.lastMessage.trim();
+
+    // If still empty, show a fallback placeholder
+    if (rawPreview.isEmpty) {
+      rawPreview = '💬 Message';
+    }
+
+    // Add "You: " prefix if it was an outgoing message
+    final String preview = isOutgoing ? 'You: $rawPreview' : rawPreview;
+
     String socialIconPath = 'assets/facebook.svg';
     if (conv.platform == 'instagram') {
       socialIconPath = 'assets/instagram.svg';

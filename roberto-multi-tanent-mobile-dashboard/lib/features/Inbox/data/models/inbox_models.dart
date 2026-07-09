@@ -10,6 +10,7 @@ class ConversationMod {
   final String? customerPhone;
   final String lastMessage;
   final String lastMessageAt;
+  final String lastMessageDirection; // 'INCOMING' | 'OUTGOING' | ''
   final int unreadCount;
   final bool aiReply;
   final bool seen;
@@ -25,6 +26,7 @@ class ConversationMod {
     this.customerPhone,
     required this.lastMessage,
     required this.lastMessageAt,
+    this.lastMessageDirection = '',
     required this.unreadCount,
     required this.aiReply,
     this.seen = false,
@@ -32,18 +34,71 @@ class ConversationMod {
   });
 
   factory ConversationMod.fromJson(Map<String, dynamic> json) {
+    // lastMessage can be a String or an object like {"messageText":"...","direction":"INCOMING"}
+    String parsedLastMessage = '';
+    String parsedLastMessageDirection = '';
+    final rawLast = json['lastMessage'];
+    if (rawLast is String) {
+      parsedLastMessage = rawLast;
+    } else if (rawLast is Map<String, dynamic>) {
+      parsedLastMessage = (rawLast['messageText']?.toString().isNotEmpty == true
+              ? rawLast['messageText'].toString()
+              : null) ??
+          (rawLast['text']?.toString().isNotEmpty == true
+              ? rawLast['text'].toString()
+              : null) ??
+          (rawLast['content']?.toString().isNotEmpty == true
+              ? rawLast['content'].toString()
+              : null) ??
+          '';
+      parsedLastMessageDirection = rawLast['direction']?.toString().toUpperCase() ?? '';
+      // If messageText is empty but type is not text, show a media placeholder
+      if (parsedLastMessage.isEmpty) {
+        final msgType = rawLast['type']?.toString().toLowerCase() ?? '';
+        if (msgType == 'image') {
+          parsedLastMessage = '📷 Photo';
+        } else if (msgType == 'audio') {
+          parsedLastMessage = '🎵 Voice message';
+        } else if (msgType == 'video') {
+          parsedLastMessage = '🎥 Video';
+        } else if (msgType == 'document') {
+          parsedLastMessage = '📄 Document';
+        } else {
+          parsedLastMessage = '💬 Message';
+        }
+      }
+    } else if (rawLast == null) {
+      parsedLastMessage = '';
+    }
+
+    // Fallback: try lastMessageText field directly
+    if (parsedLastMessage.isEmpty) {
+      parsedLastMessage = json['lastMessageText']?.toString() ?? '';
+    }
+
+    // Fallback: try lastMessage as nested text fields
+    if (parsedLastMessage.isEmpty) {
+      parsedLastMessage = json['lastMessageContent']?.toString() ?? '';
+    }
+
+    // Direction from top-level field
+    if (parsedLastMessageDirection.isEmpty) {
+      parsedLastMessageDirection = json['lastMessageDirection']?.toString().toUpperCase() ?? '';
+    }
+
     return ConversationMod(
       id: json['id'] ?? '',
       businessId: json['businessId'] ?? '',
       branchId: json['branchId'] ?? '',
       platform: json['platform'] ?? 'messenger',
       customerId: json['customerId'] ?? '',
-      customerName: json['customerName'] != null && json['customerName'].toString().isNotEmpty 
-          ? json['customerName'] 
+      customerName: json['customerName'] != null && json['customerName'].toString().isNotEmpty
+          ? json['customerName']
           : 'Social Customer',
       customerPhone: json['customerPhone'],
-      lastMessage: json['lastMessage'] ?? '',
+      lastMessage: parsedLastMessage,
       lastMessageAt: json['lastMessageAt'] ?? '',
+      lastMessageDirection: parsedLastMessageDirection,
       unreadCount: json['unreadCount'] ?? 0,
       aiReply: json['aiReply'] ?? false,
       seen: json['seen'] ?? false,
