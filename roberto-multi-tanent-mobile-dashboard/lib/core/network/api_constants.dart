@@ -88,6 +88,7 @@ class ApiConstants {
 
   // Inbox & Conversations
   static const String allConversations = '$baseUrl/conversations/all-conversations';
+  static const String markConversationSeen = '$baseUrl/conversations'; // + /:id/seen
 
   static const String messengerConversations = '$baseUrl/v1/messenger/conversations';
   static const String messengerMessages = '$baseUrl/v1/messenger/messages'; // + /:conversationId

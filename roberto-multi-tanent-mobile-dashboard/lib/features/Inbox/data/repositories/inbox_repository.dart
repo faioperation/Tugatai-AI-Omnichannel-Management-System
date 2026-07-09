@@ -171,4 +171,26 @@ class InboxRepository {
       };
     }
   }
+
+  Future<Map<String, dynamic>> markConversationAsSeen(String conversationId) async {
+    final url = '${ApiConstants.markConversationSeen}/$conversationId/seen';
+    final response = await networkClient.patchRequest(
+      url,
+      body: {
+        'seen': true,
+      },
+    );
+
+    if (response.isSuccess) {
+      return {
+        'success': true,
+        'data': response.responseData,
+      };
+    } else {
+      return {
+        'success': false,
+        'message': response.errorMassage ?? 'Failed to mark conversation as seen',
+      };
+    }
+  }
 }
