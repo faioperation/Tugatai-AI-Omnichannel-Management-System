@@ -43,6 +43,7 @@ import { NotificationRoutes } from "../modules/notification/notification.route.j
 import { PricingCalculatorRoutes } from "../modules/pricingCalculator/pricingCalculator.route.js";
 import { AllConversationsRoutes } from "../modules/allConversations/allConversations.route.js";
 import { DemoBookingRoutes } from "../modules/demoBooking/demoBooking.route.js";
+import { PublicMessageHistoryRoutes } from "../modules/publicApi/messageHistory/messageHistory.route.js";
 
 export const router = Router();
 
@@ -95,6 +96,7 @@ const moduleRoutes = [
   { path: "/v1/public/chat-summaries", route: PublicChatSummaryRoutes },
   { path: "/public/subscription-plans", route: PublicSubscriptionRoutes },
   { path: "/v1/public/campaigns", route: PublicCampaignRoutes },
+  { path: "/v1/public/message-history", route: PublicMessageHistoryRoutes },
 ];
 
 moduleRoutes.forEach((route) => {
