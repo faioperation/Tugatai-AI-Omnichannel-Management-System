@@ -190,6 +190,7 @@ class _InboxScreenState extends State<InboxScreen> {
                 customerPhone: old.customerPhone,
                 lastMessage: old.lastMessage,
                 lastMessageAt: old.lastMessageAt,
+                lastMessageDirection: old.lastMessageDirection,
                 unreadCount: old.unreadCount,
                 aiReply: old.aiReply,
                 seen: true,
@@ -292,6 +293,59 @@ class _InboxScreenState extends State<InboxScreen> {
         setState(() {
           _messages = newMsgs;
           _messagesLoading = false;
+
+          // Update conversation preview from actual last message
+          if (newMsgs.isNotEmpty) {
+            final lastMsg = newMsgs.last;
+            final idx = _conversations.indexWhere((c) => c.id == conversation.id);
+            if (idx != -1) {
+              final old = _conversations[idx];
+
+              // Build preview text
+              String previewText = lastMsg.messageText.trim();
+              if (previewText.isEmpty) {
+                switch (lastMsg.type) {
+                  case 'image':
+                    previewText = '📷 Photo';
+                    break;
+                  case 'audio':
+                    previewText = '🎵 Voice message';
+                    break;
+                  case 'video':
+                    previewText = '🎥 Video';
+                    break;
+                  case 'document':
+                    previewText = '📄 Document';
+                    break;
+                  default:
+                    previewText = old.lastMessage.isNotEmpty ? old.lastMessage : '💬 Message';
+                }
+              }
+
+              final direction = lastMsg.isMe ? 'OUTGOING' : 'INCOMING';
+
+              _conversations[idx] = ConversationMod(
+                id: old.id,
+                businessId: old.businessId,
+                branchId: old.branchId,
+                platform: old.platform,
+                customerId: old.customerId,
+                customerName: old.customerName,
+                customerPhone: old.customerPhone,
+                lastMessage: previewText,
+                lastMessageAt: old.lastMessageAt,
+                lastMessageDirection: direction,
+                unreadCount: old.unreadCount,
+                aiReply: old.aiReply,
+                seen: old.seen,
+                chatSummary: old.chatSummary,
+              );
+
+              if (_selectedConversation?.id == conversation.id) {
+                _selectedConversation = _conversations[idx];
+              }
+            }
+          }
         });
 
         if (hasNewMessage) {
