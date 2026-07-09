@@ -102,10 +102,42 @@ export const createBooking = async (req, res, next) => {
       return await attachDetails(tx, createdBooking);
     });
 
+    // Resolve social media platform name if booking has conversationId
+    let platformName = "";
+    if (result.conversationId) {
+      try {
+        const standardConv = await prisma.conversation.findUnique({
+          where: { id: result.conversationId },
+          select: { platform: true }
+        });
+        if (standardConv && standardConv.platform) {
+          const p = standardConv.platform.toLowerCase();
+          if (p === "messenger") {
+            platformName = "Facebook Messenger";
+          } else if (p === "instagram") {
+            platformName = "Instagram";
+          } else {
+            platformName = p.charAt(0).toUpperCase() + p.slice(1);
+          }
+        } else {
+          const whatsappConv = await prisma.whatsappConversation.findUnique({
+            where: { id: result.conversationId }
+          });
+          if (whatsappConv) {
+            platformName = "WhatsApp";
+          }
+        }
+      } catch (err) {
+        console.error("Error resolving platform name for notification:", err);
+      }
+    }
+
+    const viaText = platformName ? ` via ${platformName}` : "";
+
     // Trigger notification for Public API Booking
     NotificationService.createAndSendNotification({
       title: `New ${businessType.replace('_', ' ')} Created`,
-      message: `Booking for ${result.customerName} (${result.customerNumber}) has been created via Public API.`,
+      message: `Booking for ${result.customerName} (${result.customerNumber}) has been created${viaText}.`,
       type: businessType,
       businessId: result.businessId,
       branchId: result.branchId || null,

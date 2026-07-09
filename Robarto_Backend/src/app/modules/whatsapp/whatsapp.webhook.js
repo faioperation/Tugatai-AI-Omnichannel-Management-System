@@ -92,6 +92,7 @@ const processIncomingMessages = async (value) => {
       },
       update: {
         unreadCount: { increment: 1 },
+        seen: false,
         lastMessageAt: new Date(),
       },
       create: {
@@ -99,6 +100,7 @@ const processIncomingMessages = async (value) => {
         whatsappAccountId: account.id,
         contactId: dbContact.id,
         unreadCount: 1,
+        seen: false,
         lastMessageAt: new Date(),
       },
     });

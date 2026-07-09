@@ -10,3 +10,10 @@ AllConversationsRoutes.get(
   checkAuthMiddleware(),
   AllConversationsController.getAllConversations
 );
+
+// Protected endpoint to update seen status for any conversation type
+AllConversationsRoutes.patch(
+  "/:conversationId/seen",
+  checkAuthMiddleware(),
+  AllConversationsController.updateSeenStatus
+);
