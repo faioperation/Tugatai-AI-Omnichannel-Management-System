@@ -20,3 +20,13 @@ class UpdateProfileRequested extends ProfileEvent {
     this.avatarName,
   });
 }
+
+class ChangePasswordRequested extends ProfileEvent {
+  final String oldPassword;
+  final String newPassword;
+
+  ChangePasswordRequested({
+    required this.oldPassword,
+    required this.newPassword,
+  });
+}

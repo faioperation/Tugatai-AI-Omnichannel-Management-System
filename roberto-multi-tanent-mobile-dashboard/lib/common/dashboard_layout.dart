@@ -147,7 +147,7 @@ class _DashboardShellState extends State<DashboardShell> {
         route = Routes.notifications;
         break;
       case 'Edit Profile':
-        route = Routes.settings;
+        route = Routes.editProfile;
         break;
       case 'Tenant Management':
         route = Routes.management;
@@ -811,17 +811,16 @@ class _DashboardShellState extends State<DashboardShell> {
             }
           },
           itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-            if (widget.role != UserRole.systemOwner)
-              const PopupMenuItem<String>(
-                value: 'profile',
-                child: Row(
-                  children: [
-                    Icon(Icons.person_outline, size: 18),
-                    SizedBox(width: 8),
-                    Text('Edit Profile', style: TextStyle(fontSize: 14)),
-                  ],
-                ),
+            const PopupMenuItem<String>(
+              value: 'profile',
+              child: Row(
+                children: [
+                  Icon(Icons.person_outline, size: 18),
+                  SizedBox(width: 8),
+                  Text('Edit Profile', style: TextStyle(fontSize: 14)),
+                ],
               ),
+            ),
             const PopupMenuItem<String>(
               value: 'logout',
               child: Row(

@@ -8,6 +8,7 @@ import 'package:roberto/features/Inbox/data/repositories/inbox_repository.dart';
 import 'package:roberto/core/network/api_constants.dart';
 import 'package:http/http.dart' show get;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:roberto/features/Inbox/widget/inline_audio_player.dart';
 
 class ChatView extends StatefulWidget {
   final ConversationMod? conversation;
@@ -449,43 +450,9 @@ class _ChatViewState extends State<ChatView> {
         ),
       );
     } else if (msg.type == 'audio') {
-      final safeName = displayUrl != null && displayUrl.isNotEmpty 
-          ? displayUrl.split('/').last.split('?').first 
-          : 'audio_message';
-      final fileName = safeName.isNotEmpty ? '$safeName.ogg' : 'audio_message.ogg';
-      bubbleContent = InkWell(
-        onTap: () => _downloadAndOpenMedia(fullUrl, fileName),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.play_circle_fill,
-              color: isMe ? Colors.white : AppColor.primary,
-              size: 32,
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "Voice Message",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isMe ? Colors.white : (isDark ? Colors.white : Colors.black),
-                  ),
-                ),
-                Text(
-                  "Tap to play/download",
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isMe ? Colors.white70 : Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+      bubbleContent = InlineAudioPlayer(
+        audioUrl: fullUrl,
+        isMe: isMe,
       );
     } else if (msg.type == 'document') {
       final displayName = msg.messageText.isNotEmpty ? msg.messageText : 'document.pdf';
