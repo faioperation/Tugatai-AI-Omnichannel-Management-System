@@ -135,10 +135,27 @@ const deleteCrmLeadService = async (id, filter) => {
     return result;
 };
 
+const getCrmLeadProductTypesService = async (businessId, branchId) => {
+    const result = await prisma.crmLead.findMany({
+        where: {
+            businessId,
+            branchId,
+            productType: { not: null },
+        },
+        select: { productType: true },
+        distinct: ["productType"],
+    });
+
+    return result
+        .map((r) => r.productType)
+        .filter((t) => t && t.trim() !== "");
+};
+
 export const CrmLeadsManagerService = {
     createCrmLeadService,
     getAllCrmLeadsService,
     getCrmLeadByIdService,
     updateCrmLeadService,
     deleteCrmLeadService,
+    getCrmLeadProductTypesService,
 };

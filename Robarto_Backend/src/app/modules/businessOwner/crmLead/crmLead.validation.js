@@ -12,6 +12,7 @@ const createCrmLeadSchema = z.object({
         note: z.string().optional(),
         branchId: z.string().uuid("Invalid branch ID format").optional(),
         conversationId: z.string().uuid("Invalid conversationId format").optional(),
+        productType: z.string().optional(),
         metadata: z.record(z.string(), z.any()).optional(),
     }).passthrough(),
 });
@@ -29,6 +30,7 @@ const updateCrmLeadSchema = z.object({
         branchId: z.string().uuid("Invalid branch ID format").optional(),
         conversationId: z.string().uuid("Invalid conversationId format").optional(),
         conversation_id: z.string().uuid("Invalid conversationId format").optional(),
+        productType: z.string().optional(),
         metadata: z.record(z.string(), z.any()).optional(),
     }).passthrough(),
     params: z.object({

@@ -22,14 +22,15 @@ export class QueryBuilder {
 
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== "") {
+        const cleanKey = key.trim();
         let isRelational = false;
 
         // Check if the key belongs to a relation based on config
         for (const [relation, fields] of Object.entries(relationConfig)) {
-          if (fields.includes(key)) {
+          if (fields.includes(cleanKey)) {
             this.where[relation] = {
               ...(this.where[relation] || {}),
-              [key]: value,
+              [cleanKey]: value,
             };
             isRelational = true;
             break;
@@ -37,7 +38,7 @@ export class QueryBuilder {
         }
 
         if (!isRelational) {
-          this.where[key] = value;
+          this.where[cleanKey] = value;
         }
       }
     });

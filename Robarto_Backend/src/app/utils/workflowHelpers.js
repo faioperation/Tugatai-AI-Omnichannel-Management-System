@@ -83,6 +83,7 @@ export const extractLeadPayload = async (businessId, payload) => {
     "note",
     "status",
     "conversationId",
+    "productType",
     "metadata"
   ];
 

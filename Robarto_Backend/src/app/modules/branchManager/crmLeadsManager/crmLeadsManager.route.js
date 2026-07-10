@@ -21,6 +21,12 @@ router.get(
 );
 
 router.get(
+    "/product-types",
+    checkAuthMiddleware(Role.BRANCH_MANAGER),
+    CrmLeadsManagerController.getCrmLeadProductTypes
+);
+
+router.get(
     "/:id",
     checkAuthMiddleware(Role.BRANCH_MANAGER),
     CrmLeadsManagerController.getCrmLeadById

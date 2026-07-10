@@ -17,7 +17,7 @@ const formatCampaign = (campaign) => {
 };
 
 const createCampaignService = async (businessId, payload) => {
-    const { title, selectedPeople, message, branchId, country } = payload;
+    const { title, selectedPeople, message, branchId, country, productTypes, countries } = payload;
     const rawScheduledTime = payload.scheduledTime || payload.scheduled_time;
     const rawEndDate = payload.endDate || payload.end_date;
 
@@ -42,6 +42,8 @@ const createCampaignService = async (businessId, payload) => {
             branchId: branchId || null,
             title,
             selectedPeople: formattedPeople,
+            productTypes: productTypes || [],
+            countries: countries || [],
             scheduledTime: parsedTime,
             endDate: parsedEndDate,
             isExpire: parsedEndDate ? new Date() > parsedEndDate : false,
@@ -223,17 +225,38 @@ const processSingleCampaign = async (campaignId) => {
             return;
         }
 
-        // Fetch CRM leads under this business matching selected status enums
-        const leads = await prisma.crmLead.findMany({
-            where: {
-                businessId: campaign.businessId,
-                status: {
-                    in: campaign.selectedPeople,
-                },
-                phone: {
-                    not: null,
-                },
+        const whereClause = {
+            businessId: campaign.businessId,
+            phone: {
+                not: null,
             },
+        };
+
+        if (campaign.branchId) {
+            whereClause.branchId = campaign.branchId;
+        }
+
+        if (campaign.selectedPeople && campaign.selectedPeople.length > 0) {
+            whereClause.status = {
+                in: campaign.selectedPeople,
+            };
+        }
+
+        if (campaign.productTypes && campaign.productTypes.length > 0) {
+            whereClause.productType = {
+                in: campaign.productTypes,
+            };
+        }
+
+        if (campaign.countries && campaign.countries.length > 0) {
+            whereClause.country = {
+                in: campaign.countries,
+            };
+        }
+
+        // Fetch CRM leads under this business matching selected status, productType, and country enums/arrays
+        const leads = await prisma.crmLead.findMany({
+            where: whereClause,
         });
 
         console.log(`📣 Sending campaign "${campaign.title}" to ${leads.length} leads.`);
