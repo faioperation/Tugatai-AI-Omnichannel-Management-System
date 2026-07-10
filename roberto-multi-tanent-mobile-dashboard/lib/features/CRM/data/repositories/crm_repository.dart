@@ -183,8 +183,8 @@ class CrmRepository {
   Future<Map<String, dynamic>> getCrmProductTypes(String branchId, {bool isBranchManager = false}) async {
     try {
       final endpoint = isBranchManager 
-          ? ApiConstants.branchManagerBookingProductTypes 
-          : ApiConstants.businessOwnerBookingProductTypes;
+          ? ApiConstants.branchManagerCrmProductTypes 
+          : ApiConstants.businessOwnerCrmProductTypes;
       final url = isBranchManager ? endpoint : '$endpoint?branchId=$branchId';
       final response = await networkClient.getRequest(url);
 

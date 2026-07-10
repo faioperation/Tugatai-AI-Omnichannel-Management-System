@@ -66,7 +66,11 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
 
   Future<void> _onUpdateBooking(UpdateBooking event, Emitter<BookingState> emit) async {
     try {
-      final response = await repository.updateBooking(event.id, event.payload);
+      final payload = Map<String, dynamic>.from(event.payload);
+      if (event.branchId.isNotEmpty) {
+        payload['branchId'] = event.branchId;
+      }
+      final response = await repository.updateBooking(event.id, payload);
       if (response['success'] == true) {
         emit(BookingActionSuccess(response['message'] ?? 'Booking updated successfully'));
         add(GetBookings(branchId: event.branchId));

@@ -263,6 +263,9 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
         }
       }
 
+      // Remove empty strings so we don't send empty fields
+      payload.removeWhere((key, value) => value is String && value.isEmpty);
+
       Navigator.pop(context, payload);
     }
   }
@@ -353,7 +356,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                         children: [
                           Text('Customer Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                           const SizedBox(height: 8),
-                          CustomTextfield(controller: _customerNameCtrl, hintText: 'Enter Customer Name'),
+                          CustomTextfield(validator: (v) => null, controller: _customerNameCtrl, hintText: 'Enter Customer Name'),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -364,7 +367,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                             children: [
                               Text('Phone', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                               const SizedBox(height: 8),
-                              CustomTextfield(controller: _phoneCtrl, hintText: 'Enter Phone Number'),
+                              CustomTextfield(validator: (v) => null, controller: _phoneCtrl, hintText: 'Enter Phone Number'),
                             ],
                           )),
                           const SizedBox(width: 16),
@@ -373,7 +376,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                             children: [
                               Text('Email', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                               const SizedBox(height: 8),
-                              CustomTextfield(controller: _emailCtrl, hintText: 'example@gmail.com'),
+                              CustomTextfield(validator: (v) => null, controller: _emailCtrl, hintText: 'example@gmail.com'),
                             ],
                           )),
                         ],
@@ -384,7 +387,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                             children: [
                               Text('Country', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                               const SizedBox(height: 8),
-                              CustomTextfield(controller: _countryCtrl, hintText: 'Enter Country'),
+                              CustomTextfield(validator: (v) => null, controller: _countryCtrl, hintText: 'Enter Country'),
                             ],
                           ),
                           const SizedBox(height: 24),
@@ -407,7 +410,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               children: [
                                 Text('Appointment Time', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _appointmentTimeCtrl, hintText: '14:30'),
+                                CustomTextfield(validator: (v) => null, controller: _appointmentTimeCtrl, hintText: '14:30'),
                               ],
                             )),
                           ],
@@ -420,7 +423,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               children: [
                                 Text('Platform', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _platformCtrl, hintText: 'Google Meet'),
+                                CustomTextfield(validator: (v) => null, controller: _platformCtrl, hintText: 'Google Meet'),
                               ],
                             )),
                             const SizedBox(width: 16),
@@ -429,7 +432,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               children: [
                                 Text('Duration', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _durationCtrl, hintText: '45 minutes'),
+                                CustomTextfield(validator: (v) => null, controller: _durationCtrl, hintText: '45 minutes'),
                               ],
                             )),
                           ],
@@ -440,7 +443,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                           children: [
                             Text('Custom Requirement', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                             const SizedBox(height: 8),
-                            CustomTextfield(controller: _customRequirementCtrl, hintText: 'Requires recording of the meeting'),
+                            CustomTextfield(validator: (v) => null, controller: _customRequirementCtrl, hintText: 'Requires recording of the meeting'),
                           ],
                         ),
                       ] else if (_bookingType == 'Parcel Delivery') ...[
@@ -450,7 +453,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                           children: [
                             Text('Pickup Address', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                             const SizedBox(height: 8),
-                            CustomTextfield(controller: _pickupAddressCtrl, hintText: 'Enter Location'),
+                            CustomTextfield(validator: (v) => null, controller: _pickupAddressCtrl, hintText: 'Enter Location'),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -469,7 +472,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               children: [
                                 Text('Receiver Phone', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _receiverPhoneCtrl, hintText: 'Enter Receiver Phone Number'),
+                                CustomTextfield(validator: (v) => null, controller: _receiverPhoneCtrl, hintText: 'Enter Receiver Phone Number'),
                               ],
                             )),
                           ],
@@ -480,7 +483,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                           children: [
                             Text('Delivery Address', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                             const SizedBox(height: 8),
-                            CustomTextfield(controller: _deliveryAddressCtrl, hintText: 'Enter Delivery Address'),
+                            CustomTextfield(validator: (v) => null, controller: _deliveryAddressCtrl, hintText: 'Enter Delivery Address'),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -491,7 +494,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               children: [
                                 Text('Product Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _productNameCtrl, hintText: 'e.g. Medicine'),
+                                CustomTextfield(validator: (v) => null, controller: _productNameCtrl, hintText: 'e.g. Medicine'),
                               ],
                             )),
                             const SizedBox(width: 16),
@@ -500,7 +503,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               children: [
                                 Text('Product Type', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _productTypeCtrl, hintText: 'Electronics'),
+                                CustomTextfield(validator: (v) => null, controller: _productTypeCtrl, hintText: 'Electronics'),
                               ],
                             )),
                           ],
@@ -513,7 +516,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               children: [
                                 Text('Product Size/Height', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _productHeightCtrl, hintText: '15 cm'),
+                                CustomTextfield(validator: (v) => null, controller: _productHeightCtrl, hintText: '15 cm'),
                               ],
                             )),
                             const SizedBox(width: 16),
@@ -522,7 +525,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               children: [
                                 Text('Product Weight (kg)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _productWeightCtrl, hintText: '2'),
+                                CustomTextfield(validator: (v) => null, controller: _productWeightCtrl, hintText: '2'),
                               ],
                             )),
                           ],
@@ -534,7 +537,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                           children: [
                             Text('Company Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                             const SizedBox(height: 8),
-                            CustomTextfield(controller: _companyNameCtrl, hintText: 'Enter Company Name'),
+                            CustomTextfield(validator: (v) => null, controller: _companyNameCtrl, hintText: 'Enter Company Name'),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -553,7 +556,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               children: [
                                 Text('Product Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _productNameCtrl, hintText: 'Office Supplies'),
+                                CustomTextfield(validator: (v) => null, controller: _productNameCtrl, hintText: 'Office Supplies'),
                               ],
                             )),
                           ],
@@ -566,7 +569,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               children: [
                                 Text('Delivery Address', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _deliveryAddressCtrl, hintText: 'Scranton Branch'),
+                                CustomTextfield(validator: (v) => null, controller: _deliveryAddressCtrl, hintText: 'Scranton Branch'),
                               ],
                             )),
                             const SizedBox(width: 16),
@@ -575,7 +578,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               children: [
                                 Text('Product Type', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _productTypeCtrl, hintText: 'e.g. Bulk items'),
+                                CustomTextfield(validator: (v) => null, controller: _productTypeCtrl, hintText: 'e.g. Bulk items'),
                               ],
                             )),
                           ],
@@ -592,7 +595,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                             children: [
                               Text('Price', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                               const SizedBox(height: 8),
-                              CustomTextfield(controller: _priceCtrl, hintText: '250'),
+                              CustomTextfield(validator: (v) => null, controller: _priceCtrl, hintText: '250'),
                             ],
                           )),
                           const SizedBox(width: 16),
@@ -628,7 +631,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                             children: [
                               Text('Payment Method', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                               const SizedBox(height: 8),
-                              CustomTextfield(controller: _paymentMethodCtrl, hintText: 'Bkash / Stripe / Cash'),
+                              CustomTextfield(validator: (v) => null, controller: _paymentMethodCtrl, hintText: 'Bkash / Stripe / Cash'),
                             ],
                           )),
                           const SizedBox(width: 16),
@@ -637,7 +640,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                             children: [
                               Text('Transaction ID', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                               const SizedBox(height: 8),
-                              CustomTextfield(controller: _transactionIdCtrl, hintText: 'TRX123456'),
+                              CustomTextfield(validator: (v) => null, controller: _transactionIdCtrl, hintText: 'TRX123456'),
                             ],
                           )),
                         ],
@@ -697,14 +700,14 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                                 children: [
                                   Expanded(
                                     child: CustomTextfield(
-                                      controller: entry.key,
+                                      validator: (v) => null, controller: entry.key,
                                       hintText: 'Field Name',
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: CustomTextfield(
-                                      controller: entry.value,
+                                      validator: (v) => null, controller: entry.value,
                                       hintText: 'Value',
                                     ),
                                   ),

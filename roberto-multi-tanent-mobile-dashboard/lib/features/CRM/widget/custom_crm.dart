@@ -29,6 +29,10 @@ class _CustomCrmState extends State<CustomCrm> {
   String _selectedCountry = 'All countries';
   List<String> _countries = [];
   bool _countriesLoading = false;
+  
+  String _selectedProductType = 'All types';
+  List<String> _productTypes = [];
+  bool _productTypesLoading = false;
   int _currentPage = 1;
   static const int _itemsPerPage = 20;
 
@@ -37,6 +41,7 @@ class _CustomCrmState extends State<CustomCrm> {
     super.initState();
     _fetchData();
     _loadCountries();
+    _loadProductTypes();
   }
 
   @override
@@ -45,11 +50,17 @@ class _CustomCrmState extends State<CustomCrm> {
     if (oldWidget.branchId != widget.branchId) {
       _fetchData();
       _loadCountries();
+      _loadProductTypes();
     }
   }
 
   void _fetchData() {
-    context.read<CrmBloc>().add(FetchLeads(branchId: widget.branchId ?? '', role: widget.role));
+    context.read<CrmBloc>().add(FetchLeads(
+      branchId: widget.branchId ?? '', 
+      role: widget.role,
+      country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
+      productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
+    ));
   }
 
   Future<void> _loadCountries() async {
@@ -70,6 +81,27 @@ class _CustomCrmState extends State<CustomCrm> {
       }
     } catch (e) {
       if (mounted) setState(() => _countriesLoading = false);
+    }
+  }
+
+  Future<void> _loadProductTypes() async {
+    final branchId = widget.branchId ?? '';
+    if (branchId.isEmpty) return;
+    if (mounted) setState(() => _productTypesLoading = true);
+    try {
+      final crmRepo = context.read<CrmRepository>();
+      final res = await crmRepo.getCrmProductTypes(branchId, isBranchManager: widget.role == UserRole.branchManager);
+      if (res['success'] == true && mounted) {
+        final List<dynamic> data = res['data'] ?? [];
+        setState(() {
+          _productTypes = data.map((e) => e.toString()).toList();
+          _productTypesLoading = false;
+        });
+      } else if (mounted) {
+        setState(() => _productTypesLoading = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _productTypesLoading = false);
     }
   }
 
@@ -198,6 +230,9 @@ class _CustomCrmState extends State<CustomCrm> {
                               // Status Button
                               _buildStatusButton(context),
                               const SizedBox(width: 10),
+                              // Product Type Button
+                              _buildProductTypeButton(context),
+                              const SizedBox(width: 10),
                                // Country Button
                               _buildCountryButton(context),
                               const SizedBox(width: 10),
@@ -209,6 +244,7 @@ class _CustomCrmState extends State<CustomCrm> {
                                     branchId: widget.branchId ?? '',
                                     role: widget.role,
                                     country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
+                                    productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
                                   ));
                                 },
                               )
@@ -235,6 +271,8 @@ class _CustomCrmState extends State<CustomCrm> {
                             const SizedBox(width: 10),
                             _buildStatusButton(context),
                             const SizedBox(width: 8),
+                            _buildProductTypeButton(context),
+                            const SizedBox(width: 8),
                             _buildCountryButton(context),
                             IconButton(
                               icon: const Icon(Icons.refresh),
@@ -243,6 +281,7 @@ class _CustomCrmState extends State<CustomCrm> {
                                   branchId: widget.branchId ?? '',
                                   role: widget.role,
                                   country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
+                                  productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
                                 ));
                               },
                             )
@@ -366,6 +405,7 @@ class _CustomCrmState extends State<CustomCrm> {
           branchId: widget.branchId ?? '',
           role: widget.role,
           country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
+          productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
         ));
       },
       itemBuilder: (BuildContext context) {
@@ -428,6 +468,7 @@ class _CustomCrmState extends State<CustomCrm> {
           branchId: widget.branchId ?? '',
           role: widget.role,
           country: country == 'All countries' ? '' : country,
+          productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
         ));
       },
       itemBuilder: (BuildContext context) {
@@ -456,6 +497,69 @@ class _CustomCrmState extends State<CustomCrm> {
             const SizedBox(width: 6),
             Text(
               _selectedCountry,
+              style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface),
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              Icons.keyboard_arrow_down,
+              size: 18,
+              color: theme.colorScheme.onSurface,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductTypeButton(BuildContext context) {
+    final theme = Theme.of(context);
+    if (_productTypesLoading) {
+      return SizedBox(
+        height: 40,
+        width: 40,
+        child: Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))),
+      );
+    }
+    final typeList = ['All types', ..._productTypes];
+    return PopupMenuButton<String>(
+      onSelected: (String type) {
+        setState(() {
+          _selectedProductType = type;
+          _currentPage = 1;
+        });
+        context.read<CrmBloc>().add(FetchLeads(
+          branchId: widget.branchId ?? '',
+          role: widget.role,
+          country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
+          productType: type == 'All types' ? '' : type,
+        ));
+      },
+      itemBuilder: (BuildContext context) {
+        return typeList.map((String t) {
+          return PopupMenuItem<String>(
+            value: t,
+            child: Text(t),
+          );
+        }).toList();
+      },
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: theme.dividerTheme.color ?? Colors.grey.shade300),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.category,
+              size: 18,
+              color: theme.textTheme.bodySmall?.color,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              _selectedProductType,
               style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface),
             ),
             const SizedBox(width: 6),

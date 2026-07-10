@@ -8,6 +8,7 @@ class SubscriptionRow extends StatelessWidget {
   final String price;
   final String expireDate;
   final String status;
+  final String subStatus;
   final String? invoiceUrl;
   final bool isMobile;
 
@@ -18,6 +19,7 @@ class SubscriptionRow extends StatelessWidget {
     required this.price,
     required this.expireDate,
     required this.status,
+    required this.subStatus,
     this.invoiceUrl,
     this.isMobile = false,
   });
@@ -75,7 +77,16 @@ class SubscriptionRow extends StatelessWidget {
             ),
           ),
 
-          // Status
+          // Status (Subscription)
+          Expanded(
+            flex: 2,
+            child: Text(
+              "Status : $subStatus",
+              style: TextStyle(color: theme.colorScheme.onSurface),
+            ),
+          ),
+
+          // Billing Status (Invoice)
           Expanded(
             flex: 2,
             child: Align(
@@ -148,6 +159,7 @@ class SubscriptionRow extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
+              _buildInfoColumn(context, "Status", "Status : $subStatus"),
               _buildInfoColumn(context, "Pricing", price),
               if (isUnpaid) _buildRenewButton(context),
               if (isPaid && invoiceUrl != null && invoiceUrl!.isNotEmpty) _buildDownloadButton(context),

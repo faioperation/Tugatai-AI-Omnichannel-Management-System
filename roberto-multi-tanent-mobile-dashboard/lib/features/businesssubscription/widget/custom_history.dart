@@ -121,6 +121,7 @@ class _CustomHistoryState extends State<CustomHistory> {
                       'invoice': invoice,
                       'planName': sub.plan?.name ?? 'Unknown Plan',
                       'expireDate': sub.endDate,
+                      'subStatus': sub.status,
                     });
                   }
                 }
@@ -133,6 +134,15 @@ class _CustomHistoryState extends State<CustomHistory> {
                     ),
                   );
                 }
+
+                // Sort all invoices descending by invoice date
+                allInvoices.sort((a, b) {
+                  final invoiceA = a['invoice'] as InvoiceModel;
+                  final invoiceB = b['invoice'] as InvoiceModel;
+                  final dateA = invoiceA.createdAt ?? DateTime(2000);
+                  final dateB = invoiceB.createdAt ?? DateTime(2000);
+                  return dateB.compareTo(dateA);
+                });
 
                 return isDesktop ? _buildDesktopTable(allInvoices) : _buildMobileList(allInvoices);
               } else if (state is BusinessSubscriptionError) {
@@ -183,6 +193,7 @@ class _CustomHistoryState extends State<CustomHistory> {
                   Expanded(flex: 2, child: CustomHeadder(label: 'Subscription Pricing')),
                   Expanded(flex: 2, child: CustomHeadder(label: 'Expire Date')),
                   Expanded(flex: 2, child: CustomHeadder(label: 'Status')),
+                  Expanded(flex: 2, child: CustomHeadder(label: 'Billing Status')),
                   Expanded(flex: 2, child: CustomHeadder(label: 'Actions')),
                 ],
               ),
@@ -204,6 +215,7 @@ class _CustomHistoryState extends State<CustomHistory> {
         final invoice = data['invoice'] as InvoiceModel;
         final planName = data['planName'] as String;
         final expireDate = data['expireDate'] as DateTime?;
+        final subStatus = data['subStatus'] as String;
 
         String formattedDate = invoice.createdAt != null 
             ? DateFormat('MMM d, yyyy').format(invoice.createdAt!) 
@@ -232,6 +244,7 @@ class _CustomHistoryState extends State<CustomHistory> {
           price: displayPrice,
           expireDate: formattedExpireDate,
           status: displayStatus,
+          subStatus: subStatus,
           invoiceUrl: invoice.invoiceUrl,
           isMobile: isMobile,
         );

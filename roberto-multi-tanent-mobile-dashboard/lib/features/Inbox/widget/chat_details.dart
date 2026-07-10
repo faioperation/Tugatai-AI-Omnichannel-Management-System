@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/Inbox/data/models/inbox_models.dart';
-
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:roberto/features/businesssubscription/bloc/business_subscription_bloc.dart';
+import 'package:roberto/features/businesssubscription/bloc/business_subscription_state.dart';
 class ChatDetails extends StatelessWidget {
   final ConversationMod? conversation;
 
@@ -100,109 +102,170 @@ class ChatDetails extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               children: [
                 // Chat summary card
-                if (summary?.summary != null && summary!.summary!.isNotEmpty) ...[
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: theme.dividerTheme.color ?? (isDark ? AppColor.borderDark : AppColor.borderLight)),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: const BoxDecoration(
-                            color: AppColor.primary,
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(11),
-                              topRight: Radius.circular(11),
-                            ),
-                          ),
-                          child: const Text(
-                            "Chat summary",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Text(
-                            summary.summary!,
-                            style: TextStyle(
-                              color: theme.colorScheme.onSurface.withOpacity(0.8),
-                              fontSize: 14,
-                              height: 1.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
+                BlocBuilder<BusinessSubscriptionBloc, BusinessSubscriptionState>(
+                  builder: (context, subState) {
+                    bool isConnectPlan = false;
+                    if (subState is BusinessSubscriptionLoaded && subState.subscriptions.isNotEmpty) {
+                      final planSlug = subState.subscriptions.first.plan?.slug.toLowerCase();
+                      if (planSlug == 'connect') {
+                        isConnectPlan = true;
+                      }
+                    }
 
-                // Recent Chat Details form
-                if (summary != null) ...[
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: theme.dividerTheme.color ?? (isDark ? AppColor.borderDark : AppColor.borderLight)),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: const BoxDecoration(
-                            color: AppColor.primary,
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(11),
-                              topRight: Radius.circular(11),
-                            ),
+                    if (isConnectPlan) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: theme.dividerTheme.color ?? (isDark ? AppColor.borderDark : AppColor.borderLight)),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Text(
-                            "Recent Chat Details",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(16),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              _buildFormField(context, "Items", summary.items ?? "Not specified"),
-                              const SizedBox(height: 16),
-                              _buildFormField(context, "Pickup Area", summary.pickupArea ?? "Not specified"),
-                              const SizedBox(height: 16),
-                              _buildFormField(context, "Destination", summary.destination ?? "Not specified"),
-                              const SizedBox(height: 16),
-                              _buildFormField(context, "Weight", summary.weight ?? "Not specified"),
-                              const SizedBox(height: 16),
-                              _buildFormField(context, "Pickup Date & Time", summary.pickupDateTime ?? "Not specified"),
-                              const SizedBox(height: 16),
-                              _buildFormField(context, "Current status", summary.currentStatus),
-                              const SizedBox(height: 16),
-                              _buildFormField(context, "Recent summary", summary.recentSummary ?? "Not specified"),
-                              const SizedBox(height: 16),
-                              _buildFormField(
-                                context,
-                                "Booking info",
-                                summary.bookingInfo != null 
-                                    ? "Booked: ${summary.bookingInfo!.booked}, Reference: ${summary.bookingInfo!.reference ?? 'N/A'}${summary.bookingInfo!.price != null ? ', Price: \$${summary.bookingInfo!.price}' : ''}"
-                                    : "Not specified",
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: const BoxDecoration(
+                                  color: AppColor.primary,
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: Radius.circular(11),
+                                    topRight: Radius.circular(11),
+                                  ),
+                                ),
+                                child: const Text(
+                                  "Chat summary",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Text(
+                                  'buy convert or control subscription to get this features',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurface.withOpacity(0.8),
+                                    fontSize: 14,
+                                    height: 1.5,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
                         ),
+                      );
+                    }
+
+                    return Column(
+                      children: [
+                        if (summary?.summary != null && summary!.summary!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 24),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(color: theme.dividerTheme.color ?? (isDark ? AppColor.borderDark : AppColor.borderLight)),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    decoration: const BoxDecoration(
+                                      color: AppColor.primary,
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: Radius.circular(11),
+                                        topRight: Radius.circular(11),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      "Chat summary",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Text(
+                                      summary!.summary!,
+                                      style: TextStyle(
+                                        color: theme.colorScheme.onSurface.withOpacity(0.8),
+                                        fontSize: 14,
+                                        height: 1.5,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        if (summary != null)
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(color: theme.dividerTheme.color ?? (isDark ? AppColor.borderDark : AppColor.borderLight)),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  decoration: const BoxDecoration(
+                                    color: AppColor.primary,
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: Radius.circular(11),
+                                      topRight: Radius.circular(11),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "Recent Chat Details",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    children: [
+                                      _buildFormField(context, "Items", summary!.items ?? "Not specified"),
+                                      const SizedBox(height: 16),
+                                      _buildFormField(context, "Pickup Area", summary!.pickupArea ?? "Not specified"),
+                                      const SizedBox(height: 16),
+                                      _buildFormField(context, "Destination", summary!.destination ?? "Not specified"),
+                                      const SizedBox(height: 16),
+                                      _buildFormField(context, "Weight", summary!.weight ?? "Not specified"),
+                                      const SizedBox(height: 16),
+                                      _buildFormField(context, "Pickup Date & Time", summary!.pickupDateTime ?? "Not specified"),
+                                      const SizedBox(height: 16),
+                                      _buildFormField(context, "Current status", summary!.currentStatus),
+                                      const SizedBox(height: 16),
+                                      _buildFormField(context, "Recent summary", summary!.recentSummary ?? "Not specified"),
+                                      const SizedBox(height: 16),
+                                      _buildFormField(
+                                        context,
+                                        "Booking info",
+                                        summary!.bookingInfo != null 
+                                            ? "Booked: ${summary!.bookingInfo!.booked}, Reference: ${summary!.bookingInfo!.reference ?? 'N/A'}${summary!.bookingInfo!.price != null ? ', Price: \$${summary!.bookingInfo!.price}' : ''}"
+                                            : "Not specified",
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (summary != null)
+                          const SizedBox(height: 24),
                       ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
+                    );
+                  },
+                ),
               ],
             ),
           ),

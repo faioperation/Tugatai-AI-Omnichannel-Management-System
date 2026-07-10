@@ -25,6 +25,7 @@ class Routes {
   static const String subscriptions = '/subscriptions';
   static const String management = '/management';
   static const String settings = '/settings';
+  static const String editProfile = '/edit-profile';
   static const String demoBookings = '/demo-bookings';
   static const String notifications = '/notifications';
 
@@ -125,6 +126,7 @@ class Routes {
       subscriptions,
       management,
       settings,
+      editProfile,
       demoBookings,
       notifications,
     ].contains(normalizedName);
@@ -158,6 +160,8 @@ class Routes {
             : 'Management';
       case settings:
         return 'Settings';
+      case editProfile:
+        return 'Edit Profile';
       case demoBookings:
         return 'Demo Bookings';
       case notifications:
