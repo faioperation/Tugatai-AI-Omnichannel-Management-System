@@ -675,6 +675,7 @@ model CrmLead {
   note        String?
   status      LeadStatus @default(COLD)
   conversationId String?   @map("conversation_id")
+  productType String?    @map("product_type")
 
   metadata    Json?    // Specific lead collection fields
 
@@ -948,6 +949,8 @@ model Campaign {
   branchId       String?      @map("branch_id")
   title          String
   selectedPeople LeadStatus[] @map("selected_people")
+  productTypes   String[]     @default([]) @map("product_types")
+  countries      String[]     @default([]) @map("countries")
   scheduledTime  DateTime     @map("scheduled_time")
   endDate        DateTime?    @map("end_date")
   message        String       @db.Text

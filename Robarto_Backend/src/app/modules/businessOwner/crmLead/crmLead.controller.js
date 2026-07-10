@@ -71,4 +71,14 @@ const deleteCrmLead = async (req, res, next) => {
     }
 };
 
-export const CrmLeadController = { createCrmLead, getAllCrmLeads, getCrmLeadById, updateCrmLead, deleteCrmLead };
+const getCrmLeadProductTypes = async (req, res, next) => {
+    try {
+        const branchId = req.query.branchId || null;
+        const result = await CrmLeadService.getCrmLeadProductTypesService(req.business.id, branchId);
+        sendResponse(res, { statusCode: StatusCodes.OK, success: true, message: "CRM Lead product types retrieved successfully", data: result });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const CrmLeadController = { createCrmLead, getAllCrmLeads, getCrmLeadById, updateCrmLead, deleteCrmLead, getCrmLeadProductTypes };
