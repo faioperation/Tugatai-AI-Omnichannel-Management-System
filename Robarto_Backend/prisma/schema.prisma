@@ -739,6 +739,7 @@ model Conversation {
   lastMessage   String?   @map("last_message")
   lastMessageAt DateTime? @map("last_message_at")
   aiReply       Boolean   @default(true) @map("ai_reply")
+  continueAi    Boolean   @default(true) @map("continue_ai")
   seen          Boolean   @default(true) @map("seen")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
@@ -763,6 +764,7 @@ model Message {
   platformMessageId String?  @unique @map("platform_message_id")
   rawPayload        Json?    @map("raw_payload")
   aiReply           Boolean  @default(true) @map("ai_reply")
+  continueAi        Boolean  @default(true) @map("continue_ai")
   createdAt         DateTime @default(now()) @map("created_at")
 
   conversation Conversation @relation("ConversationMessages", fields: [conversationId], references: [id], onDelete: Cascade)
@@ -834,6 +836,7 @@ model WhatsappConversation {
   unreadCount       Int       @default(0) @map("unread_count")
   lastMessageAt     DateTime? @map("last_message_at")
   aiReply           Boolean   @default(true) @map("ai_reply")
+  continueAi        Boolean   @default(true) @map("continue_ai")
   seen              Boolean   @default(true) @map("seen")
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
@@ -872,6 +875,7 @@ model WhatsappMessage {
   mediaUrl          String?                  @map("media_url")
   status            WhatsappMessageStatus?
   rawPayload        Json?                    @map("raw_payload")
+  continueAi        Boolean                  @default(true) @map("continue_ai")
   createdAt         DateTime                 @default(now()) @map("created_at")
   updatedAt         DateTime                 @updatedAt @map("updated_at")
 

@@ -14,6 +14,7 @@ export const WhatsappValidation = {
     body: z.object({
       conversationId: z.string({ required_error: "Conversation ID is required" }),
       message: z.string({ required_error: "Message text is required" }),
+      continueAi: z.boolean().optional(),
     }),
   }),
   sendMediaMessage: z.object({

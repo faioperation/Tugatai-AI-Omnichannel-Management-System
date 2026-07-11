@@ -98,8 +98,8 @@ export const WhatsappController = {
       const { businessId } = await getBusinessAndBranchForUser(req.user);
       if (!businessId) return res.status(404).json({ success: false, message: "Business not found for this user" });
       
-      const { conversationId, message } = req.body;
-      const data = await WhatsappService.sendTextMessage(businessId, conversationId, message);
+      const { conversationId, message, continueAi } = req.body;
+      const data = await WhatsappService.sendTextMessage(businessId, conversationId, message, continueAi);
       res.json({ success: true, data });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
