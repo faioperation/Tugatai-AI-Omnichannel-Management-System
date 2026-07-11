@@ -48,6 +48,7 @@ const getDashboardOverviewService = async (businessId, branchId) => {
         messengerActiveUsers,
         instagramActiveUsers,
         monthlyOrders,
+        allBookingsForTotal,
     ] = await Promise.all([
         model.count({
             where: {
@@ -135,6 +136,15 @@ const getDashboardOverviewService = async (businessId, branchId) => {
                 price: true,
             },
         }),
+
+        model.findMany({
+            where: {
+                ...branchFilter,
+            },
+            select: {
+                price: true,
+            },
+        }),
     ]);
 
     const todaysSales = monthlyOrders
@@ -149,6 +159,10 @@ const getDashboardOverviewService = async (businessId, branchId) => {
         .reduce((sum, order) => {
             return sum + (Number(order.price) || 0);
         }, 0);
+
+    const totalSels = allBookingsForTotal.reduce((sum, booking) => {
+        return sum + (Number(booking.price) || 0);
+    }, 0);
 
     const weeklySales = buildWeeklyData(
         monthlyOrders,
@@ -165,6 +179,7 @@ const getDashboardOverviewService = async (businessId, branchId) => {
         todayOrders,
         pendingDeliveries,
         todaysSales,
+        totalSels,
         activeUsers: {
             total: totalActiveUsers,
             whatsapp: whatsappActiveUsers,
