@@ -25,7 +25,8 @@ BUSINESS_TYPES: Dict[str, Dict[str, Any]] = {
         "display_name": "Cargo & Logistics",
         "icon": "🚢",
         "description": "Freight forwarding, shipping quotes, and booking confirmations.",
-        "tools": ["get_quote", "confirm_booking", "escalate_to_human"],
+#        "tools": ["get_quote", "confirm_booking", "escalate_to_human"],
+        "tools": ["confirm_booking", "escalate_to_human"],
         "kb_name": "cargo-kb",
         "kb_description": "Shipping routes, pricing rules, customs fees, and cargo handling guidelines.",
         "transaction_label": "Bookings",
@@ -37,8 +38,8 @@ BUSINESS_TYPES: Dict[str, Dict[str, Any]] = {
 """,
         "prompt_layer3": """
 ### 1. SHIPPING QUOTE:
-- Collect: destination, item list, estimated weight (kg), and preferred mode (sea/air/DHL).
-- Trigger `get_quote` tool to calculate. Read back the exact result without modification.
+- Collect: destination, item list, estimated weight (kg), package name, package type, and preferred mode (sea/air/DHL).
+- Search your knowledge base or product catalog to calculate the exact pricing. Read back the exact result. Do not guess.
 
 ### 2. BOOKING CONFIRMATION:
 - Once customer agrees to quote: collect name, phone, pickup location, preferred pickup time.
@@ -408,7 +409,7 @@ Provide your response in JSON format matching the following keys:
 4. "language": Two-letter language code (e.g., "en", "es", "ar").
 5. "custom_layer2": A bulleted list defining the agent's identity, persona, and specific vocal tone/rules. Explicitly include dynamic vocal delivery instructions based on the script (e.g. "Use rich, appetizing descriptive language when discussing menu items", or "Speak with empathetic, clear pacing for medical queries").
 6. "custom_layer3": A structured guide for the agent's main flows and scenarios (e.g. booking appointment, taking order, providing quote, escalating call). Be detailed and specific to this business's script, specifying exactly what fields/data the agent needs to collect.
-7. "tools": A list of tool names the agent will need. Choose from: "get_quote", "confirm_booking", "collect_info", "escalate_to_human". Choose "confirm_booking" if booking is needed; "get_quote" if pricing/estimate is needed; "escalate_to_human" if human handoff is needed; "collect_info" for other general form submissions.
+7. "tools": A list of tool names the agent will need. Choose from: "confirm_booking", "collect_info", "escalate_to_human". Choose "confirm_booking" if booking is needed; "escalate_to_human" if human handoff is needed; "collect_info" for other general form submissions. Do not use get_quote, the agent should quote based on its knowledge base.
 8. "first_message": A warm, business-specific first greeting that the agent will speak when the call starts.
 9. "extracted_data_fields": A JSON object defining specific data fields the agent must extract at the end of the call, based on this business's needs (e.g. for a restaurant: party_size, booking_time; for cargo: weight_kg, destination). Each key should be the field name, and the value should be a brief string description of what the field is. DO NOT include generic fields like lead_status, call_summary, customer_name, customer_phone, as they are already included by default.
 
