@@ -26,6 +26,7 @@ class SubscriptionRow extends StatelessWidget {
 
   bool get isPaid => status.toLowerCase() == 'paid';
   bool get isUnpaid => status.toLowerCase() == 'unpaid';
+  bool get isSubActive => subStatus.toUpperCase() == 'ACTIVE';
 
   @override
   Widget build(BuildContext context) {
@@ -77,12 +78,12 @@ class SubscriptionRow extends StatelessWidget {
             ),
           ),
 
-          // Status (Subscription)
+          // Status (Subscription) - colored badge pill
           Expanded(
             flex: 2,
-            child: Text(
-              "Status : $subStatus",
-              style: TextStyle(color: theme.colorScheme.onSurface),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _buildSubStatusPill(context),
             ),
           ),
 
@@ -159,7 +160,7 @@ class SubscriptionRow extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _buildInfoColumn(context, "Status", "Status : $subStatus"),
+              _buildInfoColumn(context, "Status", subStatus),
               _buildInfoColumn(context, "Pricing", price),
               if (isUnpaid) _buildRenewButton(context),
               if (isPaid && invoiceUrl != null && invoiceUrl!.isNotEmpty) _buildDownloadButton(context),
@@ -186,6 +187,49 @@ class SubscriptionRow extends StatelessWidget {
               fontSize: 14, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface),
         ),
       ],
+    );
+  }
+
+  Widget _buildSubStatusPill(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final activeBg = isDark ? const Color(0xFF1B5E20).withOpacity(0.2) : const Color(0xFFE8F5E9);
+    final cancelBg = isDark ? const Color(0xFFB71C1C).withOpacity(0.2) : const Color(0xFFFFEBEE);
+    final pendingBg = isDark ? const Color(0xFF4A3800).withOpacity(0.3) : const Color(0xFFFFF8E1);
+    final activeColor = isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32);
+    final cancelColor = isDark ? const Color(0xFFE57373) : const Color(0xFFC62828);
+    final pendingColor = isDark ? const Color(0xFFFFD54F) : const Color(0xFFE65100);
+
+    Color bg;
+    Color textColor;
+    if (isSubActive) {
+      bg = activeBg;
+      textColor = activeColor;
+    } else if (subStatus.toUpperCase() == 'CANCELED' || subStatus.toUpperCase() == 'CANCELLED') {
+      bg = cancelBg;
+      textColor = cancelColor;
+    } else {
+      bg = pendingBg;
+      textColor = pendingColor;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: textColor.withOpacity(0.5)),
+      ),
+      child: Text(
+        subStatus.toUpperCase() == 'ACTIVE' ? 'Active' :
+        subStatus.toUpperCase() == 'CANCELED' || subStatus.toUpperCase() == 'CANCELLED' ? 'Cancelled' : subStatus,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
+      ),
     );
   }
 

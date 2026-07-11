@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:roberto/app/app_color.dart';
+import 'package:roberto/features/WhatsAppCampaigns/data/repositories/campaign_repository.dart';
 import 'package:roberto/features/management/data/models/branch_model.dart';
 import 'package:intl/intl.dart';
 
@@ -10,6 +11,8 @@ class CreateCampaignForm extends StatefulWidget {
   final dynamic initialData;
   final List<BranchModel> branches;
   final String? currentBranchId;
+  final bool isBranchManager;
+  final CampaignRepository? campaignRepository;
 
   const CreateCampaignForm({
     super.key,
@@ -19,6 +22,8 @@ class CreateCampaignForm extends StatefulWidget {
     this.initialData,
     this.branches = const [],
     this.currentBranchId,
+    this.isBranchManager = false,
+    this.campaignRepository,
   });
 
   @override
@@ -33,6 +38,14 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
   String? _selectedBranch;
   DateTime? _scheduledTime;
   DateTime? _endDate;
+
+  // Country & ProductType
+  List<String> _countries = [];
+  List<String> _productTypes = [];
+  String? _selectedCountry;
+  String? _selectedProductType;
+  bool _loadingCountries = false;
+  bool _loadingProductTypes = false;
 
   @override
   void initState() {
@@ -54,6 +67,50 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
       _selectedBranch = widget.currentBranchId;
       _scheduledTime = DateTime.now();
       _endDate = DateTime.now().add(const Duration(days: 7));
+    }
+
+    // Load countries and product types
+    _loadCountriesAndProductTypes();
+  }
+
+  Future<void> _loadCountriesAndProductTypes() async {
+    final repo = widget.campaignRepository;
+    final branchId = widget.currentBranchId ?? '';
+    if (repo == null || branchId.isEmpty) return;
+
+    setState(() {
+      _loadingCountries = true;
+      _loadingProductTypes = true;
+    });
+
+    try {
+      final countriesRes = await repo.getCampaignCountries(branchId, isBranchManagerOverride: widget.isBranchManager);
+      if (mounted && countriesRes['success'] == true) {
+        final List<dynamic> data = countriesRes['data'] ?? [];
+        setState(() {
+          _countries = data.map((e) => e.toString()).toList();
+          _loadingCountries = false;
+        });
+      } else if (mounted) {
+        setState(() => _loadingCountries = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loadingCountries = false);
+    }
+
+    try {
+      final productTypesRes = await repo.getCampaignProductTypes(branchId, isBranchManagerOverride: widget.isBranchManager);
+      if (mounted && productTypesRes['success'] == true) {
+        final List<dynamic> data = productTypesRes['data'] ?? [];
+        setState(() {
+          _productTypes = data.map((e) => e.toString()).toList();
+          _loadingProductTypes = false;
+        });
+      } else if (mounted) {
+        setState(() => _loadingProductTypes = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loadingProductTypes = false);
     }
   }
 
@@ -141,6 +198,55 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
               decoration: _inputDecoration("Select the customer labels"),
             ),
             const SizedBox(height: 20),
+
+            // ── Country ──────────────────────────────────────────────────
+            _buildLabel("Country"),
+            if (_loadingCountries)
+              Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).hoverColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Theme.of(context).dividerTheme.color ?? AppColor.borderLight),
+                ),
+                child: const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+              )
+            else
+              DropdownButtonFormField<String>(
+                value: _countries.contains(_selectedCountry) ? _selectedCountry : null,
+                items: [
+                  const DropdownMenuItem<String>(value: null, child: Text('Select Country')),
+                  ..._countries.map((c) => DropdownMenuItem(value: c, child: Text(c))),
+                ],
+                onChanged: widget.isReadOnly ? null : (v) => setState(() => _selectedCountry = v),
+                decoration: _inputDecoration("Select Country"),
+              ),
+            const SizedBox(height: 20),
+
+            // ── Product Type ─────────────────────────────────────────────
+            _buildLabel("Product Type"),
+            if (_loadingProductTypes)
+              Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).hoverColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Theme.of(context).dividerTheme.color ?? AppColor.borderLight),
+                ),
+                child: const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+              )
+            else
+              DropdownButtonFormField<String>(
+                value: _productTypes.contains(_selectedProductType) ? _selectedProductType : null,
+                items: [
+                  const DropdownMenuItem<String>(value: null, child: Text('Select Product Type')),
+                  ..._productTypes.map((pt) => DropdownMenuItem(value: pt, child: Text(pt))),
+                ],
+                onChanged: widget.isReadOnly ? null : (v) => setState(() => _selectedProductType = v),
+                decoration: _inputDecoration("Select Product Type"),
+              ),
+            const SizedBox(height: 20),
+
             _buildLabel("Message"),
             TextFormField(
               controller: _messageController,
@@ -209,6 +315,8 @@ class _CreateCampaignFormState extends State<CreateCampaignForm> {
                           'selectedPeople': [aud],
                           'scheduledTime': _scheduledTime ?? DateTime.now(),
                           'endDate': _endDate ?? DateTime.now().add(const Duration(days: 7)),
+                          'country': _selectedCountry,
+                          'productType': _selectedProductType,
                         });
                       },
                       style: ElevatedButton.styleFrom(
