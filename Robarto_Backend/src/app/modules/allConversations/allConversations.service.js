@@ -65,6 +65,7 @@ export const AllConversationsService = {
         unreadCount: 0, // Standard conversations don't track unreadCount in DB explicitly
         seen: c.seen,
         aiReply: c.aiReply,
+        continueAi: c.continueAi,
         chatSummary: summary || null,
         createdAt: c.createdAt,
         updatedAt: c.updatedAt,
@@ -98,6 +99,7 @@ export const AllConversationsService = {
         unreadCount: c.unreadCount || 0,
         seen: c.seen,
         aiReply: c.aiReply,
+        continueAi: c.continueAi,
         chatSummary: summary || null,
         createdAt: c.createdAt,
         updatedAt: c.updatedAt,

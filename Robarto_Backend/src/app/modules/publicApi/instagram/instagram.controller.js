@@ -3,14 +3,14 @@ import { sendMessageToUser } from "../../instagram/instagram.service.js";
 
 export const sendInstagramMessage = async (req, res, next) => {
   try {
-    const { businessId, recipientId, message } = req.body;
+    const { businessId, recipientId, message, continueAi } = req.body;
 
     if (!businessId || !recipientId || !message) {
       throw new AppError(400, "businessId, recipientId, and message are required.");
     }
 
-    // Pass "agent" as the senderType
-    const result = await sendMessageToUser(businessId, recipientId, message, "agent");
+    // Pass "agent" as the senderType and continueAi
+    const result = await sendMessageToUser(businessId, recipientId, message, "agent", continueAi);
 
     res.status(200).json({
       success: true,

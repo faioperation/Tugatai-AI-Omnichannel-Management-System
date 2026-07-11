@@ -165,13 +165,13 @@ export const sendMessengerMessage = async (req, res, next) => {
     const { businessId } = await getBusinessAndBranchForUser(req.user);
     if (!businessId) throw new AppError(404, "Business not found for this user");
     
-    const { recipientId, message } = req.body;
+    const { recipientId, message, continueAi } = req.body;
 
     if (!recipientId || !message) {
       throw new AppError(400, "recipientId, and message are required.");
     }
 
-    const responseData = await sendMessageToUser(businessId, recipientId, message);
+    const responseData = await sendMessageToUser(businessId, recipientId, message, "business", continueAi);
 
     sendResponse(res, {
       statusCode: 200,

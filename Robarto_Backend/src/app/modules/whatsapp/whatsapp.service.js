@@ -1,6 +1,7 @@
 import prisma from "../../prisma/client.js";
 import { MetaGraphAPI } from "./whatsapp.meta.js";
 import { envVars } from "../../config/env.js";
+import { NotificationService } from "../notification/notification.service.js";
 
 export const WhatsappService = {
   connectAccount: async (businessId, payload) => {
@@ -93,7 +94,7 @@ export const WhatsappService = {
     });
   },
 
-  sendTextMessage: async (businessId, conversationId, messageText) => {
+  sendTextMessage: async (businessId, conversationId, messageText, continueAi = undefined) => {
     const conversation = await prisma.whatsappConversation.findUnique({
       where: { id: conversationId },
       include: { contact: true, whatsappAccount: true },
@@ -122,13 +123,33 @@ export const WhatsappService = {
         type: "text",
         text: messageText,
         status: "SENT",
+        continueAi: continueAi !== undefined ? continueAi : undefined,
       },
     });
 
+    const updateData = {
+      lastMessageId: message.id,
+      lastMessageAt: new Date(),
+    };
+    if (continueAi !== undefined) {
+      updateData.continueAi = continueAi;
+    }
+
     await prisma.whatsappConversation.update({
       where: { id: conversationId },
-      data: { lastMessageId: message.id, lastMessageAt: new Date() },
+      data: updateData,
     });
+
+    if (continueAi === false) {
+      await NotificationService.createAndSendNotification({
+        title: "Human Help Needed",
+        message: "ai can't handle this customer, human help needed.",
+        type: "HUMAN_HELP_NEEDED",
+        businessId,
+        branchId: account?.branchId || null,
+        conversationId,
+      });
+    }
 
     return message;
   },

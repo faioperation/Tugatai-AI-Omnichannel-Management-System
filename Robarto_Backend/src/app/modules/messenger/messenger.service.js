@@ -176,7 +176,7 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
   });
 };
 
-export const sendMessageToUser = async (businessId, recipientId, messageText, senderType = "business") => {
+export const sendMessageToUser = async (businessId, recipientId, messageText, senderType = "business", continueAi = undefined) => {
   // Get connection to find page access token
   const connection = await prisma.socialConnection.findFirst({
     where: { businessId, provider: "facebook", isActive: true },
@@ -222,17 +222,34 @@ export const sendMessageToUser = async (businessId, recipientId, messageText, se
           messageText: messageText,
           platformMessageId: response.data.message_id,
           rawPayload: response.data,
+          continueAi: continueAi !== undefined ? continueAi : undefined,
         },
       });
 
-      // Update last message
+      // Update last message and continueAi status
+      const updateData = {
+        lastMessage: messageText,
+        lastMessageAt: new Date(),
+      };
+      if (continueAi !== undefined) {
+        updateData.continueAi = continueAi;
+      }
+
       await prisma.conversation.update({
         where: { id: conversation.id },
-        data: {
-          lastMessage: messageText,
-          lastMessageAt: new Date(),
-        },
+        data: updateData,
       });
+
+      if (continueAi === false) {
+        await NotificationService.createAndSendNotification({
+          title: "Human Help Needed",
+          message: "ai can't handle this customer, human help needed.",
+          type: "HUMAN_HELP_NEEDED",
+          businessId: conversation.businessId,
+          branchId: conversation.branchId || null,
+          conversationId: conversation.id,
+        });
+      }
     }
 
     return response.data;
