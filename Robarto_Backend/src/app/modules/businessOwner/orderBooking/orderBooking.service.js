@@ -83,7 +83,8 @@ const createBookingService = async (payload) => {
 };
 
 const getAllBookingsService = async (query = {}) => {
-    const businessId = query.businessId;
+    const { startDate, endDate, ...restQuery } = query;
+    const businessId = restQuery.businessId;
     const businessType = await resolveBusinessType(businessId);
     const { model, detailsRelation } = getBookingModel(businessType);
 
@@ -105,7 +106,7 @@ const getAllBookingsService = async (query = {}) => {
         });
     }
 
-    const queryBuilder = new QueryBuilder(query)
+    const queryBuilder = new QueryBuilder(restQuery)
         .search(searchConfig)
         .filter()
         .sort()
@@ -114,13 +115,32 @@ const getAllBookingsService = async (query = {}) => {
 
     const queryParams = queryBuilder.build();
 
+    if (startDate || endDate) {
+        queryParams.where.createdAt = {};
+        if (startDate) {
+            const start = new Date(startDate);
+            if (!isNaN(start.getTime())) {
+                queryParams.where.createdAt.gte = start;
+            }
+        }
+        if (endDate) {
+            const end = new Date(endDate);
+            if (!isNaN(end.getTime())) {
+                if (endDate.length === 10) {
+                    end.setHours(23, 59, 59, 999);
+                }
+                queryParams.where.createdAt.lte = end;
+            }
+        }
+    }
+
     // productType filter — nested relation filter based on businessType
-    const productType = query.productType;
+    const productType = restQuery.productType;
     if (productType) {
         const detailsFilterKey =
             businessType === "ORDER_BOOKING" ? "orderDetails" :
-            businessType === "PARCEL_DELIVERY" ? "parcelDetails" :
-            businessType === "APPOINTMENT_BOOKING" ? "appointmentDetails" : null;
+                businessType === "PARCEL_DELIVERY" ? "parcelDetails" :
+                    businessType === "APPOINTMENT_BOOKING" ? "appointmentDetails" : null;
         if (detailsFilterKey) {
             queryParams.where = {
                 ...queryParams.where,
