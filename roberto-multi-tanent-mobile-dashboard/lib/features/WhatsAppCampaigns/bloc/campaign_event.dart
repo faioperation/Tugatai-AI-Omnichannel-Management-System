@@ -12,6 +12,8 @@ class CreateCampaign extends CampaignEvent {
   final List<String> selectedPeople;
   final DateTime scheduledTime;
   final DateTime endDate;
+  final String? country;
+  final String? productType;
 
   CreateCampaign({
     required this.title,
@@ -20,6 +22,8 @@ class CreateCampaign extends CampaignEvent {
     required this.selectedPeople,
     required this.scheduledTime,
     required this.endDate,
+    this.country,
+    this.productType,
   });
 }
 
@@ -31,6 +35,8 @@ class UpdateCampaign extends CampaignEvent {
   final List<String>? selectedPeople;
   final DateTime? scheduledTime;
   final DateTime? endDate;
+  final String? country;
+  final String? productType;
 
   UpdateCampaign({
     required this.id,
@@ -40,6 +46,8 @@ class UpdateCampaign extends CampaignEvent {
     this.selectedPeople,
     this.scheduledTime,
     this.endDate,
+    this.country,
+    this.productType,
   });
 }
 

@@ -7,6 +7,9 @@ import 'package:roberto/features/Orderbooking/widget/order_mod.dart';
 class BookingBloc extends Bloc<BookingEvent, BookingState> {
   final BookingRepository repository;
 
+  // Track last used filter params so refresh after action preserves filters
+  GetBookings? _lastGetBookings;
+
   BookingBloc({required this.repository}) : super(BookingInitial()) {
     on<GetBookings>(_onGetBookings);
     on<CreateBooking>(_onCreateBooking);
@@ -15,6 +18,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
   }
 
   Future<void> _onGetBookings(GetBookings event, Emitter<BookingState> emit) async {
+    _lastGetBookings = event; // Remember the last filter state
     emit(BookingLoading());
     try {
       final response = await repository.getBookings(
@@ -50,12 +54,26 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     }
   }
 
+  /// Refresh using last-known filter params so table stays consistent
+  void _refreshWithFilters(String branchId) {
+    final last = _lastGetBookings;
+    add(GetBookings(
+      branchId: branchId,
+      page: last?.page ?? 1,
+      limit: last?.limit ?? 10,
+      search: last?.search ?? '',
+      status: last?.status ?? '',
+      country: last?.country ?? '',
+      productType: last?.productType ?? '',
+    ));
+  }
+
   Future<void> _onCreateBooking(CreateBooking event, Emitter<BookingState> emit) async {
     try {
       final response = await repository.createBooking(event.payload);
       if (response['success'] == true) {
         emit(BookingActionSuccess(response['message'] ?? 'Booking created successfully'));
-        add(GetBookings(branchId: event.branchId));
+        _refreshWithFilters(event.branchId);
       } else {
         emit(BookingError(response['message'] ?? 'Failed to create booking'));
       }
@@ -73,7 +91,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
       final response = await repository.updateBooking(event.id, payload);
       if (response['success'] == true) {
         emit(BookingActionSuccess(response['message'] ?? 'Booking updated successfully'));
-        add(GetBookings(branchId: event.branchId));
+        _refreshWithFilters(event.branchId);
       } else {
         emit(BookingError(response['message'] ?? 'Failed to update booking'));
       }
@@ -86,7 +104,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     try {
       await repository.deleteBooking(event.id);
       emit(const BookingActionSuccess('Booking deleted successfully'));
-      add(GetBookings(branchId: event.branchId));
+      _refreshWithFilters(event.branchId);
     } catch (e) {
       emit(BookingError(e.toString()));
     }

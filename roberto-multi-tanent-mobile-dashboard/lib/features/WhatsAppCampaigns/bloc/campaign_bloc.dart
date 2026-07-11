@@ -41,6 +41,8 @@ class CampaignBloc extends Bloc<CampaignEvent, CampaignState> {
         selectedPeople: event.selectedPeople,
         scheduledTime: event.scheduledTime,
         endDate: event.endDate,
+        country: event.country,
+        productType: event.productType,
       );
       emit(CampaignActionSuccess(message: 'Campaign created successfully'));
       add(FetchCampaigns());
@@ -63,6 +65,8 @@ class CampaignBloc extends Bloc<CampaignEvent, CampaignState> {
         selectedPeople: event.selectedPeople,
         scheduledTime: event.scheduledTime,
         endDate: event.endDate,
+        country: event.country,
+        productType: event.productType,
       );
       emit(CampaignActionSuccess(message: 'Campaign updated successfully'));
       add(FetchCampaigns());

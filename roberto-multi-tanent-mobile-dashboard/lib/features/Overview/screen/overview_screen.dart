@@ -45,6 +45,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
       context.read<OverviewBloc>().add(FetchSystemOverviewRequested());
     } else if (widget.role == UserRole.businessOwner) {
       context.read<OverviewBloc>().add(FetchBusinessOverviewRequested(branchId: widget.branchId));
+    } else if (widget.role == UserRole.branchManager) {
+      context.read<OverviewBloc>().add(FetchBranchManagerOverviewRequested());
     }
   }
 
@@ -80,26 +82,24 @@ class _OverviewScreenState extends State<OverviewScreen> {
           // STAT CARDS & ANALYTICS & QUICK STATS
           BlocBuilder<OverviewBloc, OverviewState>(
             builder: (context, state) {
-              if (isSystemOwner || widget.role == UserRole.businessOwner) {
-                if (state is OverviewLoading) {
-                  return const Center(child: Padding(
-                    padding: EdgeInsets.all(32.0),
-                    child: CircularProgressIndicator(),
-                  ));
-                } else if (state is OverviewError) {
-                  return Center(child: Text('Error: ${state.message}', style: const TextStyle(color: Colors.red)));
-                } else if (state is SystemOverviewLoaded) {
-                  final data = state.overviewData;
-                  return _buildDashboardContent(context, isDesktop, systemData: data);
-                } else if (state is BusinessOverviewLoaded) {
-                  final data = state.businessData;
-                  return _buildDashboardContent(context, isDesktop, businessData: data);
-                }
-                return const SizedBox.shrink(); // Initial state
-              } else {
-                // For other roles, use static/existing content for now
-                return _buildDashboardContent(context, isDesktop);
+              if (state is OverviewLoading) {
+                return const Center(child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
+                ));
+              } else if (state is OverviewError) {
+                return Center(child: Text('Error: ${state.message}', style: const TextStyle(color: Colors.red)));
+              } else if (state is SystemOverviewLoaded) {
+                final data = state.overviewData;
+                return _buildDashboardContent(context, isDesktop, systemData: data);
+              } else if (state is BusinessOverviewLoaded) {
+                final data = state.businessData;
+                return _buildDashboardContent(context, isDesktop, businessData: data);
+              } else if (state is BranchManagerOverviewLoaded) {
+                final data = state.businessData;
+                return _buildDashboardContent(context, isDesktop, businessData: data, isBranchManager: true);
               }
+              return _buildDashboardContent(context, isDesktop);
             },
           ),
         ],
@@ -107,15 +107,15 @@ class _OverviewScreenState extends State<OverviewScreen> {
     );
   }
 
-  Widget _buildDashboardContent(BuildContext context, bool isDesktop, {SystemOverviewModel? systemData, BusinessOverviewModel? businessData}) {
+  Widget _buildDashboardContent(BuildContext context, bool isDesktop, {SystemOverviewModel? systemData, BusinessOverviewModel? businessData, bool isBranchManager = false}) {
     return Column(
       children: [
         isDesktop 
           ? Row(
-              children: _buildStatCards(context, systemData: systemData, businessData: businessData),
+              children: _buildStatCards(context, systemData: systemData, businessData: businessData, isBranchManager: isBranchManager),
             )
           : Column(
-              children: _buildStatCards(context, systemData: systemData, businessData: businessData).map((card) => Padding(
+              children: _buildStatCards(context, systemData: systemData, businessData: businessData, isBranchManager: isBranchManager).map((card) => Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: card,
               )).toList(),
@@ -155,9 +155,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
     );
   }
 
-  List<Widget> _buildStatCards(BuildContext context, {SystemOverviewModel? systemData, BusinessOverviewModel? businessData}) {
+  List<Widget> _buildStatCards(BuildContext context, {SystemOverviewModel? systemData, BusinessOverviewModel? businessData, bool isBranchManager = false}) {
     final isSystemOwner = widget.role == UserRole.systemOwner;
-    final isBranchManager = widget.role == UserRole.branchManager;
 
     if (isSystemOwner) {
       return [
@@ -165,7 +164,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
           child: StatCard(
             title: "Total Businesses",
             value: systemData != null ? "${systemData.totalBusinesses}" : "0",
-            trend: "", // Removed static trend
+            trend: "",
             icon: Icons.business,
           ),
         ),
@@ -174,7 +173,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
           child: StatCard(
             title: "Active Subscriptions",
             value: systemData != null ? "${systemData.activeSubscriptions}" : "0",
-            trend: "", // Removed static trend
+            trend: "",
             icon: Icons.subscriptions_outlined,
           ),
         ),
@@ -183,37 +182,48 @@ class _OverviewScreenState extends State<OverviewScreen> {
           child: StatCard(
             title: "Monthly Revenue",
             value: systemData != null ? "\$${systemData.monthlyRevenue.toStringAsFixed(2)}" : "\$0.00",
-            trend: "", // Removed static trend
+            trend: "",
             icon: Icons.payments_outlined,
           ),
         ),
       ];
     } else if (isBranchManager) {
+      // Branch Manager - uses real API data
       return [
-        const Expanded(
+        Expanded(
           child: StatCard(
             title: "Today's Orders",
-            value: "0",
+            value: businessData != null ? "${businessData.todayOrders}" : "0",
             trend: "",
             icon: Icons.shopping_bag_outlined,
           ),
         ),
         const SizedBox(width: 24),
-        const Expanded(
+        Expanded(
           child: StatCard(
             title: "Pending Deliveries",
-            value: "0",
+            value: businessData != null ? "${businessData.pendingDeliveries}" : "0",
             trend: "",
             icon: Icons.delivery_dining_outlined,
           ),
         ),
         const SizedBox(width: 24),
-        const Expanded(
+        Expanded(
           child: StatCard(
             title: "Today's Sales",
-            value: "\$0.00",
+            value: businessData != null ? "\$${businessData.todaysSales.toStringAsFixed(2)}" : "\$0.00",
             trend: "",
             icon: Icons.attach_money,
+          ),
+        ),
+        const SizedBox(width: 24),
+        Expanded(
+          child: StatCard(
+            title: "Total Sales",
+            value: businessData != null ? "\$${businessData.totalSales.toStringAsFixed(2)}" : "\$0.00",
+            trend: "",
+            icon: Icons.bar_chart_outlined,
+            iconColor: Colors.green,
           ),
         ),
       ];
@@ -245,6 +255,16 @@ class _OverviewScreenState extends State<OverviewScreen> {
             value: businessData != null ? "\$${businessData.todaysSales.toStringAsFixed(2)}" : "\$0.00",
             trend: "",
             icon: Icons.attach_money,
+          ),
+        ),
+        const SizedBox(width: 24),
+        Expanded(
+          child: StatCard(
+            title: "Total Sales",
+            value: businessData != null ? "\$${businessData.totalSales.toStringAsFixed(2)}" : "\$0.00",
+            trend: "",
+            icon: Icons.bar_chart_outlined,
+            iconColor: Colors.green,
           ),
         ),
       ];

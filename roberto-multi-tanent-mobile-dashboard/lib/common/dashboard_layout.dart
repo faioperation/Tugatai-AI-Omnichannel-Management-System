@@ -374,7 +374,7 @@ class _DashboardShellState extends State<DashboardShell> {
         return const SettingScreen();
 
       case 'Campaigns':
-        return WhatsAppCampaignsScreen(branchId: currentBranchId);
+        return WhatsAppCampaignsScreen(branchId: currentBranchId, role: widget.role);
 
       case 'Overview':
       default:

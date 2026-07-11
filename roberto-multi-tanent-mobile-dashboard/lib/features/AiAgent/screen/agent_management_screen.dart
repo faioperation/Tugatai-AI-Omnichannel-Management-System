@@ -833,6 +833,8 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
                     ),
                     const SizedBox(height: 12),
                     _buildRulesFileButton(theme, agent.rulesFile),
+                    const SizedBox(height: 12),
+                    _buildProductFileButton(theme, agent.productFile),
                   ],
                 ),
               ),
@@ -998,6 +1000,70 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
       ],
     );
   }
+
+  Widget _buildProductFileButton(ThemeData theme, String? productFileUrl) {
+    final hasFile = productFileUrl != null && productFileUrl.isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Product File (Excel)',
+          style: TextStyle(
+            fontSize: 12,
+            color: theme.textTheme.bodySmall?.color,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        hasFile
+            ? InkWell(
+                onTap: () => _openRulesUrl(productFileUrl),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.table_chart_outlined,
+                      size: 16,
+                      color: Colors.green.shade700,
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        'View Product Excel',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.green.shade700,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: theme.textTheme.bodySmall?.color,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'No product file uploaded',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.textTheme.bodySmall?.color,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+      ],
+    );
+  }
+
 
   void _showDeleteConfirmation(BuildContext context, String id) {
     showDialog(

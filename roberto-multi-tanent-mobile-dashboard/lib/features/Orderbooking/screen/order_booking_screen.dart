@@ -349,6 +349,15 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       listener: (context, state) {
         if (state is BookingActionSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message, style: TextStyle(color: Colors.white)), backgroundColor: Colors.green));
+          // Re-fetch with current screen filters so table is always up-to-date
+          context.read<BookingBloc>().add(GetBookings(
+            branchId: _getBranchId(),
+            status: _selectedStatus == 'All status' ? '' : _selectedStatus,
+            country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
+            productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
+            search: _searchQuery,
+            page: _currentPage,
+          ));
         } else if (state is BookingError) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message, style: TextStyle(color: Colors.white)), backgroundColor: Colors.red));
         }
@@ -1167,7 +1176,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
               _buildIconBtn(
                   icon: Icons.delete_outline,
                   color: Colors.red.shade400,
-                  onTap: () {}),
+                  onTap: () => _showDeleteConfirmDialog(order)),
             ],
           ),
         ],
@@ -1299,10 +1308,10 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
         ),
         const SizedBox(width: 4),
         InkWell(
-          onTap: () {},
+          onTap: () => _showDeleteConfirmDialog(order),
           borderRadius: BorderRadius.circular(6),
           child: const Padding(
-            padding: const EdgeInsets.all(4),
+            padding: EdgeInsets.all(4),
             child: Icon(Icons.delete_outline,
                 size: 16, color: Colors.red),
           ),
@@ -1925,7 +1934,6 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
 
 
   void _updateOrderStatus(String orderId, OrderStatus newStatus) {
-    // Determine string status
     String statusStr = 'PENDING';
     if (newStatus == OrderStatus.confirmed) {
       statusStr = 'CONFIRMED';
@@ -1936,8 +1944,47 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     } else if (newStatus == OrderStatus.cancelled) {
       statusStr = 'CANCELLED';
     }
-    
     context.read<BookingBloc>().add(UpdateBooking(id: orderId, payload: {'status': statusStr}, branchId: _getBranchId()));
+  }
+
+  void _showDeleteConfirmDialog(OrderMod order) {
+    final theme = Theme.of(context);
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: theme.cardTheme.color,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 24),
+            const SizedBox(width: 10),
+            Text('Delete Booking', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface)),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete this booking for "${order.customerName}"? This action cannot be undone.',
+          style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Cancel', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              context.read<BookingBloc>().add(DeleteBooking(id: order.orderId, branchId: _getBranchId()));
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
   }
 
   String? _getBusinessType() {
