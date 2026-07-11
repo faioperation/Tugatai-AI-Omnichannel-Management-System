@@ -180,8 +180,15 @@ async def create_agent(
         "lead_status": {"type": "string", "description": "The status of the lead, e.g., scheduled, ordered, escalated, abandoned."},
         "call_summary": {"type": "string", "description": "A brief 1-2 sentence summary of what the customer wanted and the outcome."},
         "customer_name": {"type": "string", "description": "The full name of the customer."},
-        "customer_phone": {"type": "string", "description": "The phone number of the customer."}
+        "customer_phone": {"type": "string", "description": "The phone number of the customer."},
+        "booking_confirmation": {"type": "boolean", "description": "True if a booking, order, or service was successfully confirmed during the call, otherwise False."}
     }
+    
+    # Conditionally add package details for cargo/delivery agents
+    if used_business_type == "cargo":
+        schema_properties["package_name"] = {"type": "string", "description": "The name or description of the package to be delivered."}
+        schema_properties["package_type"] = {"type": "string", "description": "The type or category of the package."}
+        schema_properties["weight_kg"] = {"type": "number", "description": "The estimated weight of the package in kilograms."}
     
     if isinstance(dynamic_fields, dict):
         for field_name, field_desc in dynamic_fields.items():

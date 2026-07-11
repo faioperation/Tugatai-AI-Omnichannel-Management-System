@@ -182,21 +182,6 @@ def _tool_params(tool_name: str) -> tuple[str, dict]:
     """
     n = tool_name.lower()
 
-    if any(w in n for w in ["quote", "price", "estimate", "rate"]):
-        return (
-            "Calculate a price quote based on the customer's requirements.",
-            {
-                "type": "object",
-                "properties": {
-                    "destination":  {"type": "string",  "description": "Destination city or country."},
-                    "items":        {"type": "string",  "description": "Description of items or services."},
-                    "weight_kg":    {"type": "number",  "description": "Weight in kg (if applicable)."},
-                    "mode":         {"type": "string",  "description": "Service mode or tier (e.g. sea, air, standard)."},
-                },
-                "required": ["items"],
-            }
-        )
-
     if any(w in n for w in ["booking", "book", "reserve", "reservation", "order", "purchase",
                               "enroll", "consultation", "schedule", "appointment", "viewing", "process"]):
         return (
@@ -209,6 +194,9 @@ def _tool_params(tool_name: str) -> tuple[str, dict]:
                     "details":        {"type": "string", "description": "What is being booked or ordered."},
                     "address":        {"type": "string", "description": "Delivery, pickup, or meeting address."},
                     "datetime":       {"type": "string", "description": "Preferred date and time."},
+                    "package_name":   {"type": "string", "description": "The name or description of the package (if applicable)."},
+                    "package_type":   {"type": "string", "description": "The type or category of the package (if applicable)."},
+                    "weight_kg":      {"type": "number", "description": "The estimated weight of the package in kilograms (if applicable)."},
                 },
                 "required": ["customer_name", "customer_phone"],
             }
