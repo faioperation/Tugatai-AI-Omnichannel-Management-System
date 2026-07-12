@@ -34,6 +34,7 @@ def make_collect_lead(branch_id: str = None, channel: str = None, conversation_i
         status: str = "warm",
         email: str = None,
         address: str = None,
+        product_type: str = None,
         extra_fields: dict = None
     ) -> str:
         """
@@ -58,6 +59,11 @@ def make_collect_lead(branch_id: str = None, channel: str = None, conversation_i
           Default is "warm" if you are unsure.
         - email: Customer email if provided (optional)
         - address: Customer address if provided (optional)
+        - product_type: The product/item/service the customer is asking about,
+          if known at this point (e.g. "Refrigerator", "Laptop", "Cargo Shipment",
+          "Consultation Appointment"). Include this whenever you can tell what
+          the customer wants — don't leave it out just because they haven't
+          confirmed a booking yet.
         - extra_fields: A dict of ANY other useful info you learned about the
           customer that does not fit the named fields above. The backend stores
           these automatically as custom metadata. Use clear camelCase keys, e.g.
@@ -106,6 +112,8 @@ def make_collect_lead(branch_id: str = None, channel: str = None, conversation_i
             payload["email"] = email
         if address:
             payload["address"] = address
+        if product_type:
+            payload["productType"] = product_type
 
         # --- Dynamic / custom fields (never overwrite standard keys) ---
         if extra_fields:

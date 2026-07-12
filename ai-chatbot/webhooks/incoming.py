@@ -17,7 +17,7 @@ async def handle_incoming(payload: dict):
     key = f"{business_id}:{recipient_id}"
     if key in paused_conversations:
         print(f"[HANDOFF] AI paused for {key} — human agent handling")
-        return None
+        return {"response": None, "continue_ai": False}
 
     response = await run_agent(
         business_id=business_id,

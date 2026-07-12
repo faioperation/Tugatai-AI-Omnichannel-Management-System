@@ -292,11 +292,17 @@ async def run_agent(
     # ── Step 8: Run LangGraph ReAct agent ────────────────────────────
     # channel is passed so collect_lead can map it to the correct source
 
+    # Fresh per-request state — flipped to True inside handoff_human.py if
+    # the LLM calls that tool this turn. Checked after the agent finishes to
+    # decide whether to tell the backend "continueAi": false.
+    handoff_state = {"triggered": False, "reason": None}
+
     tools = get_all_tools(
         business_id=business_id,
         branch_id=branch_id,
         channel=channel,
-        conversation_id=conversation_id
+        conversation_id=conversation_id,
+        handoff_state=handoff_state,
     )
 
     agent = create_react_agent(
@@ -336,12 +342,17 @@ async def run_agent(
         save_conversation_id(business_id, recipient_id, conversation_id)
 
     # ── Step 13: Send response to correct channel ─────────────────────
+    # continue_ai is False whenever handoff_human was called this turn — the
+    # backend uses this to decide whether AI should keep replying, or a
+    # human should take over from here.
+    continue_ai = not handoff_state["triggered"]
+
     # Re-check pause state — it may have changed while the agent was processing
     from webhooks.incoming import paused_conversations as _paused
     _pause_key = f"{business_id}:{recipient_id}"
     if _pause_key in _paused:
         print(f"[HANDOFF] AI paused mid-processing for {_pause_key} — response suppressed")
-        return ai_response
+        return {"response": ai_response, "continue_ai": False}
 
     await send_response(
         channel=channel,
@@ -352,5 +363,8 @@ async def run_agent(
         branch_id=branch_id
     )
 
+    if handoff_state["triggered"]:
+        print(f"[HANDOFF] AI escalating to human — reason: {handoff_state['reason']}")
+
     # ── Step 14: Return response ──────────────────────────────────────
-    return ai_response
+    return {"response": ai_response, "continue_ai": continue_ai}
