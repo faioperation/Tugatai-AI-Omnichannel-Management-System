@@ -344,7 +344,11 @@ async def run_agent(
     # ── Step 13: Send response to correct channel ─────────────────────
     # continue_ai is False whenever handoff_human was called this turn — the
     # backend uses this to decide whether AI should keep replying, or a
-    # human should take over from here.
+    # human should take over from here. This flag MUST travel with the
+    # actual outgoing send call (not just the /api/agent/message HTTP
+    # response below), because the send call is what creates the persisted
+    # outgoing message record on the backend — without it, the backend has
+    # no way to know THIS specific message was the handoff message.
     continue_ai = not handoff_state["triggered"]
 
     # Re-check pause state — it may have changed while the agent was processing
@@ -360,7 +364,8 @@ async def run_agent(
         recipient_id=recipient_id,
         conversation_id=conversation_id,
         message=ai_response,
-        branch_id=branch_id
+        branch_id=branch_id,
+        continue_ai=continue_ai
     )
 
     if handoff_state["triggered"]:
