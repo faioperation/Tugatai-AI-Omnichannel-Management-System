@@ -72,6 +72,7 @@ export const handleVapiWebhook = async (req, res, next) => {
             type: "VOICE_CALL",
             businessId: agent.businessId,
             branchId: agent.branchId || null,
+            bookingId: booking.id,
           }).catch(err => console.error("Error sending Voice Call booking notification:", err));
 
           // Create CRM Lead

@@ -72,6 +72,8 @@ const createBookingService = async (payload) => {
         type: businessType,
         businessId: result.businessId,
         branchId: result.branchId || null,
+        bookingId: result.id,
+        conversationId: result.conversationId || null,
     }).catch(err => console.error("Error sending booking creation notification:", err));
 
     // Sync to Google Calendar for all booking categories
@@ -292,6 +294,8 @@ const updateBookingService = async (businessId, id, payload) => {
             type: `${businessType}_DELIVERY`,
             businessId: result.businessId,
             branchId: result.branchId || null,
+            bookingId: result.id,
+            conversationId: result.conversationId || null,
         }).catch(err => console.error("Error sending booking delivery notification:", err));
     }
 
