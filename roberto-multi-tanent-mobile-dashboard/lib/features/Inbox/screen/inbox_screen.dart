@@ -36,6 +36,32 @@ class _InboxScreenState extends State<InboxScreen> {
   Timer? _messagePollTimer;
   Timer? _conversationsPollTimer;
   bool _isAiOn = true;
+  final Set<String> _resumedAiConversationIds = {};
+
+  List<ConversationMod> _mapConversationsWithOverrides(List<ConversationMod> list) {
+    return list.map((c) {
+      if (_resumedAiConversationIds.contains(c.id)) {
+        return ConversationMod(
+          id: c.id,
+          businessId: c.businessId,
+          branchId: c.branchId,
+          platform: c.platform,
+          customerId: c.customerId,
+          customerName: c.customerName,
+          customerPhone: c.customerPhone,
+          lastMessage: c.lastMessage,
+          lastMessageAt: c.lastMessageAt,
+          lastMessageDirection: c.lastMessageDirection,
+          unreadCount: c.unreadCount,
+          aiReply: c.aiReply,
+          continueAi: true,
+          seen: c.seen,
+          chatSummary: c.chatSummary,
+        );
+      }
+      return c;
+    }).toList();
+  }
 
   @override
   void initState() {
@@ -73,7 +99,7 @@ class _InboxScreenState extends State<InboxScreen> {
 
       if (res['success'] == true && mounted) {
         setState(() {
-          _conversations = res['conversations'] as List<ConversationMod>;
+          _conversations = _mapConversationsWithOverrides(res['conversations'] as List<ConversationMod>);
           _conversationsLoading = false;
           
           if (_selectedConversation != null) {
@@ -143,7 +169,7 @@ class _InboxScreenState extends State<InboxScreen> {
 
       if (res['success'] == true && mounted) {
         setState(() {
-          _conversations = res['conversations'] as List<ConversationMod>;
+          _conversations = _mapConversationsWithOverrides(res['conversations'] as List<ConversationMod>);
           
           if (_selectedConversation != null) {
             final match = _conversations.where((c) => c.id == _selectedConversation!.id);
@@ -261,6 +287,80 @@ class _InboxScreenState extends State<InboxScreen> {
             backgroundColor: Colors.red,
           ),
         );
+      }
+    }
+  }
+
+  Future<void> _handleHelpMe(String? conversationId) async {
+    if (conversationId == null) return;
+    setState(() {
+      _resumedAiConversationIds.add(conversationId);
+      // Immediately update local state to hide Help me button and red error icon
+      if (_selectedConversation?.id == conversationId) {
+        _selectedConversation = ConversationMod(
+          id: _selectedConversation!.id,
+          businessId: _selectedConversation!.businessId,
+          branchId: _selectedConversation!.branchId,
+          platform: _selectedConversation!.platform,
+          customerId: _selectedConversation!.customerId,
+          customerName: _selectedConversation!.customerName,
+          customerPhone: _selectedConversation!.customerPhone,
+          lastMessage: _selectedConversation!.lastMessage,
+          lastMessageAt: _selectedConversation!.lastMessageAt,
+          lastMessageDirection: _selectedConversation!.lastMessageDirection,
+          unreadCount: _selectedConversation!.unreadCount,
+          aiReply: _selectedConversation!.aiReply,
+          continueAi: true,
+          seen: _selectedConversation!.seen,
+          chatSummary: _selectedConversation!.chatSummary,
+        );
+      }
+      final idx = _conversations.indexWhere((c) => c.id == conversationId);
+      if (idx != -1) {
+        final old = _conversations[idx];
+        _conversations[idx] = ConversationMod(
+          id: old.id,
+          businessId: old.businessId,
+          branchId: old.branchId,
+          platform: old.platform,
+          customerId: old.customerId,
+          customerName: old.customerName,
+          customerPhone: old.customerPhone,
+          lastMessage: old.lastMessage,
+          lastMessageAt: old.lastMessageAt,
+          lastMessageDirection: old.lastMessageDirection,
+          unreadCount: old.unreadCount,
+          aiReply: old.aiReply,
+          continueAi: true,
+          seen: old.seen,
+          chatSummary: old.chatSummary,
+        );
+      }
+    });
+
+    try {
+      final inboxRepo = context.read<InboxRepository>();
+      final res = await inboxRepo.continueAi(conversationId);
+      if (res['success'] == true && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("AI replies resumed successfully"),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _fetchConversations();
+      } else if (mounted) {
+        setState(() {
+          _resumedAiConversationIds.remove(conversationId);
+        });
+        _fetchConversations();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _resumedAiConversationIds.remove(conversationId);
+        });
+        _fetchConversations();
       }
     }
   }
@@ -560,6 +660,7 @@ class _InboxScreenState extends State<InboxScreen> {
                               onSendImage: _sendImageMessage,
                               isAiOn: _isAiOn,
                               onToggleAi: _toggleChatbot,
+                              onHelpMe: () => _handleHelpMe(_selectedConversation?.id),
                             )),
                             const VerticalDivider(width: 1, thickness: 1),
                             Expanded(flex: 3, child: ChatDetails(
@@ -601,6 +702,7 @@ class _InboxScreenState extends State<InboxScreen> {
                                   onSendImage: _sendImageMessage,
                                   isAiOn: _isAiOn,
                                   onToggleAi: _toggleChatbot,
+                                  onHelpMe: () => _handleHelpMe(_selectedConversation?.id),
                                 )),
                               ],
                             )
@@ -645,6 +747,7 @@ class _InboxScreenState extends State<InboxScreen> {
                                       onSendImage: _sendImageMessage,
                                       isAiOn: _isAiOn,
                                       onToggleAi: _toggleChatbot,
+                                      onHelpMe: () => _handleHelpMe(_selectedConversation?.id),
                                     ),
                                   ),
                               ],

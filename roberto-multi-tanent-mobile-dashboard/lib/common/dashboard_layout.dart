@@ -279,10 +279,12 @@ class _DashboardShellState extends State<DashboardShell> {
                     RepaintBoundary(child: _buildTopBar(context)),
                     Expanded(
                       child: RepaintBoundary(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(24.0),
-                          child: _buildContent(context),
-                        ),
+                        child: _activeItem == 'Inbox'
+                            ? _buildContent(context)
+                            : SingleChildScrollView(
+                                padding: const EdgeInsets.all(24.0),
+                                child: _buildContent(context),
+                              ),
                       ),
                     ),
                   ],

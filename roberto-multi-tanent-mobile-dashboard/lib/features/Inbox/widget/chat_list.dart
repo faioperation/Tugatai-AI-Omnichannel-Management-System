@@ -221,6 +221,17 @@ class ChatList extends StatelessWidget {
                 ],
               ),
             ),
+            if (!conv.continueAi) ...[
+              const SizedBox(width: 8),
+              const Tooltip(
+                message: 'AI reply paused - needs human attention',
+                child: Icon(
+                  Icons.error,
+                  color: Color(0xFFB71C1C),
+                  size: 25,
+                ),
+              ),
+            ],
           ],
         ),
       ),

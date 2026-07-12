@@ -19,6 +19,7 @@ class ChatView extends StatefulWidget {
   final Function(String path, List<int> bytes, String name) onSendImage;
   final bool isAiOn;
   final ValueChanged<bool> onToggleAi;
+  final VoidCallback? onHelpMe;
 
   const ChatView({
     super.key,
@@ -30,6 +31,7 @@ class ChatView extends StatefulWidget {
     required this.onSendImage,
     required this.isAiOn,
     required this.onToggleAi,
+    this.onHelpMe,
   });
 
   @override
@@ -160,6 +162,13 @@ class _ChatViewState extends State<ChatView> {
                 ),
 
                 const SizedBox(width: 6),
+
+                if (conv.continueAi == false) ...[
+                  _AnimatingHelpMeButton(
+                    onPressed: widget.onHelpMe,
+                  ),
+                  const SizedBox(width: 8),
+                ],
 
                 Transform.scale(
                   scale: 0.75,
@@ -540,6 +549,70 @@ class _ChatViewState extends State<ChatView> {
             style: const TextStyle(fontSize: 10, color: Colors.grey),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AnimatingHelpMeButton extends StatefulWidget {
+  final VoidCallback? onPressed;
+  const _AnimatingHelpMeButton({Key? key, this.onPressed}) : super(key: key);
+
+  @override
+  State<_AnimatingHelpMeButton> createState() => _AnimatingHelpMeButtonState();
+}
+
+class _AnimatingHelpMeButtonState extends State<_AnimatingHelpMeButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.96, end: 1.06).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _animation,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: ElevatedButton.icon(
+          onPressed: widget.onPressed,
+          icon: const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.white),
+          label: const Text(
+            'Help me',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFD32F2F),
+            foregroundColor: Colors.white,
+            elevation: 2,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            minimumSize: const Size(110, 40),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+        ),
       ),
     );
   }

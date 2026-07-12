@@ -45,4 +45,22 @@ export const AllConversationsController = {
       next(error);
     }
   },
+
+  updateContinueAi: async (req, res, next) => {
+    try {
+      const { conversationId } = req.params;
+      const continueAi = req.body.continueAi !== undefined ? req.body.continueAi : true;
+
+      const updatedConversation = await AllConversationsService.updateContinueAi(conversationId, continueAi);
+
+      sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Conversation continue AI status updated successfully",
+        data: updatedConversation,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

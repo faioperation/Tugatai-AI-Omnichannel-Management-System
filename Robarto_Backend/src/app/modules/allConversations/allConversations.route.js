@@ -17,3 +17,10 @@ AllConversationsRoutes.patch(
   checkAuthMiddleware(),
   AllConversationsController.updateSeenStatus
 );
+
+// Protected endpoint to update continue AI status for any conversation type
+AllConversationsRoutes.patch(
+  "/:conversationId/continue-ai",
+  checkAuthMiddleware(),
+  AllConversationsController.updateContinueAi
+);

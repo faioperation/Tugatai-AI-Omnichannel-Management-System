@@ -148,4 +148,32 @@ export const AllConversationsService = {
 
     throw new Error("Conversation not found");
   },
+
+  updateContinueAi: async (conversationId, continueAi) => {
+    // 1. Try updating in standard Conversation table
+    const standardExists = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
+
+    if (standardExists) {
+      return await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { continueAi },
+      });
+    }
+
+    // 2. Try updating in WhatsappConversation table
+    const whatsappExists = await prisma.whatsappConversation.findUnique({
+      where: { id: conversationId },
+    });
+
+    if (whatsappExists) {
+      return await prisma.whatsappConversation.update({
+        where: { id: conversationId },
+        data: { continueAi },
+      });
+    }
+
+    throw new Error("Conversation not found");
+  },
 };

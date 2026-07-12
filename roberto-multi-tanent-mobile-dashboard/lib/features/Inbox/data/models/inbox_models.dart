@@ -13,6 +13,7 @@ class ConversationMod {
   final String lastMessageDirection; // 'INCOMING' | 'OUTGOING' | ''
   final int unreadCount;
   final bool aiReply;
+  final bool continueAi;
   final bool seen;
   final ChatSummaryMod? chatSummary;
 
@@ -29,6 +30,7 @@ class ConversationMod {
     this.lastMessageDirection = '',
     required this.unreadCount,
     required this.aiReply,
+    this.continueAi = true,
     this.seen = false,
     this.chatSummary,
   });
@@ -101,6 +103,7 @@ class ConversationMod {
       lastMessageDirection: parsedLastMessageDirection,
       unreadCount: json['unreadCount'] ?? 0,
       aiReply: json['aiReply'] ?? false,
+      continueAi: json['continueAi'] ?? true,
       seen: json['seen'] ?? false,
       chatSummary: json['chatSummary'] != null ? ChatSummaryMod.fromJson(json['chatSummary']) : null,
     );
