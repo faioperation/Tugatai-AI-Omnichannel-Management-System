@@ -18,13 +18,22 @@ async def send_whatsapp(
     recipient_id: str,
     conversation_id: str,
     message: str,
-    branch_id: str = None
+    branch_id: str = None,
+    continue_ai: bool = True
 ):
     payload = {
         "businessId": business_id,
         "conversationId": conversation_id,
         "recipientId": recipient_id,
         "message": message,
+        # NOTE: without this, the backend stores every OUTGOING message
+        # record with continueAi defaulted to true, even on the exact
+        # message where the agent called handoff_human this turn — so a
+        # human handoff never actually shows up on the message that
+        # triggered it. This must travel with the SEND call, not just the
+        # /api/agent/message HTTP response, because the send call is what
+        # creates the persisted outgoing message record on the backend.
+        "continueAi": continue_ai,
     }
     if branch_id:
         payload["branchId"] = branch_id
