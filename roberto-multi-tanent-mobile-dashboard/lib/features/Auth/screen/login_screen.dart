@@ -111,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 5),
                     Center(
                       child: Text(
-                        "Secure access to Matrix Ai platform",
+                        "Secure access to Omnirra AI platform",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,

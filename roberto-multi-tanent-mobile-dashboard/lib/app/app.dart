@@ -215,9 +215,9 @@ class Roberto extends StatelessWidget {
                 ),
               ),
             ],
-            child: MaterialApp(
-              navigatorKey: navigatorKey,
-              title: "MATRIX AI",
+              child: MaterialApp(
+                navigatorKey: navigatorKey,
+                title: "OMNIRRA AI",
               debugShowCheckedModeBanner: false,
               theme: AppTheme.lightTheme,
               darkTheme: AppTheme.darkTheme,

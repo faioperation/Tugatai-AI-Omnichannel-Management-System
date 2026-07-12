@@ -54,6 +54,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
   late TextEditingController _paymentMethodCtrl;
   late TextEditingController _transactionIdCtrl;
   String _paymentStatus = 'PENDING';
+  String _orderStatus = 'PENDING';
 
   // Extra/Custom key-value fields
   List<MapEntry<TextEditingController, TextEditingController>> _customFields = [];
@@ -110,6 +111,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
     _paymentMethodCtrl = TextEditingController(text: o?.paymentMethod ?? 'Cash on Delivery');
     _transactionIdCtrl = TextEditingController(text: o?.transactionId ?? '');
     _paymentStatus = o?.paymentStatus ?? 'PENDING';
+    _orderStatus = o?.status.name.toUpperCase() ?? 'PENDING';
 
     // Parse dynamic custom fields
     final predefinedKeys = {
@@ -217,7 +219,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
         'email': _emailCtrl.text.trim(),
         'price': _priceCtrl.text.trim(),
         'note': _noteCtrl.text.trim(),
-        'status': widget.order?.status.name.toUpperCase() ?? 'PENDING',
+        'status': _orderStatus,
         'country': _countryCtrl.text.trim(),
         'paymentMethod': _paymentMethodCtrl.text.trim(),
         'paymentStatus': _paymentStatus,
@@ -603,6 +605,33 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                Text('Order Status', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                                const SizedBox(height: 8),
+                                DropdownButtonFormField<String>(
+                                  value: _orderStatus,
+                                  isExpanded: true,
+                                  decoration: InputDecoration(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.1))),
+                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.1))),
+                                  ),
+                                  items: ['PENDING', 'CONFIRMED', 'COMPLETED', 'DELIVERED', 'CANCELLED']
+                                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                                      .toList(),
+                                  onChanged: (v) => setState(() => _orderStatus = v!),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                                 Text('Payment Status', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
                                 DropdownButtonFormField<String>(
@@ -621,11 +650,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               ],
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
+                          const SizedBox(width: 16),
                           Expanded(child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -634,7 +659,11 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               CustomTextfield(validator: (v) => null, controller: _paymentMethodCtrl, hintText: 'Bkash / Stripe / Cash'),
                             ],
                           )),
-                          const SizedBox(width: 16),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
                           Expanded(child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
