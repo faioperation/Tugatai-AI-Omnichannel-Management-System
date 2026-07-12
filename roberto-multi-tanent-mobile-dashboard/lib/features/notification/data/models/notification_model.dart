@@ -5,6 +5,8 @@ class NotificationModel {
   final String type;
   final bool isRead;
   final String createdAt;
+  final String? conversationId;
+  final String? bookingId;
 
   NotificationModel({
     required this.id,
@@ -13,6 +15,8 @@ class NotificationModel {
     required this.type,
     required this.isRead,
     required this.createdAt,
+    this.conversationId,
+    this.bookingId,
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
@@ -23,6 +27,8 @@ class NotificationModel {
       type: json['type'] ?? '',
       isRead: json['isRead'] ?? false,
       createdAt: json['createdAt'] ?? '',
+      conversationId: json['conversationId'],
+      bookingId: json['bookingId'],
     );
   }
 
@@ -33,6 +39,8 @@ class NotificationModel {
     String? type,
     bool? isRead,
     String? createdAt,
+    String? conversationId,
+    String? bookingId,
   }) {
     return NotificationModel(
       id: id ?? this.id,
@@ -41,6 +49,8 @@ class NotificationModel {
       type: type ?? this.type,
       isRead: isRead ?? this.isRead,
       createdAt: createdAt ?? this.createdAt,
+      conversationId: conversationId ?? this.conversationId,
+      bookingId: bookingId ?? this.bookingId,
     );
   }
 }

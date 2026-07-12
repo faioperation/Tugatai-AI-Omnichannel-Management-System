@@ -367,7 +367,9 @@ class _DashboardShellState extends State<DashboardShell> {
         );
 
       case 'Notifications':
-        return const NotificationScreen();
+        return NotificationScreen(
+          onNavigate: _selectItem,
+        );
 
       case 'Demo Bookings':
         return const DemoBookingScreen();
