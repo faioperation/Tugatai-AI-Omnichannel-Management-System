@@ -7,7 +7,8 @@ import 'package:roberto/features/notification/bloc/notification_event.dart';
 import 'package:roberto/features/notification/bloc/notification_state.dart';
 
 class NotificationScreen extends StatefulWidget {
-  const NotificationScreen({super.key});
+  final void Function(String, {String? targetPhone, String? conversationId})? onNavigate;
+  const NotificationScreen({super.key, this.onNavigate});
 
   @override
   State<NotificationScreen> createState() => _NotificationScreenState();
@@ -136,11 +137,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     subtitle: n.message,
                     time: _formatTime(n.createdAt),
                     showDot: !n.isRead,
-                    onTap: n.isRead
-                        ? null
-                        : () {
-                            context.read<NotificationBloc>().add(MarkNotificationAsRead(notificationId: n.id));
-                          },
+                    onTap: () {
+                      if (!n.isRead) {
+                        context.read<NotificationBloc>().add(MarkNotificationAsRead(notificationId: n.id));
+                      }
+                      if (n.conversationId != null && n.conversationId!.isNotEmpty) {
+                        widget.onNavigate?.call('Inbox', conversationId: n.conversationId);
+                      } else if (n.bookingId != null && n.bookingId!.isNotEmpty) {
+                        widget.onNavigate?.call('Order Booking');
+                      }
+                    },
                   );
                 }),
             ],

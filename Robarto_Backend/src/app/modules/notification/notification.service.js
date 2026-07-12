@@ -102,13 +102,22 @@ const createAndSendNotification = async ({
 
     // Send push notification via FCM if Firebase is initialized
     try {
+      // Retrieve FCM tokens ordered by latest update
       const tokens = await prisma.fCMToken.findMany({
         where: { userId: { in: Array.from(recipients) } },
-        select: { token: true }
+        orderBy: { updatedAt: "desc" },
       });
 
       if (tokens.length > 0) {
-        const registrationTokens = tokens.map(t => t.token);
+        // Keep only the single latest token per userId + deviceType combination to avoid duplicates on stale browser sessions
+        const uniqueUserTokensMap = new Map();
+        for (const t of tokens) {
+          const key = `${t.userId}_${t.deviceType}`;
+          if (!uniqueUserTokensMap.has(key)) {
+            uniqueUserTokensMap.set(key, t.token);
+          }
+        }
+        const registrationTokens = Array.from(uniqueUserTokensMap.values());
         const messagePayload = {
           notification: {
             title,
