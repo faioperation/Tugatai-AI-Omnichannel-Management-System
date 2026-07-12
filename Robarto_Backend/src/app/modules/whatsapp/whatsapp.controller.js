@@ -102,7 +102,12 @@ export const WhatsappController = {
       const data = await WhatsappService.sendTextMessage(businessId, conversationId, message, continueAi);
       res.json({ success: true, data });
     } catch (error) {
-      res.status(500).json({ success: false, message: error.message });
+      const errorMsg = error.response?.data?.error?.message || error.message;
+      res.status(error.response?.status || 500).json({ 
+        success: false, 
+        message: errorMsg,
+        details: error.response?.data || null
+      });
     }
   },
 
@@ -127,7 +132,12 @@ export const WhatsappController = {
       const data = await WhatsappService.sendMediaMessage(businessId, conversationId, type, finalUrl);
       res.json({ success: true, data });
     } catch (error) {
-      res.status(500).json({ success: false, message: error.message });
+      const errorMsg = error.response?.data?.error?.message || error.message;
+      res.status(error.response?.status || 500).json({ 
+        success: false, 
+        message: errorMsg,
+        details: error.response?.data || null
+      });
     }
   },
 

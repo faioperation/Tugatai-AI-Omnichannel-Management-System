@@ -149,7 +149,7 @@ export const AllConversationsService = {
     throw new Error("Conversation not found");
   },
 
-  updateContinueAi: async (conversationId, continueAi) => {
+  updateContinueAiStatus: async (conversationId, continueAi) => {
     // 1. Try updating in standard Conversation table
     const standardExists = await prisma.conversation.findUnique({
       where: { id: conversationId },

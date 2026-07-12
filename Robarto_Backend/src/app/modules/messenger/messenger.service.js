@@ -255,7 +255,8 @@ export const sendMessageToUser = async (businessId, recipientId, messageText, se
     return response.data;
   } catch (error) {
     console.error("Error sending message via Messenger API:", error.response?.data || error.message);
-    throw new AppError(500, "Failed to send message via Facebook Messenger API.");
+    const errorMsg = error.response?.data?.error?.message || "Failed to send message via Facebook Messenger API.";
+    throw new AppError(error.response?.status || 500, errorMsg);
   }
 };
 
@@ -329,7 +330,8 @@ export const sendMediaMessageToUser = async (businessId, recipientId, type, medi
     return response.data;
   } catch (error) {
     console.error("Error sending media via Messenger API:", error.response?.data || error.message);
-    throw new AppError(500, "Failed to send media via Facebook Messenger API.");
+    const errorMsg = error.response?.data?.error?.message || "Failed to send media via Facebook Messenger API.";
+    throw new AppError(error.response?.status || 500, errorMsg);
   }
 };
 
