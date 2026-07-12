@@ -141,6 +141,8 @@ export const createBooking = async (req, res, next) => {
       type: businessType,
       businessId: result.businessId,
       branchId: result.branchId || null,
+      bookingId: result.id,
+      conversationId: result.conversationId || null,
     }).catch(err => console.error("Error sending Public API booking notification:", err));
 
     if (businessType === "APPOINTMENT_BOOKING") {

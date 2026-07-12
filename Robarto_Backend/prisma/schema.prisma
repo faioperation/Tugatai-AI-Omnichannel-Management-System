@@ -982,6 +982,7 @@ model Notification {
   userId         String?   @map("user_id")
   isRead         Boolean   @default(false) @map("is_read")
   conversationId String?   @map("conversation_id")
+  bookingId      String?   @map("booking_id")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 

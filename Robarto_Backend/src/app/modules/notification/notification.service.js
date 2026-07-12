@@ -14,6 +14,7 @@ const createAndSendNotification = async ({
   branchId = null,
   userId = null, // specific recipient (optional)
   conversationId = null,
+  bookingId = null,
 }) => {
   try {
     const recipients = new Set();
@@ -91,6 +92,7 @@ const createAndSendNotification = async ({
           branchId,
           userId: uid,
           conversationId,
+          bookingId,
           isRead: false
         }
       })
@@ -116,6 +118,8 @@ const createAndSendNotification = async ({
             type: String(type || ""),
             businessId: String(businessId || ""),
             branchId: String(branchId || ""),
+            conversationId: String(conversationId || ""),
+            bookingId: String(bookingId || ""),
           },
           tokens: registrationTokens,
         };
