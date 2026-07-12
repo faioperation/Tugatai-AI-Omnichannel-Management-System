@@ -16,6 +16,8 @@ class BookingRepository {
     String? branchId,
     String country = '',
     String productType = '',
+    String startDate = '',
+    String endDate = '',
   }) async {
     try {
       final queryParams = {
@@ -26,6 +28,8 @@ class BookingRepository {
         if (branchId != null) 'branchId': branchId,
         if (country.isNotEmpty && country != 'All countries') 'country': country,
         if (productType.isNotEmpty && productType != 'All types') 'productType': productType,
+        if (startDate.isNotEmpty) 'startDate': startDate,
+        if (endDate.isNotEmpty) 'endDate': endDate,
       };
 
       final queryString = Uri(queryParameters: queryParams).query;
