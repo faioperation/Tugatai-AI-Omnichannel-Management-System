@@ -29,6 +29,8 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         branchId: event.branchId,
         country: event.country,
         productType: event.productType,
+        startDate: event.startDate,
+        endDate: event.endDate,
       );
 
       if (response['success'] == true) {
@@ -65,6 +67,8 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
       status: last?.status ?? '',
       country: last?.country ?? '',
       productType: last?.productType ?? '',
+      startDate: last?.startDate ?? '',
+      endDate: last?.endDate ?? '',
     ));
   }
 

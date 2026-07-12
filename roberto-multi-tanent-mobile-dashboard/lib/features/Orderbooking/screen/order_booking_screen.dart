@@ -209,7 +209,22 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   void didUpdateWidget(covariant OrderBookingScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.branchId != widget.branchId) {
-      context.read<BookingBloc>().add(GetBookings(branchId: widget.branchId ?? ''));
+      setState(() {
+        _selectedTime = 'All time';
+        _selectedStatus = 'All status';
+        _selectedCountry = 'All countries';
+        _selectedProductType = 'All types';
+        _searchQuery = '';
+        _currentPage = 1;
+      });
+      context.read<BookingBloc>().add(GetBookings(
+        branchId: widget.branchId ?? '',
+        status: '',
+        country: '',
+        productType: '',
+        startDate: '',
+        endDate: '',
+      ));
       _checkGoogleCalendarStatus();
       _loadCountries();
       _loadProductTypes();
@@ -236,6 +251,41 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       }
     } catch (e) {
       debugPrint('Failed to fetch google calendar events: $e');
+    }
+  }
+
+  Map<String, String> _getDateRange(String timeFilter) {
+    final now = DateTime.now();
+    switch (timeFilter) {
+      case 'Today':
+        final todayStart = DateTime(now.year, now.month, now.day);
+        final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+        return {
+          'startDate': todayStart.toUtc().toIso8601String(),
+          'endDate': todayEnd.toUtc().toIso8601String(),
+        };
+      case 'This week':
+        final monday = now.subtract(Duration(days: now.weekday - 1));
+        final weekStart = DateTime(monday.year, monday.month, monday.day);
+        final sunday = monday.add(const Duration(days: 6));
+        final weekEnd = DateTime(sunday.year, sunday.month, sunday.day, 23, 59, 59, 999);
+        return {
+          'startDate': weekStart.toUtc().toIso8601String(),
+          'endDate': weekEnd.toUtc().toIso8601String(),
+        };
+      case 'This month':
+        final monthStart = DateTime(now.year, now.month, 1);
+        final monthEnd = DateTime(now.year, now.month + 1, 0, 23, 59, 59, 999);
+        return {
+          'startDate': monthStart.toUtc().toIso8601String(),
+          'endDate': monthEnd.toUtc().toIso8601String(),
+        };
+      case 'All time':
+      default:
+        return {
+          'startDate': '',
+          'endDate': '',
+        };
     }
   }
 
@@ -350,6 +400,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
         if (state is BookingActionSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message, style: TextStyle(color: Colors.white)), backgroundColor: Colors.green));
           // Re-fetch with current screen filters so table is always up-to-date
+          final range = _getDateRange(_selectedTime);
           context.read<BookingBloc>().add(GetBookings(
             branchId: _getBranchId(),
             status: _selectedStatus == 'All status' ? '' : _selectedStatus,
@@ -357,6 +408,8 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
             productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
             search: _searchQuery,
             page: _currentPage,
+            startDate: range['startDate'] ?? '',
+            endDate: range['endDate'] ?? '',
           ));
         } else if (state is BookingError) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message, style: TextStyle(color: Colors.white)), backgroundColor: Colors.red));
@@ -729,11 +782,14 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
           _selectedStatus = v ?? 'All status';
           _currentPage = 1;
         });
+        final range = _getDateRange(_selectedTime);
         context.read<BookingBloc>().add(GetBookings(
           branchId: _getBranchId(),
           status: v == 'All status' ? '' : (v ?? ''),
           country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
           productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
+          startDate: range['startDate'] ?? '',
+          endDate: range['endDate'] ?? '',
         ));
       },
     );
@@ -754,11 +810,14 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 _selectedCountry = v ?? 'All countries';
                 _currentPage = 1;
               });
+              final range = _getDateRange(_selectedTime);
               context.read<BookingBloc>().add(GetBookings(
                 branchId: _getBranchId(),
                 status: _selectedStatus == 'All status' ? '' : _selectedStatus,
                 country: v == 'All countries' ? '' : (v ?? ''),
                 productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
+                startDate: range['startDate'] ?? '',
+                endDate: range['endDate'] ?? '',
               ));
             },
           );
@@ -779,11 +838,14 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 _selectedProductType = v ?? 'All types';
                 _currentPage = 1;
               });
+              final range = _getDateRange(_selectedTime);
               context.read<BookingBloc>().add(GetBookings(
                 branchId: _getBranchId(),
                 status: _selectedStatus == 'All status' ? '' : _selectedStatus,
                 country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
                 productType: v == 'All types' ? '' : (v ?? ''),
+                startDate: range['startDate'] ?? '',
+                endDate: range['endDate'] ?? '',
               ));
             },
           );
@@ -793,10 +855,22 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       theme: theme,
       isDark: isDark,
       items: ['All time', 'Today', 'This week', 'This month'],
-      onChanged: (v) => setState(() {
-        _selectedTime = v ?? 'All time';
-        _currentPage = 1;
-      }),
+      onChanged: (v) {
+        final timeFilter = v ?? 'All time';
+        setState(() {
+          _selectedTime = timeFilter;
+          _currentPage = 1;
+        });
+        final range = _getDateRange(timeFilter);
+        context.read<BookingBloc>().add(GetBookings(
+          branchId: _getBranchId(),
+          status: _selectedStatus == 'All status' ? '' : _selectedStatus,
+          country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
+          productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
+          startDate: range['startDate'] ?? '',
+          endDate: range['endDate'] ?? '',
+        ));
+      },
     );
 
     Widget content;
