@@ -65,3 +65,20 @@ class DisconnectWhatsApp extends SocialMediaEvent {
   @override
   List<Object> get props => [accountId, branchId];
 }
+
+class ConnectGoogleCalendar extends SocialMediaEvent {
+  final String branchId;
+  const ConnectGoogleCalendar(this.branchId);
+
+  @override
+  List<Object> get props => [branchId];
+}
+
+class DisconnectGoogleCalendar extends SocialMediaEvent {
+  final String branchId;
+  const DisconnectGoogleCalendar(this.branchId);
+
+  @override
+  List<Object> get props => [branchId];
+}
+

@@ -3,27 +3,34 @@ import { z } from "zod";
 const createBusinessSchema = z.object({
     body: z.object({
         businessName: z.string({ required_error: "Business name is required" }),
-        businessType: z.enum(["Retail", "Service", "Manufacturing", "Tech", "Other"]).optional(),
+        businessType: z.string().optional(),
+        industry: z.string().optional(),
         description: z.string().optional(),
         ownerName: z.string().optional(),
-        ownerEmail: z.string().email("Invalid email address").optional(),
+        ownerEmail: z.string().email("Invalid email address").optional().or(z.literal('')),
         ownerPassword: z.string().optional(),
         ownerPhone: z.string().optional(),
         planId: z.string().optional(),
         planCycle: z.enum(["MONTHLY", "YEARLY"]).optional(),
-        status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING"]).optional(),
         createdById: z.string().uuid("Invalid user ID format").optional(),
         credits: z.number().int().optional(),
+        branch: z.object({
+            name: z.string({ required_error: "Branch name is required" }),
+            email: z.string().email("Invalid branch email").optional().or(z.literal('')),
+            phone: z.string().optional(),
+            address: z.string().optional(),
+        }).optional(),
     }),
 });
 
 const updateBusinessSchema = z.object({
     body: z.object({
         businessName: z.string().optional(),
-        businessType: z.enum(["Retail", "Service", "Manufacturing", "Tech", "Other"]).optional(),
+        businessType: z.string().optional(),
+        industry: z.string().optional(),
         description: z.string().optional(),
         ownerName: z.string().optional(),
-        ownerEmail: z.string().email("Invalid email address").optional(),
+        ownerEmail: z.string().email("Invalid email address").optional().or(z.literal('')),
         ownerPassword: z.string().optional(),
         ownerPhone: z.string().optional(),
         planId: z.string().optional(),

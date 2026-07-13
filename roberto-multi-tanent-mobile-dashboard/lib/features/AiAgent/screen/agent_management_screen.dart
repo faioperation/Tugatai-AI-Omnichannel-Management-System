@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -832,6 +833,8 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
                     ),
                     const SizedBox(height: 12),
                     _buildRulesFileButton(theme, agent.rulesFile),
+                    const SizedBox(height: 12),
+                    _buildProductFileButton(theme, agent.productFile),
                   ],
                 ),
               ),
@@ -863,28 +866,47 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
             ),
           ],
           const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton.icon(
-              onPressed: () => _showTwilioSetupDialog(context, agent),
-              icon: const Icon(Icons.phone_in_talk_outlined, size: 16),
-              label: const Text(
-                'Add Twilio Number',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.indigo,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              // Update Excel (productFile) button
+              ElevatedButton.icon(
+                onPressed: () => _showUpdateProductFileDialog(context, agent),
+                icon: const Icon(Icons.table_chart_outlined, size: 16),
+                label: const Text(
+                  'Update Excel',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  elevation: 0,
                 ),
-                elevation: 0,
               ),
-            ),
+              const SizedBox(width: 10),
+              // Add/Update Twilio Number button
+              ElevatedButton.icon(
+                onPressed: () => _showTwilioSetupDialog(context, agent),
+                icon: const Icon(Icons.phone_in_talk_outlined, size: 16),
+                label: const Text(
+                  'Add Twilio Number',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.indigo,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  elevation: 0,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -979,6 +1001,70 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
     );
   }
 
+  Widget _buildProductFileButton(ThemeData theme, String? productFileUrl) {
+    final hasFile = productFileUrl != null && productFileUrl.isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Product File (Excel)',
+          style: TextStyle(
+            fontSize: 12,
+            color: theme.textTheme.bodySmall?.color,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        hasFile
+            ? InkWell(
+                onTap: () => _openRulesUrl(productFileUrl),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.table_chart_outlined,
+                      size: 16,
+                      color: Colors.green.shade700,
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        'View Product Excel',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.green.shade700,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: theme.textTheme.bodySmall?.color,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'No product file uploaded',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.textTheme.bodySmall?.color,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+      ],
+    );
+  }
+
+
   void _showDeleteConfirmation(BuildContext context, String id) {
     showDialog(
       context: context,
@@ -1051,6 +1137,21 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
       },
     );
   }
+
+  void _showUpdateProductFileDialog(BuildContext context, AgentModel agent) {
+    final theme = Theme.of(context);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) {
+        return _UpdateProductFileDialog(
+          theme: theme,
+          agent: agent,
+          blocContext: context,
+        );
+      },
+    );
+  }
 }
 
 class _AgentFormDialog extends StatefulWidget {
@@ -1077,7 +1178,8 @@ class _AgentFormDialog extends StatefulWidget {
 class _AgentFormDialogState extends State<_AgentFormDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
-  PlatformFile? _pickedFile;
+  PlatformFile? _pickedFile;         // rules_file (PDF/Word)
+  PlatformFile? _pickedProductFile;  // productFile (Excel)
 
   @override
   void initState() {
@@ -1097,12 +1199,21 @@ class _AgentFormDialogState extends State<_AgentFormDialog> {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx'],
+      withData: true,
     );
-
     if (result != null && result.files.isNotEmpty) {
-      setState(() {
-        _pickedFile = result.files.single;
-      });
+      setState(() => _pickedFile = result.files.single);
+    }
+  }
+
+  Future<void> _pickProductFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['xlsx', 'xls', 'csv'],
+      withData: true,
+    );
+    if (result != null && result.files.isNotEmpty) {
+      setState(() => _pickedProductFile = result.files.single);
     }
   }
 
@@ -1117,7 +1228,7 @@ class _AgentFormDialogState extends State<_AgentFormDialog> {
           id: widget.agent!.id,
           businessId: widget.selectedBusiness.id,
           agentName: agentName,
-          filePath: _pickedFile?.path,
+          filePath: kIsWeb ? null : _pickedFile?.path,
           fileBytes: _pickedFile?.bytes,
           fileName: _pickedFile?.name,
         ),
@@ -1128,9 +1239,12 @@ class _AgentFormDialogState extends State<_AgentFormDialog> {
           businessId: widget.selectedBusiness.id,
           agentName: agentName,
           branchId: widget.selectedBranch.id,
-          filePath: _pickedFile?.path,
+          filePath: kIsWeb ? null : _pickedFile?.path,
           fileBytes: _pickedFile?.bytes,
           fileName: _pickedFile?.name,
+          productFilePath: kIsWeb ? null : _pickedProductFile?.path,
+          productFileBytes: _pickedProductFile?.bytes,
+          productFileName: _pickedProductFile?.name,
         ),
       );
     }
@@ -1251,7 +1365,7 @@ class _AgentFormDialogState extends State<_AgentFormDialog> {
                 ),
                 const SizedBox(height: 20),
 
-                // PDF Upload Section
+                // PDF Upload Section (rules_file)
                 Text(
                   widget.isEdit
                       ? 'Update Call Rules (PDF/Word)'
@@ -1268,30 +1382,20 @@ class _AgentFormDialogState extends State<_AgentFormDialog> {
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 20,
-                      horizontal: 16,
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                     decoration: BoxDecoration(
-                      border: Border.all(
-                        color: AppColor.primary,
-                        style: BorderStyle.solid,
-                      ),
+                      border: Border.all(color: AppColor.primary),
                       borderRadius: BorderRadius.circular(8),
                       color: AppColor.primary.withOpacity(0.02),
                     ),
                     child: Column(
                       children: [
-                        const Icon(
-                          Icons.cloud_upload_outlined,
-                          color: AppColor.primary,
-                          size: 28,
-                        ),
+                        const Icon(Icons.cloud_upload_outlined, color: AppColor.primary, size: 28),
                         const SizedBox(height: 8),
                         Text(
                           _pickedFile != null
                               ? 'Selected: ${_pickedFile!.name}'
-                              : 'Select document file (rules_file)',
+                              : 'Select call rules file (PDF/Word)',
                           style: TextStyle(
                             fontSize: 13,
                             color: widget.theme.textTheme.bodyMedium?.color,
@@ -1303,6 +1407,50 @@ class _AgentFormDialogState extends State<_AgentFormDialog> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 20),
+
+                // Excel Upload Section (productFile) — only on Create
+                if (!widget.isEdit) ...[
+                  Text(
+                    'Upload Product Data (Excel)',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: widget.theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: _pickProductFile,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.green.shade600),
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.green.withOpacity(0.02),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(Icons.table_chart_outlined, color: Colors.green.shade600, size: 28),
+                          const SizedBox(height: 8),
+                          Text(
+                            _pickedProductFile != null
+                                ? 'Selected: ${_pickedProductFile!.name}'
+                                : 'Select product data file (Excel / CSV)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: widget.theme.textTheme.bodyMedium?.color,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 32),
 
                 // Submit Buttons
@@ -1731,6 +1879,165 @@ class _TwilioSetupDialogState extends State<_TwilioSetupDialog> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _UpdateProductFileDialog extends StatefulWidget {
+  final ThemeData theme;
+  final AgentModel agent;
+  final BuildContext blocContext;
+
+  const _UpdateProductFileDialog({
+    required this.theme,
+    required this.agent,
+    required this.blocContext,
+  });
+
+  @override
+  State<_UpdateProductFileDialog> createState() => _UpdateProductFileDialogState();
+}
+
+class _UpdateProductFileDialogState extends State<_UpdateProductFileDialog> {
+  PlatformFile? _pickedProductFile;
+
+  Future<void> _pickProductFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['xlsx', 'xls', 'csv'],
+      withData: true,
+    );
+    if (result != null && result.files.isNotEmpty) {
+      setState(() => _pickedProductFile = result.files.single);
+    }
+  }
+
+  void _submit() {
+    if (_pickedProductFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select an Excel file first.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    widget.blocContext.read<AgentManagementBloc>().add(
+      UpdateProductFileRequested(
+        id: widget.agent.id,
+        vapiId: widget.agent.vapiId ?? '',
+        filePath: kIsWeb ? null : _pickedProductFile?.path,
+        fileBytes: _pickedProductFile?.bytes,
+        fileName: _pickedProductFile?.name,
+      ),
+    );
+
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: widget.theme.cardTheme.color,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: MediaQuery.of(context).size.width < 600
+            ? MediaQuery.of(context).size.width * 0.9
+            : 500,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Update Excel Data',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: widget.theme.colorScheme.onSurface,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Upload new product data (Excel/CSV) for ${widget.agent.metadata?.agentName ?? 'this agent'}.',
+              style: TextStyle(
+                fontSize: 13,
+                color: widget.theme.textTheme.bodySmall?.color,
+              ),
+            ),
+            const Divider(height: 32),
+
+            InkWell(
+              onTap: _pickProductFile,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.green.shade600),
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.green.withOpacity(0.02),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.table_chart_outlined, color: Colors.green.shade600, size: 28),
+                    const SizedBox(height: 8),
+                    Text(
+                      _pickedProductFile != null
+                          ? 'Selected: ${_pickedProductFile!.name}'
+                          : 'Select new product data file (Excel / CSV)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: widget.theme.textTheme.bodyMedium?.color,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: widget.theme.textTheme.bodyMedium?.color,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: _pickedProductFile == null ? null : _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade700,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Update Excel'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

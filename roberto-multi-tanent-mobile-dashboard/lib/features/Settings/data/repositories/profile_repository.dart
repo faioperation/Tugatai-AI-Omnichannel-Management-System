@@ -69,4 +69,24 @@ class ProfileRepository {
       throw Exception(response.errorMassage ?? 'Network error occurred.');
     }
   }
+
+  Future<void> changePassword({required String oldPassword, required String newPassword}) async {
+    final response = await networkClient.postRequest(
+      ApiConstants.changePassword,
+      body: {
+        'oldPassword': oldPassword,
+        'newPassword': newPassword,
+      },
+    );
+
+    if (response.isSuccess && response.responseData != null) {
+      if (response.responseData['success'] == true) {
+        return;
+      } else {
+        throw Exception(response.responseData['message'] ?? 'Failed to change password.');
+      }
+    } else {
+      throw Exception(response.errorMassage ?? 'Network error occurred.');
+    }
+  }
 }

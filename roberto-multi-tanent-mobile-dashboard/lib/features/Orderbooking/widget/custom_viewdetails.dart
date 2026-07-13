@@ -677,27 +677,27 @@ class CustomViewdetails extends StatelessWidget {
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text(
-                          'MATRIX AI',
-                          style: pw.TextStyle(
-                            fontSize: 24,
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.red900,
-                          ),
-                        ),
-                        pw.SizedBox(height: 4),
-                        pw.Text(
-                          'Omnichannel Management System',
-                          style: const pw.TextStyle(
-                            fontSize: 10,
-                            color: PdfColors.grey700,
-                          ),
-                        ),
-                      ],
-                    ),
+                    // pw.Column(
+                    //   crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    //   children: [
+                    //     pw.Text(
+                    //       'MATRIX AI',
+                    //       style: pw.TextStyle(
+                    //         fontSize: 24,
+                    //         fontWeight: pw.FontWeight.bold,
+                    //         color: PdfColors.red900,
+                    //       ),
+                    //     ),
+                    //     pw.SizedBox(height: 4),
+                    //     pw.Text(
+                    //       'Omnichannel Management System',
+                    //       style: const pw.TextStyle(
+                    //         fontSize: 10,
+                    //         color: PdfColors.grey700,
+                    //       ),
+                    //     ),
+                    //   ],
+                    // ),
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [

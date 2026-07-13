@@ -15,9 +15,14 @@ class CreateAgentRequested extends AgentManagementEvent {
   final String businessId;
   final String agentName;
   final String branchId;
+  // rules_file (PDF/Word)
   final String? filePath;
   final List<int>? fileBytes;
   final String? fileName;
+  // productFile (Excel)
+  final String? productFilePath;
+  final List<int>? productFileBytes;
+  final String? productFileName;
 
   const CreateAgentRequested({
     required this.businessId,
@@ -26,6 +31,9 @@ class CreateAgentRequested extends AgentManagementEvent {
     this.filePath,
     this.fileBytes,
     this.fileName,
+    this.productFilePath,
+    this.productFileBytes,
+    this.productFileName,
   });
 
   @override
@@ -36,6 +44,9 @@ class CreateAgentRequested extends AgentManagementEvent {
     filePath,
     fileBytes,
     fileName,
+    productFilePath,
+    productFileBytes,
+    productFileName,
   ];
 }
 
@@ -57,14 +68,28 @@ class UpdateAgentRequested extends AgentManagementEvent {
   });
 
   @override
-  List<Object?> get props => [
-    id,
-    businessId,
-    agentName,
-    filePath,
-    fileBytes,
-    fileName,
-  ];
+  List<Object?> get props => [id, businessId, agentName, filePath, fileBytes, fileName];
+}
+
+/// Updates only the productFile (Excel) for an existing agent.
+/// Uses PATCH /system-owner/agent-management/:id with agentId + productFile.
+class UpdateProductFileRequested extends AgentManagementEvent {
+  final String id;       // agent DB id (used in URL path)
+  final String vapiId;   // agentId field in body
+  final String? filePath;
+  final List<int>? fileBytes;
+  final String? fileName;
+
+  const UpdateProductFileRequested({
+    required this.id,
+    required this.vapiId,
+    this.filePath,
+    this.fileBytes,
+    this.fileName,
+  });
+
+  @override
+  List<Object?> get props => [id, vapiId, filePath, fileBytes, fileName];
 }
 
 class DeleteAgentRequested extends AgentManagementEvent {

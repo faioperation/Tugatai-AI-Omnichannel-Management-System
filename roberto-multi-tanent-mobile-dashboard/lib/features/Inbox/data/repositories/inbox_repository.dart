@@ -171,4 +171,48 @@ class InboxRepository {
       };
     }
   }
+
+  Future<Map<String, dynamic>> markConversationAsSeen(String conversationId) async {
+    final url = '${ApiConstants.markConversationSeen}/$conversationId/seen';
+    final response = await networkClient.patchRequest(
+      url,
+      body: {
+        'seen': true,
+      },
+    );
+
+    if (response.isSuccess) {
+      return {
+        'success': true,
+        'data': response.responseData,
+      };
+    } else {
+      return {
+        'success': false,
+        'message': response.errorMassage ?? 'Failed to mark conversation as seen',
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> continueAi(String conversationId, {bool continueAi = true}) async {
+    final url = '${ApiConstants.baseUrl}/conversations/$conversationId/continue-ai';
+    final response = await networkClient.patchRequest(
+      url,
+      body: {
+        'continueAi': continueAi,
+      },
+    );
+
+    if (response.isSuccess) {
+      return {
+        'success': true,
+        'data': response.responseData,
+      };
+    } else {
+      return {
+        'success': false,
+        'message': response.errorMassage ?? 'Failed to update continue AI status',
+      };
+    }
+  }
 }

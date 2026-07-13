@@ -12,6 +12,7 @@ class AgentManagementBloc
     on<FetchAgentsRequested>(_onFetchAgents);
     on<CreateAgentRequested>(_onCreateAgent);
     on<UpdateAgentRequested>(_onUpdateAgent);
+    on<UpdateProductFileRequested>(_onUpdateProductFile);
     on<DeleteAgentRequested>(_onDeleteAgent);
     on<SetupTwilioRequested>(_onSetupTwilio);
   }
@@ -42,6 +43,9 @@ class AgentManagementBloc
         filePath: event.filePath,
         fileBytes: event.fileBytes,
         fileName: event.fileName,
+        productFilePath: event.productFilePath,
+        productFileBytes: event.productFileBytes,
+        productFileName: event.productFileName,
       );
       emit(const AgentManagementOperationSuccess("Agent created successfully"));
       add(const FetchAgentsRequested());
@@ -65,6 +69,26 @@ class AgentManagementBloc
         fileName: event.fileName,
       );
       emit(const AgentManagementOperationSuccess("Agent updated successfully"));
+      add(const FetchAgentsRequested());
+    } catch (e) {
+      emit(AgentManagementError(e.toString()));
+    }
+  }
+
+  Future<void> _onUpdateProductFile(
+    UpdateProductFileRequested event,
+    Emitter<AgentManagementState> emit,
+  ) async {
+    emit(AgentManagementLoading());
+    try {
+      await repository.updateProductFile(
+        id: event.id,
+        vapiId: event.vapiId,
+        filePath: event.filePath,
+        fileBytes: event.fileBytes,
+        fileName: event.fileName,
+      );
+      emit(const AgentManagementOperationSuccess("Product file updated successfully"));
       add(const FetchAgentsRequested());
     } catch (e) {
       emit(AgentManagementError(e.toString()));

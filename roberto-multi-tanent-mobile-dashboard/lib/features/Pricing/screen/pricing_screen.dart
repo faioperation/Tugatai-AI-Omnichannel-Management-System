@@ -5,6 +5,8 @@ import 'package:roberto/app/app_color.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:roberto/features/Pricing/widget/custom_addrule.dart';
 import 'package:roberto/features/Pricing/widget/custom_pricingrule.dart';
+import 'package:roberto/features/businesssubscription/bloc/business_subscription_bloc.dart';
+import 'package:roberto/features/businesssubscription/bloc/business_subscription_state.dart';
 import 'package:roberto/features/Pricing/widget/custom_pricingcalculator.dart';
 import 'package:roberto/features/TenantManagement/widget/custom_headder.dart';
 import 'package:roberto/features/TenantManagement/widget/custom_stat_card.dart';
@@ -256,9 +258,42 @@ class _PricingScreenState extends State<PricingScreen> {
                               context.read<PricingBloc>().add(DeletePricingRule(id: id, role: widget.role));
                             },
                           )
-                    : CustomPricingcalculator(
-                        key: const ValueKey('Price Calculator'),
-                        rules: _rules,
+                    : BlocBuilder<BusinessSubscriptionBloc, BusinessSubscriptionState>(
+                        builder: (context, subState) {
+                          bool isConnectPlan = false;
+                          if (subState is BusinessSubscriptionLoaded && subState.subscriptions.isNotEmpty) {
+                            final planSlug = subState.subscriptions.first.plan?.slug.toLowerCase();
+                            if (planSlug == 'connect') {
+                              isConnectPlan = true;
+                            }
+                          }
+
+                          if (isConnectPlan) {
+                            return Container(
+                              padding: const EdgeInsets.all(40),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).cardTheme.color,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Theme.of(context).dividerTheme.color ?? Colors.grey.shade300),
+                              ),
+                              child: Text(
+                                'purches convert or control plan to get this features',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            );
+                          }
+
+                          return CustomPricingcalculator(
+                            key: const ValueKey('Price Calculator'),
+                            rules: _rules,
+                          );
+                        },
                       ),
               ),
             ],

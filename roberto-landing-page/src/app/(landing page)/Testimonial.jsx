@@ -7,6 +7,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import { motion } from 'framer-motion';
 import 'swiper/css';
+import Link from 'next/link';
 
 const testimonialsData = [
   {
@@ -141,9 +142,11 @@ const Testimonial = () => {
           className="flex flex-col items-center text-center"
         >
           <p className="text-[#9CA3AF] mb-6 text-lg">Ready to see similar results for your business?</p>
-          <button className="bg-gradient-to-r from-[#9810FA] to-[#AD46FF] px-8 py-3.5 rounded-full text-white font-bold text-lg shadow-[0_0_30px_rgba(152,16,250,0.5)] hover:scale-105 transition-transform duration-300">
+          <Link href='/demo'>
+          <button  className="bg-gradient-to-r from-[#9810FA] to-[#AD46FF] px-8 py-3.5 rounded-full text-white font-bold text-lg shadow-[0_0_30px_rgba(152,16,250,0.5)] hover:scale-105 transition-transform duration-300">
             Book Live Demo
           </button>
+          </Link>
         </motion.div>
       </Container>
     </section>

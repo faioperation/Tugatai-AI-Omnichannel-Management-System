@@ -31,3 +31,19 @@ class ProfileError extends ProfileState {
 
   ProfileError({required this.message});
 }
+
+class PasswordChanging extends ProfileState {
+  final UserModel currentUser;
+  PasswordChanging({required this.currentUser});
+}
+
+class PasswordChangeSuccess extends ProfileState {
+  final UserModel user;
+  PasswordChangeSuccess({required this.user});
+}
+
+class PasswordChangeError extends ProfileState {
+  final String message;
+  final UserModel currentUser;
+  PasswordChangeError({required this.message, required this.currentUser});
+}

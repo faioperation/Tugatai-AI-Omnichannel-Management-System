@@ -95,7 +95,7 @@ const HowItWorks = () => {
           />
 
           {/* Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-5 justify-center items-center gap-4 lg:gap-0 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 justify-center items-center gap-4 lg:gap-0 w-full">
             {steps.map((step, index) => (
               <motion.div
                 key={index}

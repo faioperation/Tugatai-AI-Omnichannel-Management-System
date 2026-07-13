@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/Auth/widget/custom_textfield.dart';
 import 'package:roberto/features/Orderbooking/widget/order_mod.dart';
+import 'package:intl/intl.dart';
 
 class CreateOrderDialog extends StatefulWidget {
   final OrderMod? order;
@@ -24,6 +25,8 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
   late TextEditingController _priceCtrl;
   late TextEditingController _noteCtrl;
 
+  late TextEditingController _countryCtrl;
+
   // Booking Type selection
   String _bookingType = 'Appointment Booking';
 
@@ -42,6 +45,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
   late TextEditingController _productHeightCtrl;
   late TextEditingController _productWeightCtrl;
   late TextEditingController _receiverPhoneCtrl;
+  late TextEditingController _productNameCtrl;
 
   // Order Booking fields (uses deliveryDate, deliveryAddress, productType from above)
   late TextEditingController _companyNameCtrl;
@@ -50,6 +54,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
   late TextEditingController _paymentMethodCtrl;
   late TextEditingController _transactionIdCtrl;
   String _paymentStatus = 'PENDING';
+  String _orderStatus = 'PENDING';
 
   // Extra/Custom key-value fields
   List<MapEntry<TextEditingController, TextEditingController>> _customFields = [];
@@ -65,6 +70,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
     _emailCtrl = TextEditingController(text: o?.email ?? '');
     _priceCtrl = TextEditingController(text: o?.price ?? '');
     _noteCtrl = TextEditingController(text: o?.note ?? '');
+    _countryCtrl = TextEditingController(text: o?.country ?? '');
 
     // Determine booking type
     if (o != null) {
@@ -96,14 +102,16 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
     _productHeightCtrl = TextEditingController(text: o?.productHeight ?? '');
     _productWeightCtrl = TextEditingController(text: o?.productWeight ?? '');
     _receiverPhoneCtrl = TextEditingController(text: o?.receiverPhone ?? '');
+    _productNameCtrl = TextEditingController(text: o?.productName ?? '');
 
     // Order fields init
     _companyNameCtrl = TextEditingController(text: o?.companyName ?? '');
 
     // Payment init
-    _paymentMethodCtrl = TextEditingController(text: o?.paymentMethod ?? 'Stripe');
+    _paymentMethodCtrl = TextEditingController(text: o?.paymentMethod ?? 'Cash on Delivery');
     _transactionIdCtrl = TextEditingController(text: o?.transactionId ?? '');
     _paymentStatus = o?.paymentStatus ?? 'PENDING';
+    _orderStatus = o?.status.name.toUpperCase() ?? 'PENDING';
 
     // Parse dynamic custom fields
     final predefinedKeys = {
@@ -128,6 +136,13 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
       'note',
       'status',
       'branchId',
+      'country',
+      'productName',
+      'id',
+      'businessId',
+      'parcelDeliveryId',
+      'createdAt',
+      'updatedAt',
     };
 
     if (o != null) {
@@ -149,6 +164,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
     _emailCtrl.dispose();
     _priceCtrl.dispose();
     _noteCtrl.dispose();
+    _countryCtrl.dispose();
 
     _appointmentDateCtrl.dispose();
     _appointmentTimeCtrl.dispose();
@@ -163,6 +179,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
     _productHeightCtrl.dispose();
     _productWeightCtrl.dispose();
     _receiverPhoneCtrl.dispose();
+    _productNameCtrl.dispose();
 
     _companyNameCtrl.dispose();
 
@@ -196,30 +213,47 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
         _isSubmitting = true;
       });
 
-      final additionalDetails = <Map<String, String>>[];
-      additionalDetails.add({'key': 'bookingType', 'value': _bookingType});
+      final payload = <String, dynamic>{
+        'customerName': _customerNameCtrl.text.trim(),
+        'customerNumber': _phoneCtrl.text.trim(),
+        'email': _emailCtrl.text.trim(),
+        'price': _priceCtrl.text.trim(),
+        'note': _noteCtrl.text.trim(),
+        'status': _orderStatus,
+        'country': _countryCtrl.text.trim(),
+        'paymentMethod': _paymentMethodCtrl.text.trim(),
+        'paymentStatus': _paymentStatus,
+      };
+
+      if (_transactionIdCtrl.text.trim().isNotEmpty) {
+        payload['transactionId'] = _transactionIdCtrl.text.trim();
+      }
 
       if (_bookingType == 'Appointment Booking') {
-        additionalDetails.add({'key': 'appointmentDate', 'value': _appointmentDateCtrl.text.trim()});
-        additionalDetails.add({'key': 'appointmentTime', 'value': _appointmentTimeCtrl.text.trim()});
-        additionalDetails.add({'key': 'platform', 'value': _platformCtrl.text.trim()});
-        additionalDetails.add({'key': 'duration', 'value': _durationCtrl.text.trim()});
+        payload['appointmentDate'] = _appointmentDateCtrl.text.trim();
+        payload['appointmentTime'] = _appointmentTimeCtrl.text.trim();
+        payload['platform'] = _platformCtrl.text.trim();
+        payload['duration'] = _durationCtrl.text.trim();
         if (_customRequirementCtrl.text.trim().isNotEmpty) {
-          additionalDetails.add({'key': 'customRequirement', 'value': _customRequirementCtrl.text.trim()});
+          payload['customRequirement'] = _customRequirementCtrl.text.trim();
         }
       } else if (_bookingType == 'Parcel Delivery') {
-        additionalDetails.add({'key': 'pickupAddress', 'value': _pickupAddressCtrl.text.trim()});
-        additionalDetails.add({'key': 'deliveryDate', 'value': _deliveryDateCtrl.text.trim()});
-        additionalDetails.add({'key': 'deliveryAddress', 'value': _deliveryAddressCtrl.text.trim()});
-        additionalDetails.add({'key': 'productType', 'value': _productTypeCtrl.text.trim()});
-        additionalDetails.add({'key': 'productHeight', 'value': _productHeightCtrl.text.trim()});
-        additionalDetails.add({'key': 'productWeight', 'value': _productWeightCtrl.text.trim()});
-        additionalDetails.add({'key': 'receiverPhone', 'value': _receiverPhoneCtrl.text.trim()});
+        payload['pickupAddress'] = _pickupAddressCtrl.text.trim();
+        payload['deliveryDate'] = _deliveryDateCtrl.text.trim();
+        payload['deliveryAddress'] = _deliveryAddressCtrl.text.trim();
+        payload['productType'] = _productTypeCtrl.text.trim();
+        payload['productHeight'] = _productHeightCtrl.text.trim();
+        payload['productName'] = _productNameCtrl.text.trim();
+        if (_productWeightCtrl.text.trim().isNotEmpty) {
+          payload['productWeight'] = int.tryParse(_productWeightCtrl.text.trim()) ?? 0;
+        }
+        payload['receiverPhone'] = _receiverPhoneCtrl.text.trim();
       } else if (_bookingType == 'Order Booking') {
-        additionalDetails.add({'key': 'deliveryDate', 'value': _deliveryDateCtrl.text.trim()});
-        additionalDetails.add({'key': 'deliveryAddress', 'value': _deliveryAddressCtrl.text.trim()});
-        additionalDetails.add({'key': 'productType', 'value': _productTypeCtrl.text.trim()});
-        additionalDetails.add({'key': 'companyName', 'value': _companyNameCtrl.text.trim()});
+        payload['deliveryDate'] = _deliveryDateCtrl.text.trim();
+        payload['deliveryAddress'] = _deliveryAddressCtrl.text.trim();
+        payload['productType'] = _productTypeCtrl.text.trim();
+        payload['companyName'] = _companyNameCtrl.text.trim();
+        payload['productName'] = _productNameCtrl.text.trim();
       }
 
       // Add dynamic custom fields
@@ -227,26 +261,12 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
         final k = entry.key.text.trim();
         final v = entry.value.text.trim();
         if (k.isNotEmpty) {
-          additionalDetails.add({'key': k, 'value': v});
+          payload[k] = v;
         }
       }
 
-      final payload = {
-        'customerName': _customerNameCtrl.text.trim(),
-        'customerNumber': _phoneCtrl.text.trim(),
-        'email': _emailCtrl.text.trim(),
-        'price': _priceCtrl.text.trim(),
-        'note': _noteCtrl.text.trim(),
-        'status': widget.order?.status.name.toUpperCase() ?? 'PENDING',
-        'paymentDetails': {
-          'paymentMethod': _paymentMethodCtrl.text.trim(),
-          'paymentStatus': _paymentStatus,
-          'transactionId': _transactionIdCtrl.text.trim().isNotEmpty 
-              ? _transactionIdCtrl.text.trim() 
-              : 'TXN-${DateTime.now().millisecondsSinceEpoch}',
-        },
-        'additionalDetails': additionalDetails,
-      };
+      // Remove empty strings so we don't send empty fields
+      payload.removeWhere((key, value) => value is String && value.isEmpty);
 
       Navigator.pop(context, payload);
     }
@@ -306,7 +326,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Section: Booking Type (Dynamic Form Controller)
-                      if (widget.order != null || widget.businessType == null) ...[
+                      if (widget.order == null && widget.businessType == null) ...[
                         _buildSectionTitle('Booking Details', theme),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -338,7 +358,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                         children: [
                           Text('Customer Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                           const SizedBox(height: 8),
-                          CustomTextfield(controller: _customerNameCtrl, hintText: 'Enter Customer Name'),
+                          CustomTextfield(validator: (v) => null, controller: _customerNameCtrl, hintText: 'Enter Customer Name'),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -349,7 +369,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                             children: [
                               Text('Phone', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                               const SizedBox(height: 8),
-                              CustomTextfield(controller: _phoneCtrl, hintText: 'Enter Phone Number'),
+                              CustomTextfield(validator: (v) => null, controller: _phoneCtrl, hintText: 'Enter Phone Number'),
                             ],
                           )),
                           const SizedBox(width: 16),
@@ -358,12 +378,21 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                             children: [
                               Text('Email', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                               const SizedBox(height: 8),
-                              CustomTextfield(controller: _emailCtrl, hintText: 'example@gmail.com'),
+                              CustomTextfield(validator: (v) => null, controller: _emailCtrl, hintText: 'example@gmail.com'),
                             ],
                           )),
                         ],
                       ),
-                      const SizedBox(height: 24),
+                          const SizedBox(height: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Country', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                              const SizedBox(height: 8),
+                              CustomTextfield(validator: (v) => null, controller: _countryCtrl, hintText: 'Enter Country'),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
 
                       // Type Specific Fields
                       if (_bookingType == 'Appointment Booking') ...[
@@ -383,7 +412,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               children: [
                                 Text('Appointment Time', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _appointmentTimeCtrl, hintText: '14:30'),
+                                CustomTextfield(validator: (v) => null, controller: _appointmentTimeCtrl, hintText: '14:30'),
                               ],
                             )),
                           ],
@@ -396,7 +425,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               children: [
                                 Text('Platform', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _platformCtrl, hintText: 'Google Meet'),
+                                CustomTextfield(validator: (v) => null, controller: _platformCtrl, hintText: 'Google Meet'),
                               ],
                             )),
                             const SizedBox(width: 16),
@@ -405,7 +434,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               children: [
                                 Text('Duration', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _durationCtrl, hintText: '45 minutes'),
+                                CustomTextfield(validator: (v) => null, controller: _durationCtrl, hintText: '45 minutes'),
                               ],
                             )),
                           ],
@@ -416,7 +445,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                           children: [
                             Text('Custom Requirement', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                             const SizedBox(height: 8),
-                            CustomTextfield(controller: _customRequirementCtrl, hintText: 'Requires recording of the meeting'),
+                            CustomTextfield(validator: (v) => null, controller: _customRequirementCtrl, hintText: 'Requires recording of the meeting'),
                           ],
                         ),
                       ] else if (_bookingType == 'Parcel Delivery') ...[
@@ -426,7 +455,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                           children: [
                             Text('Pickup Address', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                             const SizedBox(height: 8),
-                            CustomTextfield(controller: _pickupAddressCtrl, hintText: 'Enter Location'),
+                            CustomTextfield(validator: (v) => null, controller: _pickupAddressCtrl, hintText: 'Enter Location'),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -445,7 +474,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               children: [
                                 Text('Receiver Phone', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _receiverPhoneCtrl, hintText: 'Enter Receiver Phone Number'),
+                                CustomTextfield(validator: (v) => null, controller: _receiverPhoneCtrl, hintText: 'Enter Receiver Phone Number'),
                               ],
                             )),
                           ],
@@ -456,7 +485,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                           children: [
                             Text('Delivery Address', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                             const SizedBox(height: 8),
-                            CustomTextfield(controller: _deliveryAddressCtrl, hintText: 'Enter Delivery Address'),
+                            CustomTextfield(validator: (v) => null, controller: _deliveryAddressCtrl, hintText: 'Enter Delivery Address'),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -465,29 +494,42 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                             Expanded(child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Product Type', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                                Text('Product Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _productTypeCtrl, hintText: 'Electronics'),
+                                CustomTextfield(validator: (v) => null, controller: _productNameCtrl, hintText: 'e.g. Medicine'),
                               ],
                             )),
                             const SizedBox(width: 16),
                             Expanded(child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Product Size/Height', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                                Text('Product Type', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _productHeightCtrl, hintText: '15 cm'),
+                                CustomTextfield(validator: (v) => null, controller: _productTypeCtrl, hintText: 'Electronics'),
                               ],
                             )),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Row(
                           children: [
-                            Text('Product Weight (kg)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
-                            const SizedBox(height: 8),
-                            CustomTextfield(controller: _productWeightCtrl, hintText: '2'),
+                            Expanded(child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Product Size/Height', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                                const SizedBox(height: 8),
+                                CustomTextfield(validator: (v) => null, controller: _productHeightCtrl, hintText: '15 cm'),
+                              ],
+                            )),
+                            const SizedBox(width: 16),
+                            Expanded(child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Product Weight (kg)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                                const SizedBox(height: 8),
+                                CustomTextfield(validator: (v) => null, controller: _productWeightCtrl, hintText: '2'),
+                              ],
+                            )),
                           ],
                         ),
                       ] else if (_bookingType == 'Order Booking') ...[
@@ -497,7 +539,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                           children: [
                             Text('Company Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                             const SizedBox(height: 8),
-                            CustomTextfield(controller: _companyNameCtrl, hintText: 'Enter Company Name'),
+                            CustomTextfield(validator: (v) => null, controller: _companyNameCtrl, hintText: 'Enter Company Name'),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -514,20 +556,33 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                             Expanded(child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Product Type', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                                Text('Product Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                 const SizedBox(height: 8),
-                                CustomTextfield(controller: _productTypeCtrl, hintText: 'Office Supplies'),
+                                CustomTextfield(validator: (v) => null, controller: _productNameCtrl, hintText: 'Office Supplies'),
                               ],
                             )),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Row(
                           children: [
-                            Text('Delivery Address', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
-                            const SizedBox(height: 8),
-                            CustomTextfield(controller: _deliveryAddressCtrl, hintText: 'Scranton Branch'),
+                            Expanded(child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Delivery Address', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                                const SizedBox(height: 8),
+                                CustomTextfield(validator: (v) => null, controller: _deliveryAddressCtrl, hintText: 'Scranton Branch'),
+                              ],
+                            )),
+                            const SizedBox(width: 16),
+                            Expanded(child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Product Type', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                                const SizedBox(height: 8),
+                                CustomTextfield(validator: (v) => null, controller: _productTypeCtrl, hintText: 'e.g. Bulk items'),
+                              ],
+                            )),
                           ],
                         ),
                       ],
@@ -542,10 +597,37 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                             children: [
                               Text('Price', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                               const SizedBox(height: 8),
-                              CustomTextfield(controller: _priceCtrl, hintText: '250'),
+                              CustomTextfield(validator: (v) => null, controller: _priceCtrl, hintText: '250'),
                             ],
                           )),
                           const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Order Status', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                                const SizedBox(height: 8),
+                                DropdownButtonFormField<String>(
+                                  value: _orderStatus,
+                                  isExpanded: true,
+                                  decoration: InputDecoration(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.1))),
+                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.1))),
+                                  ),
+                                  items: ['PENDING', 'CONFIRMED', 'COMPLETED', 'DELIVERED', 'CANCELLED']
+                                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                                      .toList(),
+                                  onChanged: (v) => setState(() => _orderStatus = v!),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -568,6 +650,15 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                               ],
                             ),
                           ),
+                          const SizedBox(width: 16),
+                          Expanded(child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Payment Method', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                              const SizedBox(height: 8),
+                              CustomTextfield(validator: (v) => null, controller: _paymentMethodCtrl, hintText: 'Bkash / Stripe / Cash'),
+                            ],
+                          )),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -576,18 +667,9 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                           Expanded(child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Payment Method', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
-                              const SizedBox(height: 8),
-                              CustomTextfield(controller: _paymentMethodCtrl, hintText: 'Bkash / Stripe / Cash'),
-                            ],
-                          )),
-                          const SizedBox(width: 16),
-                          Expanded(child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
                               Text('Transaction ID', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                               const SizedBox(height: 8),
-                              CustomTextfield(controller: _transactionIdCtrl, hintText: 'TRX123456'),
+                              CustomTextfield(validator: (v) => null, controller: _transactionIdCtrl, hintText: 'TRX123456'),
                             ],
                           )),
                         ],
@@ -601,7 +683,11 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                         children: [
                           Text('Note', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                           const SizedBox(height: 8),
-                          CustomTextfield(controller: _noteCtrl, hintText: 'Any extra notes...'),
+                          CustomTextfield(
+                            controller: _noteCtrl, 
+                            hintText: 'Any extra notes...',
+                            validator: (v) => null,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 24),
@@ -643,14 +729,14 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                                 children: [
                                   Expanded(
                                     child: CustomTextfield(
-                                      controller: entry.key,
+                                      validator: (v) => null, controller: entry.key,
                                       hintText: 'Field Name',
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: CustomTextfield(
-                                      controller: entry.value,
+                                      validator: (v) => null, controller: entry.value,
                                       hintText: 'Value',
                                     ),
                                   ),
@@ -668,6 +754,45 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                             );
                           },
                         ),
+                      if (widget.order != null) ...[
+                        const SizedBox(height: 24),
+                        _buildSectionTitle('Record Details', theme),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Created At', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    widget.order!.createdAt != null ? DateFormat('MMM dd, yyyy - hh:mm a').format(widget.order!.createdAt!) : (widget.order!.rawAdditionalDetails['createdAt']?.toString() ?? 'N/A'),
+                                    style: TextStyle(fontSize: 14, color: theme.hintColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Updated At', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    widget.order!.rawAdditionalDetails['updatedAt'] != null 
+                                      ? (DateTime.tryParse(widget.order!.rawAdditionalDetails['updatedAt'].toString()) != null 
+                                          ? DateFormat('MMM dd, yyyy - hh:mm a').format(DateTime.tryParse(widget.order!.rawAdditionalDetails['updatedAt'].toString())!)
+                                          : widget.order!.rawAdditionalDetails['updatedAt'].toString())
+                                      : 'N/A',
+                                    style: TextStyle(fontSize: 14, color: theme.hintColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),

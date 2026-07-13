@@ -34,18 +34,47 @@ class _InboxScreenState extends State<InboxScreen> {
   List<MessageMod> _messages = [];
   bool _messagesLoading = false;
   Timer? _messagePollTimer;
+  Timer? _conversationsPollTimer;
   bool _isAiOn = true;
+  final Set<String> _resumedAiConversationIds = {};
+
+  List<ConversationMod> _mapConversationsWithOverrides(List<ConversationMod> list) {
+    return list.map((c) {
+      if (_resumedAiConversationIds.contains(c.id)) {
+        return ConversationMod(
+          id: c.id,
+          businessId: c.businessId,
+          branchId: c.branchId,
+          platform: c.platform,
+          customerId: c.customerId,
+          customerName: c.customerName,
+          customerPhone: c.customerPhone,
+          lastMessage: c.lastMessage,
+          lastMessageAt: c.lastMessageAt,
+          lastMessageDirection: c.lastMessageDirection,
+          unreadCount: c.unreadCount,
+          aiReply: c.aiReply,
+          continueAi: true,
+          seen: c.seen,
+          chatSummary: c.chatSummary,
+        );
+      }
+      return c;
+    }).toList();
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchConversations();
+      _startConversationsPolling();
     });
   }
 
   @override
   void dispose() {
+    _conversationsPollTimer?.cancel();
     _messagePollTimer?.cancel();
     super.dispose();
   }
@@ -70,7 +99,7 @@ class _InboxScreenState extends State<InboxScreen> {
 
       if (res['success'] == true && mounted) {
         setState(() {
-          _conversations = res['conversations'] as List<ConversationMod>;
+          _conversations = _mapConversationsWithOverrides(res['conversations'] as List<ConversationMod>);
           _conversationsLoading = false;
           
           if (_selectedConversation != null) {
@@ -85,10 +114,14 @@ class _InboxScreenState extends State<InboxScreen> {
           } else if (widget.initialConversationId != null) {
             final match = _conversations.where((c) => c.id == widget.initialConversationId);
             if (match.isNotEmpty) {
-              _selectedConversation = match.first;
-              _showChatViewOnMobile = true;
-              _fetchMessages(_selectedConversation!);
-              _fetchChatbotStatus(_selectedConversation!.id);
+              _openConversation(match.first);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Not found this conversation, I think it's from another platform or it's a voice call"),
+                  backgroundColor: Colors.orange,
+                ),
+              );
             }
           } else if (widget.initialCustomerPhone != null || widget.initialCustomerName != null) {
             final match = _conversations.where((c) {
@@ -105,10 +138,7 @@ class _InboxScreenState extends State<InboxScreen> {
               return false;
             });
             if (match.isNotEmpty) {
-              _selectedConversation = match.first;
-              _showChatViewOnMobile = true;
-              _fetchMessages(_selectedConversation!);
-              _fetchChatbotStatus(_selectedConversation!.id);
+              _openConversation(match.first);
             }
           }
         });
@@ -130,6 +160,75 @@ class _InboxScreenState extends State<InboxScreen> {
         );
       }
     }
+  }
+
+  Future<void> _fetchConversationsSilent() async {
+    try {
+      final inboxRepo = context.read<InboxRepository>();
+      final res = await inboxRepo.getConversations('all', branchId: widget.branchId);
+
+      if (res['success'] == true && mounted) {
+        setState(() {
+          _conversations = _mapConversationsWithOverrides(res['conversations'] as List<ConversationMod>);
+          
+          if (_selectedConversation != null) {
+            final match = _conversations.where((c) => c.id == _selectedConversation!.id);
+            if (match.isNotEmpty) {
+              _selectedConversation = match.first;
+            }
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
+  void _openConversation(ConversationMod conv) {
+    if (mounted) {
+      setState(() {
+        _selectedConversation = conv;
+        _showChatViewOnMobile = true;
+        _isAiOn = conv.aiReply;
+      });
+    }
+    _fetchMessages(conv);
+    _fetchChatbotStatus(conv.id);
+    if (!conv.seen) {
+      _markAsSeen(conv.id);
+    }
+  }
+
+  Future<void> _markAsSeen(String conversationId) async {
+    try {
+      final inboxRepo = context.read<InboxRepository>();
+      final res = await inboxRepo.markConversationAsSeen(conversationId);
+      if (res['success'] == true && mounted) {
+        setState(() {
+          final idx = _conversations.indexWhere((c) => c.id == conversationId);
+          if (idx != -1) {
+             final old = _conversations[idx];
+             _conversations[idx] = ConversationMod(
+                id: old.id,
+                businessId: old.businessId,
+                branchId: old.branchId,
+                platform: old.platform,
+                customerId: old.customerId,
+                customerName: old.customerName,
+                customerPhone: old.customerPhone,
+                lastMessage: old.lastMessage,
+                lastMessageAt: old.lastMessageAt,
+                lastMessageDirection: old.lastMessageDirection,
+                unreadCount: old.unreadCount,
+                aiReply: old.aiReply,
+                seen: true,
+                chatSummary: old.chatSummary,
+             );
+             if (_selectedConversation?.id == conversationId) {
+               _selectedConversation = _conversations[idx];
+             }
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _fetchChatbotStatus(String conversationId) async {
@@ -192,6 +291,80 @@ class _InboxScreenState extends State<InboxScreen> {
     }
   }
 
+  Future<void> _handleHelpMe(String? conversationId) async {
+    if (conversationId == null) return;
+    setState(() {
+      _resumedAiConversationIds.add(conversationId);
+      // Immediately update local state to hide Help me button and red error icon
+      if (_selectedConversation?.id == conversationId) {
+        _selectedConversation = ConversationMod(
+          id: _selectedConversation!.id,
+          businessId: _selectedConversation!.businessId,
+          branchId: _selectedConversation!.branchId,
+          platform: _selectedConversation!.platform,
+          customerId: _selectedConversation!.customerId,
+          customerName: _selectedConversation!.customerName,
+          customerPhone: _selectedConversation!.customerPhone,
+          lastMessage: _selectedConversation!.lastMessage,
+          lastMessageAt: _selectedConversation!.lastMessageAt,
+          lastMessageDirection: _selectedConversation!.lastMessageDirection,
+          unreadCount: _selectedConversation!.unreadCount,
+          aiReply: _selectedConversation!.aiReply,
+          continueAi: true,
+          seen: _selectedConversation!.seen,
+          chatSummary: _selectedConversation!.chatSummary,
+        );
+      }
+      final idx = _conversations.indexWhere((c) => c.id == conversationId);
+      if (idx != -1) {
+        final old = _conversations[idx];
+        _conversations[idx] = ConversationMod(
+          id: old.id,
+          businessId: old.businessId,
+          branchId: old.branchId,
+          platform: old.platform,
+          customerId: old.customerId,
+          customerName: old.customerName,
+          customerPhone: old.customerPhone,
+          lastMessage: old.lastMessage,
+          lastMessageAt: old.lastMessageAt,
+          lastMessageDirection: old.lastMessageDirection,
+          unreadCount: old.unreadCount,
+          aiReply: old.aiReply,
+          continueAi: true,
+          seen: old.seen,
+          chatSummary: old.chatSummary,
+        );
+      }
+    });
+
+    try {
+      final inboxRepo = context.read<InboxRepository>();
+      final res = await inboxRepo.continueAi(conversationId);
+      if (res['success'] == true && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("AI replies resumed successfully"),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _fetchConversations();
+      } else if (mounted) {
+        setState(() {
+          _resumedAiConversationIds.remove(conversationId);
+        });
+        _fetchConversations();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _resumedAiConversationIds.remove(conversationId);
+        });
+        _fetchConversations();
+      }
+    }
+  }
+
   Future<void> _fetchMessages(ConversationMod conversation, {bool showLoading = true}) async {
     _messagePollTimer?.cancel();
     
@@ -206,10 +379,79 @@ class _InboxScreenState extends State<InboxScreen> {
       final res = await inboxRepo.getMessages(conversation.platform, conversation.id);
 
       if (res['success'] == true && mounted) {
+        final newMsgs = res['messages'] as List<MessageMod>;
+        
+        bool hasNewMessage = false;
+        if (newMsgs.length != _messages.length) {
+          hasNewMessage = true;
+        } else if (newMsgs.isNotEmpty && _messages.isNotEmpty) {
+          if (newMsgs.last.id != _messages.last.id || newMsgs.last.messageText != _messages.last.messageText) {
+            hasNewMessage = true;
+          }
+        }
+
         setState(() {
-          _messages = res['messages'] as List<MessageMod>;
+          _messages = newMsgs;
           _messagesLoading = false;
+
+          // Update conversation preview from actual last message
+          if (newMsgs.isNotEmpty) {
+            final lastMsg = newMsgs.last;
+            final idx = _conversations.indexWhere((c) => c.id == conversation.id);
+            if (idx != -1) {
+              final old = _conversations[idx];
+
+              // Build preview text
+              String previewText = lastMsg.messageText.trim();
+              if (previewText.isEmpty) {
+                switch (lastMsg.type) {
+                  case 'image':
+                    previewText = '📷 Photo';
+                    break;
+                  case 'audio':
+                    previewText = '🎵 Voice message';
+                    break;
+                  case 'video':
+                    previewText = '🎥 Video';
+                    break;
+                  case 'document':
+                    previewText = '📄 Document';
+                    break;
+                  default:
+                    previewText = old.lastMessage.isNotEmpty ? old.lastMessage : '💬 Message';
+                }
+              }
+
+              final direction = lastMsg.isMe ? 'OUTGOING' : 'INCOMING';
+
+              _conversations[idx] = ConversationMod(
+                id: old.id,
+                businessId: old.businessId,
+                branchId: old.branchId,
+                platform: old.platform,
+                customerId: old.customerId,
+                customerName: old.customerName,
+                customerPhone: old.customerPhone,
+                lastMessage: previewText,
+                lastMessageAt: old.lastMessageAt,
+                lastMessageDirection: direction,
+                unreadCount: old.unreadCount,
+                aiReply: old.aiReply,
+                seen: old.seen,
+                chatSummary: old.chatSummary,
+              );
+
+              if (_selectedConversation?.id == conversation.id) {
+                _selectedConversation = _conversations[idx];
+              }
+            }
+          }
         });
+
+        if (hasNewMessage) {
+          _fetchConversationsSilent();
+        }
+
         _startMessagePolling(conversation);
       } else if (mounted) {
         setState(() {
@@ -230,6 +472,17 @@ class _InboxScreenState extends State<InboxScreen> {
     _messagePollTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (_selectedConversation?.id == conversation.id && mounted) {
         _fetchMessages(conversation, showLoading: false);
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  void _startConversationsPolling() {
+    _conversationsPollTimer?.cancel();
+    _conversationsPollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        _fetchConversationsSilent();
       } else {
         timer.cancel();
       }
@@ -394,12 +647,7 @@ class _InboxScreenState extends State<InboxScreen> {
                                 });
                               },
                               onConversationSelected: (conv) {
-                                setState(() {
-                                  _selectedConversation = conv;
-                                  _isAiOn = conv.aiReply;
-                                });
-                                _fetchMessages(conv);
-                                _fetchChatbotStatus(conv.id);
+                                _openConversation(conv);
                               },
                             )),
                             const VerticalDivider(width: 1, thickness: 1),
@@ -412,6 +660,7 @@ class _InboxScreenState extends State<InboxScreen> {
                               onSendImage: _sendImageMessage,
                               isAiOn: _isAiOn,
                               onToggleAi: _toggleChatbot,
+                              onHelpMe: () => _handleHelpMe(_selectedConversation?.id),
                             )),
                             const VerticalDivider(width: 1, thickness: 1),
                             Expanded(flex: 3, child: ChatDetails(
@@ -440,12 +689,7 @@ class _InboxScreenState extends State<InboxScreen> {
                                     });
                                   },
                                   onConversationSelected: (conv) {
-                                    setState(() {
-                                      _selectedConversation = conv;
-                                      _isAiOn = conv.aiReply;
-                                    });
-                                    _fetchMessages(conv);
-                                    _fetchChatbotStatus(conv.id);
+                                    _openConversation(conv);
                                   },
                                 )),
                                 const VerticalDivider(width: 1, thickness: 1),
@@ -458,6 +702,7 @@ class _InboxScreenState extends State<InboxScreen> {
                                   onSendImage: _sendImageMessage,
                                   isAiOn: _isAiOn,
                                   onToggleAi: _toggleChatbot,
+                                  onHelpMe: () => _handleHelpMe(_selectedConversation?.id),
                                 )),
                               ],
                             )
@@ -483,13 +728,7 @@ class _InboxScreenState extends State<InboxScreen> {
                                         });
                                       },
                                       onConversationSelected: (conv) {
-                                        setState(() {
-                                          _selectedConversation = conv;
-                                          _showChatViewOnMobile = true;
-                                          _isAiOn = conv.aiReply;
-                                        });
-                                        _fetchMessages(conv);
-                                        _fetchChatbotStatus(conv.id);
+                                        _openConversation(conv);
                                       },
                                     ),
                                   )
@@ -508,6 +747,7 @@ class _InboxScreenState extends State<InboxScreen> {
                                       onSendImage: _sendImageMessage,
                                       isAiOn: _isAiOn,
                                       onToggleAi: _toggleChatbot,
+                                      onHelpMe: () => _handleHelpMe(_selectedConversation?.id),
                                     ),
                                   ),
                               ],

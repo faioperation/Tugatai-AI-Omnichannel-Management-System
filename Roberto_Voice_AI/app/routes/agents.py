@@ -7,12 +7,16 @@ from app.config import VAPI_BASE, BACKEND_URL
 from app.vapi_client import (
     upload_file_to_vapi, create_query_tool, attach_tool_to_assistant,
     vapi_headers, delete_file_from_vapi, create_tools_for_business_type,
-    get_assistant_from_vapi
+    get_assistant_from_vapi, patch_assistant_prompt
 )
-from app.file_utils import extract_text_from_bytes
+from app.file_utils import (
+    extract_text_from_bytes, extract_product_file_text,
+    validate_product_file, ALLOWED_PRODUCT_EXTENSIONS
+)
 from app.services.business_config import (
     get_business_type, build_system_prompt as build_biz_prompt,
-    analyze_business_pdf_with_openai, MASTER_PROMPT_TEMPLATE
+    analyze_business_pdf_with_openai, MASTER_PROMPT_TEMPLATE,
+    inject_product_catalog_into_prompt
 )
 
 router = APIRouter()
@@ -43,12 +47,16 @@ def get_clean_backend_url() -> str:
 @router.post("/api/agents/create")
 async def create_agent(
     business_id: str = Form(...),
-    rules_file: UploadFile = File(...)
+    rules_file: UploadFile = File(...),
+    product_file: UploadFile = File(None)
 ):
     """
     Creates a Vapi assistant.
     Analyzes the uploaded business script (rules_file), generates prompt/persona/greeting,
     and automatically attaches tools according to business needs.
+
+    Optionally accepts a product_file (XLSX/CSV/XLS) containing the business's
+    product catalog or data sheet, which is injected into the agent's knowledge.
     """
     # ── Extract text from business script ────────────────────────────────────
     if not rules_file.filename:
@@ -65,6 +73,33 @@ async def create_agent(
         vapi_file_id = await upload_file_to_vapi(content, rules_file.filename)
     except Exception as exc:
         logger.error(f"Failed to upload business script to VAPI: {exc}")
+
+    # ── Process product file (optional) ──────────────────────────────────────
+    product_text = ""
+    product_vapi_file_id = None
+
+    if product_file and product_file.filename:
+        product_content = await product_file.read()
+
+        # Validate file type and size
+        validation_error = validate_product_file(product_file.filename, len(product_content))
+        if validation_error:
+            raise HTTPException(status_code=400, detail=validation_error)
+
+        # Extract structured text from the product file
+        product_text = extract_product_file_text(product_content, product_file.filename)
+        if not product_text:
+            raise HTTPException(
+                status_code=400,
+                detail="Failed to extract data from product_file. Ensure it contains readable data."
+            )
+
+        # Upload product file to VAPI file store for RAG
+        try:
+            product_vapi_file_id = await upload_file_to_vapi(product_content, product_file.filename)
+            logger.info(f"Uploaded product file '{product_file.filename}' to VAPI -> {product_vapi_file_id}")
+        except Exception as exc:
+            logger.error(f"Failed to upload product file to VAPI: {exc}")
 
     # ── Core Business Script Training Pipeline ────────────────────────────────
     # Call OpenAI to automatically analyze the business script and train the agent!
@@ -100,6 +135,10 @@ async def create_agent(
         else:
             used_prompt = prompt_content
 
+        # Inject product catalog into the prompt if provided
+        if product_text:
+            used_prompt = inject_product_catalog_into_prompt(used_prompt, product_text)
+
     except Exception as exc:
         logger.error(f"OpenAI script analysis failed: {exc}", exc_info=True)
         # Fallback to standard generic templates
@@ -107,7 +146,8 @@ async def create_agent(
             business_type="generic",
             business_name=business_id,
             agent_name="Assistant",
-            kb_text=extracted_text if len(extracted_text) <= 10000 else ""
+            kb_text=extracted_text if len(extracted_text) <= 10000 else "",
+            product_text=product_text
         )
         used_business_type = "generic"
         used_language = "en"
@@ -117,6 +157,7 @@ async def create_agent(
 
     # ── Determine if query tool is needed ─────────────────────────────────────
     use_query_tool = bool(vapi_file_id and len(extracted_text) > 10000)
+    use_product_query_tool = bool(product_vapi_file_id and product_text and len(product_text) > 10000)
 
     clean_backend_url = get_clean_backend_url()
     model = "gpt-4o"  # Default high-performance model
@@ -139,8 +180,15 @@ async def create_agent(
         "lead_status": {"type": "string", "description": "The status of the lead, e.g., scheduled, ordered, escalated, abandoned."},
         "call_summary": {"type": "string", "description": "A brief 1-2 sentence summary of what the customer wanted and the outcome."},
         "customer_name": {"type": "string", "description": "The full name of the customer."},
-        "customer_phone": {"type": "string", "description": "The phone number of the customer."}
+        "customer_phone": {"type": "string", "description": "The phone number of the customer."},
+        "booking_confirmation": {"type": "boolean", "description": "True if a booking, order, or service was successfully confirmed during the call, otherwise False."}
     }
+    
+    # Conditionally add package details for cargo/delivery agents
+    if used_business_type == "cargo":
+        schema_properties["package_name"] = {"type": "string", "description": "The name or description of the package to be delivered."}
+        schema_properties["package_type"] = {"type": "string", "description": "The type or category of the package."}
+        schema_properties["weight_kg"] = {"type": "number", "description": "The estimated weight of the package in kilograms."}
     
     if isinstance(dynamic_fields, dict):
         for field_name, field_desc in dynamic_fields.items():
@@ -215,7 +263,7 @@ async def create_agent(
 
     # ── Attach tools ──────────────────────────────────────────────────────────
     try:
-        # Create and attach query tool if document is large
+        # Create and attach query tool if rules document is large
         if vapi_file_id and use_query_tool:
             biz_config = get_business_type(used_business_type)
             query_tool_id = await create_query_tool(
@@ -225,6 +273,18 @@ async def create_agent(
             )
             await attach_tool_to_assistant(assistant_id, query_tool_id, current_model)
             # Re-fetch current model structure
+            assistant_info = await get_assistant_from_vapi(assistant_id)
+            if assistant_info:
+                current_model = assistant_info.get("model", current_model)
+
+        # Create and attach query tool if product catalog is large
+        if product_vapi_file_id and use_product_query_tool:
+            product_query_tool_id = await create_query_tool(
+                file_ids=[product_vapi_file_id],
+                kb_name="product-catalog-kb",
+                kb_description="Product catalog, inventory, pricing, and item details."
+            )
+            await attach_tool_to_assistant(assistant_id, product_query_tool_id, current_model)
             assistant_info = await get_assistant_from_vapi(assistant_id)
             if assistant_info:
                 current_model = assistant_info.get("model", current_model)
@@ -245,5 +305,111 @@ async def create_agent(
 
     return {
         "assistant_id": assistant_id,
-        "business_id": business_id
+        "business_id": business_id,
+        "product_file_id": product_vapi_file_id
+    }
+
+
+@router.put("/api/agents/{assistant_id}/product-file")
+async def update_product_file(
+    assistant_id: str,
+    product_file: UploadFile = File(...)
+):
+    """
+    Update or replace the product file for an existing VAPI assistant.
+
+    This endpoint:
+    1. Validates the uploaded file (XLSX/CSV/XLS, max 10MB)
+    2. Extracts structured text from the product file
+    3. Fetches the existing assistant's system prompt from VAPI
+    4. Injects/replaces the product catalog section in the prompt
+    5. Uploads the new file to VAPI's file store for RAG
+    6. Patches the assistant with the updated prompt
+    7. If the product data is large (>10k chars), creates a RAG query tool
+
+    Returns the updated assistant info and new product file ID.
+    """
+    if not product_file.filename:
+        raise HTTPException(status_code=400, detail="product_file is empty")
+
+    product_content = await product_file.read()
+
+    # Validate file type and size
+    validation_error = validate_product_file(product_file.filename, len(product_content))
+    if validation_error:
+        raise HTTPException(status_code=400, detail=validation_error)
+
+    # Extract structured text
+    product_text = extract_product_file_text(product_content, product_file.filename)
+    if not product_text:
+        raise HTTPException(
+            status_code=400,
+            detail="Failed to extract data from product_file. Ensure it contains readable data."
+        )
+
+    # ── Fetch existing assistant ─────────────────────────────────────────────
+    assistant = await get_assistant_from_vapi(assistant_id)
+    if not assistant:
+        raise HTTPException(status_code=404, detail=f"Assistant {assistant_id} not found in VAPI")
+
+    # ── Extract current system prompt ────────────────────────────────────────
+    current_model = assistant.get("model", {})
+    messages = current_model.get("messages", [])
+    current_prompt = ""
+    for msg in messages:
+        if msg.get("role") == "system":
+            current_prompt = msg.get("content", "")
+            break
+
+    if not current_prompt:
+        raise HTTPException(
+            status_code=400,
+            detail="Assistant has no system prompt. Cannot inject product data."
+        )
+
+    # ── Inject/replace product catalog in prompt ─────────────────────────────
+    updated_prompt = inject_product_catalog_into_prompt(current_prompt, product_text)
+
+    # ── Upload new product file to VAPI ──────────────────────────────────────
+    product_vapi_file_id = None
+    try:
+        product_vapi_file_id = await upload_file_to_vapi(product_content, product_file.filename)
+        logger.info(f"Uploaded new product file '{product_file.filename}' to VAPI -> {product_vapi_file_id}")
+    except Exception as exc:
+        logger.error(f"Failed to upload product file to VAPI: {exc}")
+
+    # ── Patch the assistant's system prompt ───────────────────────────────────
+    try:
+        await patch_assistant_prompt(assistant_id, updated_prompt)
+    except Exception as exc:
+        logger.error(f"Failed to patch assistant prompt: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update assistant prompt: {exc}"
+        )
+
+    # ── If product data is large, create/attach a RAG query tool ─────────────
+    if product_vapi_file_id and len(product_text) > 10000:
+        try:
+            product_query_tool_id = await create_query_tool(
+                file_ids=[product_vapi_file_id],
+                kb_name="product-catalog-kb",
+                kb_description="Product catalog, inventory, pricing, and item details."
+            )
+            # Re-fetch assistant to get latest model state
+            refreshed = await get_assistant_from_vapi(assistant_id)
+            if refreshed:
+                await attach_tool_to_assistant(
+                    assistant_id, product_query_tool_id,
+                    refreshed.get("model", {})
+                )
+                logger.info(f"Attached product RAG query tool {product_query_tool_id} to assistant {assistant_id}")
+        except Exception as exc:
+            logger.warning(f"Failed to create/attach product RAG tool (non-fatal): {exc}")
+
+    return {
+        "status": "success",
+        "assistant_id": assistant_id,
+        "product_file_id": product_vapi_file_id,
+        "message": "Product file updated successfully."
     }

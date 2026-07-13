@@ -457,7 +457,11 @@ class _CustomAddruleState extends State<CustomAddrule> {
             children: [
               _buildLabel(context, label1),
               const SizedBox(height: 6),
-              CustomTextfield(hintText: "Enter value", controller: ctrl1),
+              CustomTextfield(
+                hintText: "Enter value",
+                controller: ctrl1,
+                validator: (value) => null,
+              ),
             ],
           ),
         ),
@@ -469,7 +473,11 @@ class _CustomAddruleState extends State<CustomAddrule> {
                   children: [
                     _buildLabel(context, label2),
                     const SizedBox(height: 6),
-                    CustomTextfield(hintText: "Enter value", controller: ctrl2),
+                    CustomTextfield(
+                      hintText: "Enter value",
+                      controller: ctrl2,
+                      validator: (value) => null,
+                    ),
                   ],
                 )
               : const SizedBox.shrink(),

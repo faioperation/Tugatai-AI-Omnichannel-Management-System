@@ -9,10 +9,11 @@ import 'package:roberto/features/CRM/bloc/crm_bloc.dart';
 import 'package:roberto/features/CRM/bloc/crm_state.dart';
 
 class CmrScreen extends StatefulWidget {
-  final Function(String)? onNavigate;
+  final void Function(String, {String? targetPhone, String? targetName, String? conversationId})? onNavigate;
   final UserRole role;
   final String? branchId;
   const CmrScreen({super.key, this.onNavigate, this.role = UserRole.businessOwner, this.branchId});
+
 
   @override
   State<CmrScreen> createState() => _CmrScreenState();

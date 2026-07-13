@@ -17,9 +17,7 @@ To add a new business type:
 
 from typing import Dict, Any
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Business Type Definitions
-# ─────────────────────────────────────────────────────────────────────────────
 
 BUSINESS_TYPES: Dict[str, Dict[str, Any]] = {
 
@@ -27,7 +25,8 @@ BUSINESS_TYPES: Dict[str, Dict[str, Any]] = {
         "display_name": "Cargo & Logistics",
         "icon": "🚢",
         "description": "Freight forwarding, shipping quotes, and booking confirmations.",
-        "tools": ["get_quote", "confirm_booking", "escalate_to_human"],
+#        "tools": ["get_quote", "confirm_booking", "escalate_to_human"],
+        "tools": ["confirm_booking", "escalate_to_human"],
         "kb_name": "cargo-kb",
         "kb_description": "Shipping routes, pricing rules, customs fees, and cargo handling guidelines.",
         "transaction_label": "Bookings",
@@ -39,8 +38,8 @@ BUSINESS_TYPES: Dict[str, Dict[str, Any]] = {
 """,
         "prompt_layer3": """
 ### 1. SHIPPING QUOTE:
-- Collect: destination, item list, estimated weight (kg), and preferred mode (sea/air/DHL).
-- Trigger `get_quote` tool to calculate. Read back the exact result without modification.
+- Collect: destination, item list, estimated weight (kg), package name, package type, and preferred mode (sea/air/DHL).
+- Search your knowledge base or product catalog to calculate the exact pricing. Read back the exact result. Do not guess.
 
 ### 2. BOOKING CONFIRMATION:
 - Once customer agrees to quote: collect name, phone, pickup location, preferred pickup time.
@@ -217,10 +216,57 @@ BUSINESS_TYPES: Dict[str, Dict[str, Any]] = {
 }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# Product Catalog Prompt Constants
+
+PRODUCT_CATALOG_START_MARKER = (
+    "# ============================================================\n"
+    "# PRODUCT CATALOG / DATA SHEET\n"
+    "# ============================================================"
+)
+PRODUCT_CATALOG_END_MARKER = "# ============ END PRODUCT CATALOG ============"
+
+PRODUCT_CATALOG_SECTION_TEMPLATE = """{start_marker}
+Use the following product/data catalog when customers ask about products, prices, availability, items, or any specifics.
+Always reference this data accurately. Never invent products or prices not listed here.
+
+{product_data}
+
+{end_marker}"""
+
+
+def build_product_catalog_section(product_text: str) -> str:
+    """Build the product catalog section string for prompt injection."""
+    return PRODUCT_CATALOG_SECTION_TEMPLATE.format(
+        start_marker=PRODUCT_CATALOG_START_MARKER,
+        product_data=product_text,
+        end_marker=PRODUCT_CATALOG_END_MARKER,
+    )
+
+
+def inject_product_catalog_into_prompt(prompt: str, product_text: str) -> str:
+    """
+    Inject or replace the product catalog section in an existing prompt.
+    If a product catalog section already exists, it is replaced.
+    Otherwise, the section is appended at the end of the prompt.
+    """
+    catalog_section = build_product_catalog_section(product_text)
+
+    # Check if there's an existing product catalog section to replace
+    if PRODUCT_CATALOG_START_MARKER in prompt:
+        start_idx = prompt.index(PRODUCT_CATALOG_START_MARKER)
+        if PRODUCT_CATALOG_END_MARKER in prompt:
+            end_idx = prompt.index(PRODUCT_CATALOG_END_MARKER) + len(PRODUCT_CATALOG_END_MARKER)
+            return prompt[:start_idx] + catalog_section + prompt[end_idx:]
+        else:
+            # Start marker exists but no end — replace from start marker to end
+            return prompt[:start_idx] + catalog_section
+
+    # No existing section — append after the prompt
+    return prompt.rstrip() + "\n\n" + catalog_section
+
+
 # Master System Prompt Template
 # Layers 1 and 4 are fixed; Layers 2 & 3 are injected per business type.
-# ─────────────────────────────────────────────────────────────────────────────
 
 MASTER_PROMPT_TEMPLATE = """# ============================================================
 # ROBERTO AI — UNIVERSAL VOICE AGENT SYSTEM PROMPT
@@ -267,7 +313,8 @@ def build_system_prompt(
     business_type: str,
     business_name: str,
     agent_name: str = "Assistant",
-    kb_text: str = ""
+    kb_text: str = "",
+    product_text: str = ""
 ) -> str:
     """
     Build a complete system prompt for an assistant.
@@ -277,6 +324,7 @@ def build_system_prompt(
         business_name: The name of the business (e.g., "Tugatai Cargo")
         agent_name: The AI agent's persona name (e.g., "Lena")
         kb_text: Extracted knowledge base text to inject into Layer 4
+        product_text: Extracted product catalog text to inject as product section
 
     Returns:
         Complete system prompt string ready for Vapi
@@ -301,6 +349,10 @@ def build_system_prompt(
         placeholder = "[The business context and knowledge base content will be dynamically loaded and placed here. If this section is empty, rely on your knowledge base search tool.]"
         kb_section = f"# KNOWLEDGE BASE — {business_name.upper()}\n\n{kb_text}"
         prompt = prompt.replace(placeholder, kb_section)
+
+    # Inject product catalog if provided
+    if product_text:
+        prompt = inject_product_catalog_into_prompt(prompt, product_text)
 
     return prompt
 
@@ -357,7 +409,7 @@ Provide your response in JSON format matching the following keys:
 4. "language": Two-letter language code (e.g., "en", "es", "ar").
 5. "custom_layer2": A bulleted list defining the agent's identity, persona, and specific vocal tone/rules. Explicitly include dynamic vocal delivery instructions based on the script (e.g. "Use rich, appetizing descriptive language when discussing menu items", or "Speak with empathetic, clear pacing for medical queries").
 6. "custom_layer3": A structured guide for the agent's main flows and scenarios (e.g. booking appointment, taking order, providing quote, escalating call). Be detailed and specific to this business's script, specifying exactly what fields/data the agent needs to collect.
-7. "tools": A list of tool names the agent will need. Choose from: "get_quote", "confirm_booking", "collect_info", "escalate_to_human". Choose "confirm_booking" if booking is needed; "get_quote" if pricing/estimate is needed; "escalate_to_human" if human handoff is needed; "collect_info" for other general form submissions.
+7. "tools": A list of tool names the agent will need. Choose from: "confirm_booking", "collect_info", "escalate_to_human". Choose "confirm_booking" if booking is needed; "escalate_to_human" if human handoff is needed; "collect_info" for other general form submissions. Do not use get_quote, the agent should quote based on its knowledge base.
 8. "first_message": A warm, business-specific first greeting that the agent will speak when the call starts.
 9. "extracted_data_fields": A JSON object defining specific data fields the agent must extract at the end of the call, based on this business's needs (e.g. for a restaurant: party_size, booking_time; for cargo: weight_kg, destination). Each key should be the field name, and the value should be a brief string description of what the field is. DO NOT include generic fields like lead_status, call_summary, customer_name, customer_phone, as they are already included by default.
 
@@ -386,4 +438,3 @@ Make sure the JSON is valid and only return the JSON block.
         result = resp.json()
         content = result["choices"][0]["message"]["content"]
         return json.loads(content)
-

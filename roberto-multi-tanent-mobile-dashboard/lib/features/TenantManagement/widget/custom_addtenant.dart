@@ -23,6 +23,7 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
   final _formKey0 = GlobalKey<FormState>();
   final _formKey1 = GlobalKey<FormState>();
   final _formKey2 = GlobalKey<FormState>();
+  final _formKey3 = GlobalKey<FormState>();
   
   // Form controllers
   final _businessNameCtrl = TextEditingController();
@@ -32,6 +33,12 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
   final _phoneCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _industryCtrl = TextEditingController();
+
+  // Branch controllers
+  final _branchNameCtrl = TextEditingController();
+  final _branchEmailCtrl = TextEditingController();
+  final _branchPhoneCtrl = TextEditingController();
+  final _branchAddressCtrl = TextEditingController();
 
   // Dropdown states
   String selectedBusinessType = "Order Booking";
@@ -67,6 +74,10 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
       if (t.planCycle != null && t.planCycle!.isNotEmpty) {
         selectedBillingCycle = t.planCycle!;
       }
+
+      if (t.branches.isNotEmpty) {
+        _branchNameCtrl.text = t.branches.first.name;
+      }
     }
   }
 
@@ -79,6 +90,11 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
     _phoneCtrl.dispose();
     _passwordCtrl.dispose();
     _industryCtrl.dispose();
+
+    _branchNameCtrl.dispose();
+    _branchEmailCtrl.dispose();
+    _branchPhoneCtrl.dispose();
+    _branchAddressCtrl.dispose();
     super.dispose();
   }
 
@@ -98,7 +114,7 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
     else if (selectedBusinessType == 'Appointment Booking') apiBusinessType = 'APPOINTMENT_BOOKING';
     else if (selectedBusinessType == 'Parcel Delivery') apiBusinessType = 'PARCEL_DELIVERY';
 
-    final payload = {
+    final payload = <String, dynamic>{
       "businessName": _businessNameCtrl.text,
       "businessType": apiBusinessType,
       "industry": _industryCtrl.text,
@@ -110,6 +126,15 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
       "planId": selectedPlanId.isNotEmpty ? selectedPlanId : "some-default-plan-id",
       "planCycle": selectedBillingCycle,
     };
+
+    if (_branchNameCtrl.text.isNotEmpty) {
+      payload["branch"] = {
+        "name": _branchNameCtrl.text,
+        "email": _branchEmailCtrl.text,
+        "phone": _branchPhoneCtrl.text,
+        "address": _branchAddressCtrl.text,
+      };
+    }
 
     if (widget.tenant != null) {
       context.read<TenantBloc>().add(UpdateTenantRequested(businessId: widget.tenant!.id, payload: payload));
@@ -172,7 +197,8 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
                 children: [
                   _tabItem("Business Info", 0),
                   _tabItem("Owner Details", 1),
-                  _tabItem("Plan & Settings", 2),
+                  _tabItem("Branch Details", 2),
+                  _tabItem("Plan & Settings", 3),
                 ],
               ),
             ),
@@ -185,6 +211,7 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
               children: [
                 _businessInfo(),
                 _ownerDetails(),
+                _branchDetails(),
                 _planSettings(),
               ],
             ),
@@ -213,12 +240,14 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
                     } else if (selectedTab == 1) {
                       isValid = _formKey1.currentState!.validate();
                     } else if (selectedTab == 2) {
+                      isValid = _formKey3.currentState!.validate();
+                    } else if (selectedTab == 3) {
                       isValid = _formKey2.currentState!.validate();
                     }
                     
                     if (!isValid) return;
 
-                    if (selectedTab < 2) {
+                    if (selectedTab < 3) {
                       setState(() => selectedTab++);
                     } else {
                       _submit();
@@ -233,7 +262,7 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
                     ),
                   ),
                   child: Text(
-                    selectedTab < 2 
+                    selectedTab < 3 
                         ? 'Next' 
                         : (widget.tenant != null ? 'Update Client' : 'Create Client'),
                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
@@ -260,6 +289,8 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
           } else if (selectedTab == 1) {
              isValid = _formKey1.currentState!.validate();
           } else if (selectedTab == 2) {
+             isValid = _formKey3.currentState!.validate();
+          } else if (selectedTab == 3) {
              isValid = _formKey2.currentState!.validate();
           }
           if (!isValid) return;
@@ -391,6 +422,59 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
             }
             return null;
           },
+        ),
+      ],
+    ),
+    );
+  }
+
+  Widget _branchDetails() {
+    return Form(
+      key: _formKey3,
+      child: Column(
+        children: [
+        _inputLabel("Branch Name"),
+        const SizedBox(height: 5),
+        CustomMinitextfield(
+          hint: "Enter branch name", 
+          controller: _branchNameCtrl,
+          validator: (val) => val == null || val.isEmpty ? "Branch name is required" : null,
+        ),
+
+        const SizedBox(height: 12),
+
+        _inputLabel("Email"),
+        const SizedBox(height: 5),
+        CustomMinitextfield(
+          hint: "Enter branch email", 
+          controller: _branchEmailCtrl,
+          keyboardType: TextInputType.emailAddress,
+          validator: (val) {
+            if (val == null || val.isEmpty) return "Email is required";
+            if (!val.contains('@')) return "Enter a valid email";
+            return null;
+          },
+        ),
+
+        const SizedBox(height: 12),
+
+        _inputLabel("Phone"),
+        const SizedBox(height: 5),
+        CustomMinitextfield(
+          hint: "Enter branch phone", 
+          controller: _branchPhoneCtrl,
+          keyboardType: TextInputType.phone,
+          validator: (val) => val == null || val.isEmpty ? "Phone is required" : null,
+        ),
+
+        const SizedBox(height: 12),
+
+        _inputLabel("Address"),
+        const SizedBox(height: 5),
+        CustomMinitextfield(
+          hint: "Enter branch address", 
+          controller: _branchAddressCtrl,
+          validator: (val) => val == null || val.isEmpty ? "Address is required" : null,
         ),
       ],
     ),

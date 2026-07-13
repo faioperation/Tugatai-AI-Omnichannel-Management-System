@@ -14,9 +14,17 @@ class CrmRepository {
     int limit = 10,
     String searchParam = '',
     bool isBranchManager = false,
+    String country = '',
+    String productType = '',
   }) async {
     final baseUrl = isBranchManager ? ApiConstants.branchManagerCrmLeads : ApiConstants.businessOwnerCrmLeads;
-    final url = '$baseUrl?branchId=$branchId&page=$page&limit=$limit&searchParam=$searchParam';
+    var url = '$baseUrl?branchId=$branchId&page=$page&limit=$limit&searchParam=$searchParam';
+    if (country.isNotEmpty && country != 'All countries') {
+      url += '&country=$country';
+    }
+    if (productType.isNotEmpty && productType != 'All types') {
+      url += '&productType=$productType';
+    }
     
     final response = await networkClient.getRequest(url);
 
@@ -47,6 +55,7 @@ class CrmRepository {
     required String email,
     required String phone,
     required String source,
+    String country = '',
     required String address,
     required String note,
     required String status,
@@ -59,10 +68,11 @@ class CrmRepository {
       "email": email,
       "phone": phone,
       "source": source,
+      if (country.isNotEmpty) "country": country,
       "address": address,
       "note": note,
       "status": status,
-      if (metadata != null) "metadata": metadata,
+      if (metadata != null && metadata.isNotEmpty) "metadata": metadata,
     };
 
     final baseUrl = isBranchManager ? ApiConstants.branchManagerCrmLeadCreate : ApiConstants.businessOwnerCrmLeadCreate;
@@ -140,6 +150,58 @@ class CrmRepository {
       return {
         'success': false,
         'message': response.errorMassage,
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> getCrmCountries(String branchId, {bool isBranchManager = false}) async {
+    try {
+      final endpoint = isBranchManager 
+          ? ApiConstants.branchManagerBookingCountries 
+          : ApiConstants.businessOwnerBookingCountries;
+      final url = '$endpoint?branchId=$branchId';
+      final response = await networkClient.getRequest(url);
+
+      if (response.isSuccess) {
+        return response.responseData is Map<String, dynamic>
+            ? response.responseData as Map<String, dynamic>
+            : {'success': true, 'data': response.responseData};
+      } else {
+        return {
+          'success': false,
+          'message': response.errorMassage ?? 'Failed to get CRM countries',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> getCrmProductTypes(String branchId, {bool isBranchManager = false}) async {
+    try {
+      final endpoint = isBranchManager 
+          ? ApiConstants.branchManagerCrmProductTypes 
+          : ApiConstants.businessOwnerCrmProductTypes;
+      final url = isBranchManager ? endpoint : '$endpoint?branchId=$branchId';
+      final response = await networkClient.getRequest(url);
+
+      if (response.isSuccess) {
+        return response.responseData is Map<String, dynamic>
+            ? response.responseData as Map<String, dynamic>
+            : {'success': true, 'data': response.responseData};
+      } else {
+        return {
+          'success': false,
+          'message': response.errorMassage ?? 'Failed to get CRM product types',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': e.toString(),
       };
     }
   }

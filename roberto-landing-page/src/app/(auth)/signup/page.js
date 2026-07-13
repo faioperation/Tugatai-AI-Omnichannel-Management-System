@@ -18,16 +18,30 @@ const Signup = () => {
     businessType: "ORDER_BOOKING",
     industry: "",
     description: "",
-    country: "",
-    address: "",
     ownerName: "",
     ownerEmail: "",
     ownerPassword: "",
     ownerPhone: "",
+    branch: {
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+    },
   });
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleBranchChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      branch: {
+        ...prev.branch,
+        [field]: value
+      }
+    }));
   };
 
   const mutation = useMutation({
@@ -55,10 +69,10 @@ const Signup = () => {
     }
   });
 
-  const tabs = ["Business Info", "Owner Details"];
+  const tabs = ["Business Info", "Branch Details", "Owner Details"];
 
   const nextStep = () => {
-    if (activeTab < 1) setActiveTab(activeTab + 1);
+    if (activeTab < 2) setActiveTab(activeTab + 1);
   };
 
   const prevStep = () => {
@@ -67,13 +81,13 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center py-8 px-4">
-      <div className="bg-white rounded-[24px] w-full max-w-[600px] h-auto min-h-[800px] px-2 md:py-7 py-5  md:px-14   shadow-2xl">
+      <div className="bg-white rounded-[24px] w-full max-w-[600px] h-auto min-h-[800px] px-2 md:py-5 py-5  md:px-14   shadow-2xl">
         {/* Logo and Header */}
         <div className="flex flex-col items-center mb-8">
           <Link href="/">
-            <div className="bg-[#EA2B33] rounded-xl flex items-center justify-center mb-5 cursor-pointer hover:opacity-90 transition-opacity">
-              <Image src={"/logo.png"} alt="logo" width={60} height={100} />
-            </div>
+            {/* <div className="bg-[#EA2B33] rounded-xl flex items-center justify-center mb-5 cursor-pointer hover:opacity-90 transition-opacity"> */}
+              <Image src={"/authLogo.png"} alt="logo" width={180} height={180} />
+            
           </Link>
           <h1 className="text-[28px] font-medium text-black mb-2 tracking-tight">
             Sign up
@@ -116,9 +130,9 @@ const Signup = () => {
                   label="Business Type"
                   placeholder="Select type"
                   options={[
-                    "ORDER_BOOKING",
-                    "APPOINTMENT_BOOKING",
-                    "PARCEL_DELIVERY",
+                    { label: "Order Booking", value: "ORDER_BOOKING" },
+                    { label: "Appointment Booking", value: "APPOINTMENT_BOOKING" },
+                    { label: "Parcel Delivery", value: "PARCEL_DELIVERY" },
                   ]}
                   value={formData.businessType}
                   onSelect={(val) => handleInputChange("businessType", val)}
@@ -134,26 +148,6 @@ const Signup = () => {
                   value={formData.industry}
                   onChange={(e) => handleInputChange("industry", e.target.value)}
                 />
-                <div className="grid grid-cols-2 gap-4">
-                  <InputField
-                    label="Country"
-                    placeholder="e.g. BD"
-                    labelClass="text-[13px] font-semibold"
-                    inputClass="!p-3 !text-sm !rounded-xl"
-                    type="text"
-                    value={formData.country}
-                    onChange={(e) => handleInputChange("country", e.target.value)}
-                  />
-                  <InputField
-                    label="Address"
-                    placeholder="e.g. Dhaka"
-                    labelClass="text-[13px] font-semibold"
-                    inputClass="!p-3 !text-sm !rounded-xl"
-                    type="text"
-                    value={formData.address}
-                    onChange={(e) => handleInputChange("address", e.target.value)}
-                  />
-                </div>
 
                 <div className="flex flex-col w-full gap-2">
                   <label className="font-inter text-[#000000] text-[13px] font-semibold">
@@ -170,6 +164,47 @@ const Signup = () => {
             )}
 
             {activeTab === 1 && (
+              <>
+                <InputField
+                  label="Branch Name"
+                  placeholder="Enter branch name"
+                  labelClass="text-[13px] font-semibold"
+                  inputClass="!p-3 !text-sm !rounded-xl"
+                  type="text"
+                  value={formData.branch.name}
+                  onChange={(e) => handleBranchChange("name", e.target.value)}
+                />
+                <InputField
+                  label="Branch Email"
+                  placeholder="email@branch.com"
+                  labelClass="text-[13px] font-semibold"
+                  inputClass="!p-3 !text-sm !rounded-xl"
+                  type="email"
+                  value={formData.branch.email}
+                  onChange={(e) => handleBranchChange("email", e.target.value)}
+                />
+                <InputField
+                  label="Branch Phone"
+                  placeholder="+1 234 567 8900"
+                  labelClass="text-[13px] font-semibold"
+                  inputClass="!p-3 !text-sm !rounded-xl"
+                  type="tel"
+                  value={formData.branch.phone}
+                  onChange={(e) => handleBranchChange("phone", e.target.value)}
+                />
+                <InputField
+                  label="Branch Address"
+                  placeholder="e.g. Doha, Qatar"
+                  labelClass="text-[13px] font-semibold"
+                  inputClass="!p-3 !text-sm !rounded-xl"
+                  type="text"
+                  value={formData.branch.address}
+                  onChange={(e) => handleBranchChange("address", e.target.value)}
+                />
+              </>
+            )}
+
+            {activeTab === 2 && (
               <>
                 <InputField
                   label="Owner Name"
@@ -217,25 +252,25 @@ const Signup = () => {
             <div className="">
             <p className="text-[14px] text-[#5B5B5B]">
               Already have an account?{" "}
-              <Link href="/signin" className="text-[#EA2B33] font-semibold hover:underline">
+              <Link href="/signin" className="text-[#9810FA] font-semibold hover:underline">
                 Sign in
               </Link>
             </p>
           </div>
             <button
               onClick={prevStep}
-              className="px-8 py-2.5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-[#374151] font-semibold text-sm hover:bg-gray-100 transition-colors w-full sm:w-auto"
+              className={`px-8 py-2.5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-[#374151] font-semibold text-sm hover:bg-gray-100 transition-colors w-full sm:w-auto ${activeTab === 0 ? 'invisible pointer-events-none' : ''}`}
             >
               Cancel
             </button>
             <button
               onClick={
-                activeTab === 1 ? () => mutation.mutate(formData) : nextStep
+                activeTab === 2 ? () => mutation.mutate(formData) : nextStep
               }
               disabled={mutation.isPending}
-              className={`px-10 py-2.5 rounded-xl bg-[#EA2B33] text-white font-semibold text-sm hover:bg-[#d1232a] transition-colors w-full sm:w-auto ${mutation.isPending ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`px-10 py-2.5 rounded-xl bg-[#9810FA] text-white font-semibold text-sm hover:bg-[#800cd6] transition-colors w-full sm:w-auto ${mutation.isPending ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              {mutation.isPending ? "Creating..." : activeTab === 1 ? "Create" : "Next"}
+              {mutation.isPending ? "Creating..." : activeTab === 2 ? "Create" : "Next"}
             </button>
           </div>
           

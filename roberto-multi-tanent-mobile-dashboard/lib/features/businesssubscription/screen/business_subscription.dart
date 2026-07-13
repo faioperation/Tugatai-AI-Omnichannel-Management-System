@@ -4,8 +4,11 @@ import 'package:roberto/features/businesssubscription/widget/custom_plans.dart';
 import 'package:roberto/features/businesssubscription/widget/custom_history.dart';
 import 'package:roberto/features/TenantManagement/widget/custom_stat_card.dart';
 
+import 'package:roberto/common/user_role.dart';
+
 class BusinessSubscription extends StatefulWidget {
-  const BusinessSubscription({super.key});
+  final UserRole role;
+  const BusinessSubscription({super.key, this.role = UserRole.businessOwner});
 
   @override
   State<BusinessSubscription> createState() => _BusinessSubscriptionState();
@@ -55,8 +58,9 @@ class _BusinessSubscriptionState extends State<BusinessSubscription> {
           transitionBuilder: (child, animation) =>
               FadeTransition(opacity: animation, child: child),
           child: _selectedTab == 0
-              ? const CustomPlans(
-            key: ValueKey('Plans'),
+              ? CustomPlans(
+            key: const ValueKey('Plans'),
+            role: widget.role,
           )
               : const CustomHistory(
             key: ValueKey('Billing History'),

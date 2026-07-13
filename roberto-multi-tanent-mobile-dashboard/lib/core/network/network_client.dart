@@ -7,7 +7,12 @@ import 'package:mime/mime.dart';
 part 'network_response.dart';
 
 class NetworkClient {
-  final Logger _logger = Logger();
+  final Logger _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 0, // Hides the stack trace that looks like an error
+      errorMethodCount: 5,
+    ),
+  );
   final String _defaultErrorMassage = 'Something went wrong';
 
   final VoidCallback onUnAuthorize;
@@ -62,6 +67,23 @@ class NetworkClient {
       Uri uri = Uri.parse(url);
       _logRequest(url, headers: commonHeaders(), body: body);
       final Response response = await patch(
+        uri,
+        headers: commonHeaders(),
+        body: jsonEncode(body),
+      );
+      _logResponse(response);
+      return _handleResponse(response);
+    } catch (e) {
+      return _handleError(e);
+    }
+  }
+
+  Future<NetworkResponse> putRequest(String url,
+      {Map<String, dynamic>? body}) async {
+    try {
+      Uri uri = Uri.parse(url);
+      _logRequest(url, headers: commonHeaders(), body: body);
+      final Response response = await put(
         uri,
         headers: commonHeaders(),
         body: jsonEncode(body),

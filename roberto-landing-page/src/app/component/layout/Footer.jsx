@@ -3,7 +3,7 @@ import React from 'react';
 import Container from '../Container';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FiTwitter, FiLinkedin, FiGithub, FiMail } from 'react-icons/fi';
+import { FaWhatsapp, FaFacebookF, FaInstagram, FaLinkedinIn } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 
 const Footer = () => {
@@ -21,23 +21,16 @@ const Footer = () => {
           <div className="lg:col-span-2 flex flex-col gap-6">
             <Link href="/">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#EB232D] flex items-center justify-center p-1.5 shadow-lg shadow-red-500/20">
+                {/* <div className="w-12 h-12 rounded-xl bg-[#EB232D] flex items-center justify-center p-1.5 shadow-lg shadow-red-500/20"> */}
                   <Image
-                    src="/logo.png"
+                    src="/OmnirraAI.png"
                     alt="Logo"
-                    width={48}
-                    height={48}
+                    width={250}
+                    height={50}
                     className="h-full w-auto object-contain"
                   />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-[#EB232D] font-inter uppercase">
-                      Matrix
-                  </p>
-                  {/* <span className="text-xs font-inter text-[#1E8380]">
-                      Cargo Logistics
-                  </span> */}
-                </div>
+              
+                
               </div>
             </Link>
             
@@ -45,19 +38,19 @@ const Footer = () => {
               AI Voice & Chat Agent for businesses. Automate customer conversations, bookings, and operations 24/7.
             </p>
 
-            <div className="flex items-center gap-4">
-              <a href="#" className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-[#888888] hover:text-white hover:bg-white/10 transition-all">
-                <FiTwitter className="w-5 h-5" />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-[#888888] hover:text-white hover:bg-white/10 transition-all">
-                <FiLinkedin className="w-5 h-5" />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-[#888888] hover:text-white hover:bg-white/10 transition-all">
-                <FiGithub className="w-5 h-5" />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-[#888888] hover:text-white hover:bg-white/10 transition-all">
-                <FiMail className="w-5 h-5" />
-              </a>
+            <div className="flex items-center gap-3">
+              <Link href="https://wa.me/97477631991" target="_blank" className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-gradient-to-r hover:from-[#9810FA] hover:to-[#AD46FF] hover:border-transparent transition-all shadow-lg hover:shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                <FaWhatsapp size={16} />
+              </Link>
+              <Link href="https://www.facebook.com/tugataicargo" className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-gradient-to-r hover:from-[#9810FA] hover:to-[#AD46FF] hover:border-transparent transition-all shadow-lg hover:shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                <FaFacebookF size={16} />
+              </Link>
+              <Link href="https://www.instagram.com/tugataicago" className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-gradient-to-r hover:from-[#9810FA] hover:to-[#AD46FF] hover:border-transparent transition-all shadow-lg hover:shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                <FaInstagram size={16} />
+              </Link>
+              <Link href="#" className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-gradient-to-r hover:from-[#9810FA] hover:to-[#AD46FF] hover:border-transparent transition-all shadow-lg hover:shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                <FaLinkedinIn size={16} />
+              </Link>
             </div>
           </div>
 
@@ -94,7 +87,7 @@ const Footer = () => {
           className="py-8 border-t border-white/10"
         >
           <p className="text-sm font-inter text-[#99A1AF]">
-            © {new Date().getFullYear()} Matrix. All rights reserved.
+            © {new Date().getFullYear()} Omnirra. All rights reserved.
           </p>
         </motion.div>
       </Container>

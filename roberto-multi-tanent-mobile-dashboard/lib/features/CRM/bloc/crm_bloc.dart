@@ -23,6 +23,8 @@ class CrmBloc extends Bloc<CrmEvent, CrmState> {
         limit: event.limit,
         searchParam: event.searchParam,
         isBranchManager: event.role == UserRole.branchManager,
+        country: event.country,
+        productType: event.productType,
       );
 
       if (response['success'] == true) {
@@ -47,6 +49,7 @@ class CrmBloc extends Bloc<CrmEvent, CrmState> {
         email: event.email,
         phone: event.phone,
         source: event.source,
+        country: event.country,
         address: event.address,
         note: event.note,
         status: event.status,

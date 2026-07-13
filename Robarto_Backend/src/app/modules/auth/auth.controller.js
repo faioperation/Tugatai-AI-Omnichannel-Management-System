@@ -33,6 +33,34 @@ const credentialLogin = async (req, res, next) => {
         // Remove sensitive fields before sending user
         const { passwordHash, ...saveUser } = user;
 
+        // Retrieve businessId and businessType for BUSINESS_OWNER or BRANCH_MANAGER
+        const userRoleNames = user.roles?.map(r => r.role.name) || [];
+        if (userRoleNames.includes("BUSINESS_OWNER")) {
+          const business = await prisma.business.findFirst({
+            where: { ownerId: user.id }
+          });
+          if (business) {
+            saveUser.businessId = business.id;
+            saveUser.businessType = business.businessType;
+          }
+        } else if (userRoleNames.includes("BRANCH_MANAGER")) {
+          const manager = await prisma.branchManager.findUnique({
+            where: { email: user.email },
+            include: { branches: { select: { id: true } } }
+          });
+          if (manager) {
+            saveUser.businessId = manager.businessId;
+            saveUser.branchId = manager.branches?.[0]?.id || null;
+            const business = await prisma.business.findUnique({
+              where: { id: manager.businessId },
+              select: { businessType: true }
+            });
+            if (business) {
+              saveUser.businessType = business.businessType;
+            }
+          }
+        }
+
         // Set cookies
         setAuthCookie(res, userToken);
 
@@ -88,6 +116,44 @@ const getNewAccessToken = async (req, res, next) => {
         "User is not verified. Please verify your email.",
         StatusCodes.FORBIDDEN
       );
+    }
+
+    // Check business status for BUSINESS_OWNER and BRANCH_MANAGER roles
+    const userRoleNames = user.roles?.map(r => r.role.name) || [];
+    const isBusinessOwner = userRoleNames.includes("BUSINESS_OWNER");
+    const isBranchManager = userRoleNames.includes("BRANCH_MANAGER");
+
+    if (isBusinessOwner || isBranchManager) {
+      if (isBusinessOwner) {
+        const business = await prisma.business.findFirst({
+          where: { ownerId: user.id }
+        });
+        // BUSINESS_OWNER can refresh token even if INACTIVE (to purchase subscription)
+        // Block only if SUSPENDED or deleted
+        if (!business || business.deletedAt || business.status === "SUSPENDED") {
+          throw new DevBuildError(
+            "Your business account is suspended. Please contact the administrator.",
+            StatusCodes.FORBIDDEN
+          );
+        }
+      } else if (isBranchManager) {
+        const manager = await prisma.branchManager.findUnique({
+          where: { email: user.email }
+        });
+        let business = null;
+        if (manager) {
+          business = await prisma.business.findUnique({
+            where: { id: manager.businessId }
+          });
+        }
+        // BRANCH_MANAGER requires business to be ACTIVE
+        if (!business || business.deletedAt || business.status !== "ACTIVE") {
+          throw new DevBuildError(
+            "Your business account is suspended or inactive. Please contact the administrator.",
+            StatusCodes.FORBIDDEN
+          );
+        }
+      }
     }
 
     const newAccessToken = jwt.sign(

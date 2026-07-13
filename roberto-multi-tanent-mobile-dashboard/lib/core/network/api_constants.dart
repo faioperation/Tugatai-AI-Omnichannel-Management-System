@@ -1,11 +1,14 @@
 class ApiConstants {
-  static const String baseUrl = 'https://accustomed-maryalice-bubbleless.ngrok-free.dev/api';
-  
+  //static const String baseUrl = 'https://test8.fireai.agency/api';
+  //static const String baseUrl = 'https://accustomed-maryalice-bubbleless.ngrok-free.dev/api';
+  static const String baseUrl = 'https://api.omnirraai.com/api';
+
   // Auth endpoints
   static const String login = '$baseUrl/auth/login';
   static const String forgotPassword = '$baseUrl/auth/forgot-password';
   static const String verifyOtp = '$baseUrl/auth/verify-forgot-password-otp';
   static const String resetPassword = '$baseUrl/auth/reset-password';
+  static const String changePassword = '$baseUrl/auth/change-password';
   static const String refreshToken = '$baseUrl/auth/refresh-token';
 
   // Overview endpoints
@@ -25,6 +28,7 @@ class ApiConstants {
   // Notification endpoints
   static const String notifications = '$baseUrl/notifications';
   static const String notificationsReadAll = '$baseUrl/notifications/read-all';
+  static const String notificationsToken = '$baseUrl/notifications/token';
 
   // Business (Tenant) endpoints
   static const String systemOwnerBusinesses = '$baseUrl/system-owner/businesses/all';
@@ -60,11 +64,13 @@ class ApiConstants {
   static const String businessOwnerCrmLeads = '$baseUrl/business-owner/crm-leads/all';
   static const String businessOwnerCrmLeadCreate = '$baseUrl/business-owner/crm-leads/create';
   static const String businessOwnerCrmLead = '$baseUrl/business-owner/crm-leads'; // + /:id (for GET single, PATCH, DELETE)
+  static const String businessOwnerCrmProductTypes = '$baseUrl/business-owner/crm-leads/product-types';
 
   // Branch Manager CRM Leads endpoints
   static const String branchManagerCrmLeads = '$baseUrl/branch-manager/crm-leads/all';
   static const String branchManagerCrmLeadCreate = '$baseUrl/branch-manager/crm-leads/create';
   static const String branchManagerCrmLead = '$baseUrl/branch-manager/crm-leads'; // + /:id (for GET single, PATCH, DELETE)
+  static const String branchManagerCrmProductTypes = '$baseUrl/branch-manager/crm-leads/product-types';
 
   // Branch Manager Pricing endpoints
   static const String branchManagerPricingAll = '$baseUrl/branch-manager/pricing/all';
@@ -75,9 +81,17 @@ class ApiConstants {
   static const String branchManagerBookingsAll = '$baseUrl/branch-manager/bookings/all';
   static const String branchManagerBookingsCreate = '$baseUrl/branch-manager/bookings/create';
   static const String branchManagerBookingsSingle = '$baseUrl/branch-manager/bookings'; // + /:id
+  static const String branchManagerBookingCountries = '$baseUrl/branch-manager/bookings/countries';
+  static const String branchManagerBookingProductTypes = '$baseUrl/branch-manager/bookings/product-types';
+
+  // Business Owner Booking endpoints
+  static const String businessOwnerBookingsAll = '$baseUrl/business-owner/bookings/all';
+  static const String businessOwnerBookingCountries = '$baseUrl/business-owner/bookings/countries';
+  static const String businessOwnerBookingProductTypes = '$baseUrl/business-owner/bookings/product-types';
 
   // Inbox & Conversations
   static const String allConversations = '$baseUrl/conversations/all-conversations';
+  static const String markConversationSeen = '$baseUrl/conversations'; // + /:id/seen
 
   static const String messengerConversations = '$baseUrl/v1/messenger/conversations';
   static const String messengerMessages = '$baseUrl/v1/messenger/messages'; // + /:conversationId
@@ -118,4 +132,7 @@ class ApiConstants {
   static const String googleCalendarDisconnect = '$baseUrl/v1/google/calendar/disconnect';
   static const String googleCalendarEvents = '$baseUrl/v1/google/calendar/events';
 
+  // Demo Booking endpoints
+  static const String demoBookingsAll = '$baseUrl/demo-bookings/all';
+  static const String demoBookings = '$baseUrl/demo-bookings'; // for /$id
 }

@@ -107,8 +107,19 @@ class ChatList extends StatelessWidget {
       }
     } catch (_) {}
     
-    final preview = conv.lastMessage;
-    
+    final bool isOutgoing = conv.lastMessageDirection == 'OUTGOING';
+
+    // Build display preview from lastMessage
+    String rawPreview = conv.lastMessage.trim();
+
+    // If still empty, show a fallback placeholder
+    if (rawPreview.isEmpty) {
+      rawPreview = '💬 Message';
+    }
+
+    // Add "You: " prefix if it was an outgoing message
+    final String preview = isOutgoing ? 'You: $rawPreview' : rawPreview;
+
     String socialIconPath = 'assets/facebook.svg';
     if (conv.platform == 'instagram') {
       socialIconPath = 'assets/instagram.svg';
@@ -199,7 +210,10 @@ class ChatList extends StatelessWidget {
                     preview,
                     style: TextStyle(
                       fontSize: 13,
-                      color: Theme.of(context).textTheme.bodySmall?.color,
+                      fontWeight: conv.seen ? FontWeight.normal : FontWeight.w700,
+                      color: conv.seen 
+                          ? Theme.of(context).textTheme.bodySmall?.color
+                          : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -207,6 +221,17 @@ class ChatList extends StatelessWidget {
                 ],
               ),
             ),
+            if (!conv.continueAi) ...[
+              const SizedBox(width: 8),
+              const Tooltip(
+                message: 'AI reply paused - needs human attention',
+                child: Icon(
+                  Icons.error,
+                  color: Color(0xFFB71C1C),
+                  size: 25,
+                ),
+              ),
+            ],
           ],
         ),
       ),

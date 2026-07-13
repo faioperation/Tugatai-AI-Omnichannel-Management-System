@@ -18,6 +18,12 @@ class BusinessSubscriptionBloc extends Bloc<BusinessSubscriptionEvent, BusinessS
     emit(BusinessSubscriptionLoading());
     try {
       final subscriptions = await repository.getMySubscription();
+      // Sort subscriptions descending by createdAt so the latest (active) one is first
+      subscriptions.sort((a, b) {
+        final dateA = a.createdAt ?? DateTime(2000);
+        final dateB = b.createdAt ?? DateTime(2000);
+        return dateB.compareTo(dateA);
+      });
       emit(BusinessSubscriptionLoaded(subscriptions: subscriptions));
     } catch (e) {
       emit(BusinessSubscriptionError(message: e.toString().replaceAll('Exception: ', '')));

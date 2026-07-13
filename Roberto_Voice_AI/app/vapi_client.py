@@ -15,9 +15,7 @@ from .config import VAPI_API_KEY, VAPI_BASE
 logger = logging.getLogger(__name__)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Auth
-# ─────────────────────────────────────────────────────────────────────────────
 
 def vapi_headers() -> dict:
     """Standard VAPI auth headers."""
@@ -27,9 +25,7 @@ def vapi_headers() -> dict:
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # File Management
-# ─────────────────────────────────────────────────────────────────────────────
 
 async def upload_file_to_vapi(content: bytes, filename: str) -> str:
     """
@@ -68,12 +64,13 @@ def _mime_type(filename: str) -> str:
         "txt": "text/plain",
         "csv": "text/csv",
         "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "xls": "application/vnd.ms-excel",
     }.get(ext, "application/octet-stream")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Tool Creation
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 async def create_query_tool(file_ids: list[str], kb_name: str, kb_description: str) -> str:
     """
@@ -176,9 +173,7 @@ async def _find_existing_tool(tool_name: str) -> str | None:
     return None
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Tool Parameter Definitions (used when building business-specific tools)
-# ─────────────────────────────────────────────────────────────────────────────
 
 def _tool_params(tool_name: str) -> tuple[str, dict]:
     """
@@ -186,21 +181,6 @@ def _tool_params(tool_name: str) -> tuple[str, dict]:
     These are the schemas the AI uses when deciding which arguments to pass.
     """
     n = tool_name.lower()
-
-    if any(w in n for w in ["quote", "price", "estimate", "rate"]):
-        return (
-            "Calculate a price quote based on the customer's requirements.",
-            {
-                "type": "object",
-                "properties": {
-                    "destination":  {"type": "string",  "description": "Destination city or country."},
-                    "items":        {"type": "string",  "description": "Description of items or services."},
-                    "weight_kg":    {"type": "number",  "description": "Weight in kg (if applicable)."},
-                    "mode":         {"type": "string",  "description": "Service mode or tier (e.g. sea, air, standard)."},
-                },
-                "required": ["items"],
-            }
-        )
 
     if any(w in n for w in ["booking", "book", "reserve", "reservation", "order", "purchase",
                               "enroll", "consultation", "schedule", "appointment", "viewing", "process"]):
@@ -214,6 +194,9 @@ def _tool_params(tool_name: str) -> tuple[str, dict]:
                     "details":        {"type": "string", "description": "What is being booked or ordered."},
                     "address":        {"type": "string", "description": "Delivery, pickup, or meeting address."},
                     "datetime":       {"type": "string", "description": "Preferred date and time."},
+                    "package_name":   {"type": "string", "description": "The name or description of the package (if applicable)."},
+                    "package_type":   {"type": "string", "description": "The type or category of the package (if applicable)."},
+                    "weight_kg":      {"type": "number", "description": "The estimated weight of the package in kilograms (if applicable)."},
                 },
                 "required": ["customer_name", "customer_phone"],
             }
@@ -304,9 +287,7 @@ async def attach_tool_to_assistant(assistant_id: str, tool_id: str, current_mode
     logger.info(f"[VAPI] Attached tool {tool_id} to assistant {assistant_id}")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Assistant Helpers
-# ─────────────────────────────────────────────────────────────────────────────
 
 async def get_assistant_from_vapi(assistant_id: str) -> dict | None:
     """Fetch a single assistant from VAPI. Returns None if not found."""
@@ -321,6 +302,56 @@ async def get_assistant_from_vapi(assistant_id: str) -> dict | None:
     return resp.json()
 
 
+async def patch_assistant_prompt(assistant_id: str, new_prompt: str) -> dict:
+    """
+    Update only the system prompt of an existing VAPI assistant.
+    Preserves all other model settings (provider, model, temperature, toolIds, etc.).
+    Returns the updated assistant data.
+    """
+    # Fetch current assistant to preserve existing model config
+    assistant = await get_assistant_from_vapi(assistant_id)
+    if not assistant:
+        raise RuntimeError(f"Assistant {assistant_id} not found in VAPI.")
+
+    current_model = assistant.get("model", {})
+
+    # Replace only the system message content
+    messages = current_model.get("messages", [])
+    updated_messages = []
+    system_found = False
+    for msg in messages:
+        if msg.get("role") == "system" and not system_found:
+            updated_messages.append({"role": "system", "content": new_prompt})
+            system_found = True
+        else:
+            updated_messages.append(msg)
+
+    if not system_found:
+        updated_messages.insert(0, {"role": "system", "content": new_prompt})
+
+    patch = {
+        "model": {
+            **current_model,
+            "messages": updated_messages,
+        }
+    }
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.patch(
+            f"{VAPI_BASE}/assistant/{assistant_id}",
+            json=patch,
+            headers=vapi_headers()
+        )
+
+    if resp.status_code not in (200, 201, 204):
+        raise RuntimeError(
+            f"Failed to patch assistant {assistant_id} prompt ({resp.status_code}): {resp.text}"
+        )
+
+    logger.info(f"[VAPI] Patched system prompt for assistant {assistant_id}")
+    return resp.json()
+
+
 async def list_assistants_from_vapi() -> list[dict]:
     """List all assistants from VAPI."""
     async with httpx.AsyncClient(timeout=20) as client:
@@ -331,10 +362,7 @@ async def list_assistants_from_vapi() -> list[dict]:
 
     return resp.json()
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Telephony & Transfer Helpers
-# ─────────────────────────────────────────────────────────────────────────────
 
 async def import_twilio_number(
     twilio_sid: str,

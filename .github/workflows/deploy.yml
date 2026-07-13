@@ -1,0 +1,115 @@
+name: 🚀 Production Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+
+  detect:
+
+    runs-on: ubuntu-latest
+
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      voice: ${{ steps.filter.outputs.voice }}
+      chatbot: ${{ steps.filter.outputs.chatbot }}
+      landing: ${{ steps.filter.outputs.landing }}
+      dashboard: ${{ steps.filter.outputs.dashboard }}
+      nginx: ${{ steps.filter.outputs.nginx }}
+      compose: ${{ steps.filter.outputs.compose }}
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+
+        id: filter
+
+        with:
+
+          filters: |
+
+            backend:
+              - 'Robarto_Backend/**'
+
+            voice:
+              - 'Roberto_Voice_AI/**'
+
+            chatbot:
+              - 'ai-chatbot/**'
+
+            landing:
+              - 'roberto-landing-page/**'
+
+            dashboard:
+              - 'roberto-multi-tanent-mobile-dashboard/**'
+
+            nginx:
+              - 'nginx/**'
+
+            compose:
+              - 'docker-compose.yml'
+
+  deploy:
+
+    needs: detect
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: SSH Deploy
+
+        uses: appleboy/ssh-action@v1
+
+        with:
+
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.PORT }}
+
+          script: |
+
+            cd /opt/omnirraai
+
+            git pull origin main
+
+            if [ "${{ needs.detect.outputs.backend }}" = "true" ]; then
+              ./scripts/deploy.sh backend
+            fi
+
+            if [ "${{ needs.detect.outputs.voice }}" = "true" ]; then
+              ./scripts/deploy.sh voice-ai
+            fi
+
+            if [ "${{ needs.detect.outputs.chatbot }}" = "true" ]; then
+              ./scripts/deploy.sh chatbot
+            fi
+
+            if [ "${{ needs.detect.outputs.landing }}" = "true" ]; then
+              ./scripts/deploy.sh landing
+            fi
+
+            if [ "${{ needs.detect.outputs.dashboard }}" = "true" ]; then
+              ./scripts/deploy.sh dashboard
+            fi
+
+            if [ "${{ needs.detect.outputs.nginx }}" = "true" ]; then
+              ./scripts/deploy.sh nginx
+            fi
+
+            if [ "${{ needs.detect.outputs.compose }}" = "true" ]; then
+              docker compose up -d
+            fi
+
+            ./scripts/health-check.sh
+
+            ./scripts/cleanup.sh

@@ -4,6 +4,7 @@ class BusinessOverviewModel {
   final int todayOrders;
   final int pendingDeliveries;
   final double todaysSales;
+  final double totalSales;
   final ActiveUsersModel activeUsers;
   final List<WeeklySalesModel> weeklySales;
   final List<OverviewActivityModel> recentActivity;
@@ -13,6 +14,7 @@ class BusinessOverviewModel {
     required this.todayOrders,
     required this.pendingDeliveries,
     required this.todaysSales,
+    this.totalSales = 0.0,
     required this.activeUsers,
     required this.weeklySales,
     required this.recentActivity,
@@ -20,10 +22,21 @@ class BusinessOverviewModel {
   });
 
   factory BusinessOverviewModel.fromJson(Map<String, dynamic> json) {
+    final branches = (json['branchPerformance'] as List?)
+            ?.map((e) => BranchPerformanceModel.fromJson(e))
+            .toList() ??
+        [];
+    // Compute totalSales from API field or sum of branchPerformance
+    final double apiTotalSales = (json['totalSales'] ?? 0).toDouble();
+    final double computedTotalSales = apiTotalSales > 0
+        ? apiTotalSales
+        : branches.fold(0.0, (sum, b) => sum + b.totalSales);
+
     return BusinessOverviewModel(
       todayOrders: json['todayOrders'] ?? 0,
       pendingDeliveries: json['pendingDeliveries'] ?? 0,
       todaysSales: (json['todaysSales'] ?? 0).toDouble(),
+      totalSales: computedTotalSales,
       activeUsers: ActiveUsersModel.fromJson(json['activeUsers'] ?? {}),
       weeklySales: (json['weeklySales'] as List?)
               ?.map((e) => WeeklySalesModel.fromJson(e))
@@ -33,10 +46,7 @@ class BusinessOverviewModel {
               ?.map((e) => OverviewActivityModel.fromJson(e))
               .toList() ??
           [],
-      branchPerformance: (json['branchPerformance'] as List?)
-              ?.map((e) => BranchPerformanceModel.fromJson(e))
-              .toList() ??
-          [],
+      branchPerformance: branches,
     );
   }
 }

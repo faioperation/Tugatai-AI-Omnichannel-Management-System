@@ -7,6 +7,7 @@ import 'package:roberto/features/management/bloc/management_event.dart';
 
 class CustomAdduser extends StatefulWidget {
   final bool isEdit;
+  final String? managerId;
   final String? username;
   final String? mail;
   final String? location;
@@ -15,6 +16,7 @@ class CustomAdduser extends StatefulWidget {
   const CustomAdduser({
     super.key,
     this.isEdit = false,
+    this.managerId,
     this.username,
     this.mail,
     this.location,
@@ -137,7 +139,7 @@ class _CustomAdduserState extends State<CustomAdduser> {
                   ),
                 ),
                 validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
+                  if (!widget.isEdit && (value == null || value.trim().isEmpty)) {
                     return 'This field is required';
                   }
                   return null;
@@ -278,6 +280,14 @@ class _CustomAdduserState extends State<CustomAdduser> {
             name: _nameController.text,
             email: _emailController.text,
             password: _passwordController.text,
+          ));
+        } else {
+          context.read<ManagementBloc>().add(UpdateBranchManagerRequested(
+            id: widget.managerId ?? '',
+            name: _nameController.text,
+            email: _emailController.text,
+            password: _passwordController.text.isNotEmpty ? _passwordController.text : null,
+            status: _selectedStatus.toUpperCase(),
           ));
         }
         Navigator.pop(context);

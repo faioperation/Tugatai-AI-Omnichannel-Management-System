@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { FiX, FiMenu } from "react-icons/fi";
+import { FaWhatsapp, FaFacebookF, FaInstagram, FaLinkedinIn } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -119,35 +120,27 @@ const Navbar = () => {
             >
 
               <Image
-                src="/logo.png"
+                src="/OmnirraAI.png"
                 alt="Logo"
-                width={120}
-                height={40}
+                width={250}
+                height={50}
                 className="h-12 w-auto object-contain"
               />
 
-              <div>
-                <p className="text-2xl font-bold text-[#EB232D] font-inter">
-                    MATRIX
-                </p>
-
-                {/* <span className="text-xs font-marope text-[#1E8380]">
-                    Cargo Logistics
-                </span> */}
-              </div>
+              
             </motion.div>
           </Link>
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden text-3xl cursor-pointer p-2 rounded-xl bg-gradient-to-r from-[#9810FA] to-[#AD46FF] transition-colors"
+            className="lg:hidden text-3xl cursor-pointer p-2 rounded-xl bg-gradient-to-r from-[#9810FA] to-[#AD46FF] transition-colors"
             onClick={() => setOpen(!open)}
             aria-label="Toggle menu"
           >
             {open ? <FiX /> : <FiMenu />}
           </button>
           {/* Desktop Menu */}
-          <ul className="hidden md:flex items-center justify-end gap-1 ">
+          <ul className="hidden lg:flex items-center justify-end gap-1 ">
             {navitems.map((item, index) => (
               <motion.li key={index} whileHover={{ y: -2 }}>
                 {item.isRoute ? (
@@ -177,11 +170,27 @@ const Navbar = () => {
             ))}
           </ul>
 
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="hidden md:block relative"
-          >
+          <div className="hidden lg:flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <Link href="https://wa.me/97477631991" target="_blank" className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-gradient-to-r hover:from-[#9810FA] hover:to-[#AD46FF] hover:border-transparent transition-all shadow-lg hover:shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                <FaWhatsapp size={16} />
+              </Link>
+              <Link href="https://www.facebook.com/tugataicargo" className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-gradient-to-r hover:from-[#9810FA] hover:to-[#AD46FF] hover:border-transparent transition-all shadow-lg hover:shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                <FaFacebookF size={16} />
+              </Link>
+              <Link href="https://www.instagram.com/tugataicago" className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-gradient-to-r hover:from-[#9810FA] hover:to-[#AD46FF] hover:border-transparent transition-all shadow-lg hover:shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                <FaInstagram size={16} />
+              </Link>
+              <Link href="#" className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-gradient-to-r hover:from-[#9810FA] hover:to-[#AD46FF] hover:border-transparent transition-all shadow-lg hover:shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                <FaLinkedinIn size={16} />
+              </Link>
+            </div>
+
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="relative"
+            >
             {userName ? (
               <div className="relative">
                 <div 
@@ -224,7 +233,8 @@ const Navbar = () => {
                 </button>
               </Link>
             )}
-          </motion.div>
+            </motion.div>
+          </div>
         </motion.div>
 
         {/* Mobile Slide Menu */}
@@ -234,7 +244,7 @@ const Navbar = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden absolute left-0 right-0 top-full w-full bg-[#000000] border-b border-white/80 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden z-40"
+              className="lg:hidden absolute left-0 right-0 top-full w-full bg-[#000000] border-b border-white/80 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden z-40"
             >
               <ul className="flex flex-col items-start gap-1 p-6 sm:px-8">
                 {navitems.map((item, index) => (
@@ -307,6 +317,26 @@ const Navbar = () => {
                       </button>
                     </Link>
                   )}
+                </motion.div>
+                
+                <motion.div 
+                  className="w-full pt-6 pb-2 flex items-center justify-center gap-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <Link href="https://wa.me/97477631991" target="_blank" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-gradient-to-r hover:from-[#9810FA] hover:to-[#AD46FF] hover:border-transparent transition-all shadow-lg hover:shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                    <FaWhatsapp size={18} />
+                  </Link>
+                  <Link href="#" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-gradient-to-r hover:from-[#9810FA] hover:to-[#AD46FF] hover:border-transparent transition-all shadow-lg hover:shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                    <FaFacebookF size={18} />
+                  </Link>
+                  <Link href="#" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-gradient-to-r hover:from-[#9810FA] hover:to-[#AD46FF] hover:border-transparent transition-all shadow-lg hover:shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                    <FaInstagram size={18} />
+                  </Link>
+                  <Link href="#" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-gradient-to-r hover:from-[#9810FA] hover:to-[#AD46FF] hover:border-transparent transition-all shadow-lg hover:shadow-[0_0_15px_rgba(152,16,250,0.5)]">
+                    <FaLinkedinIn size={18} />
+                  </Link>
                 </motion.div>
               </ul>
             </motion.div>

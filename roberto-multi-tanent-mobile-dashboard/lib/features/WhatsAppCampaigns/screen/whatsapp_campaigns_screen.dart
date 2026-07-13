@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:roberto/app/app_color.dart';
+import 'package:roberto/common/user_role.dart';
 import 'package:roberto/features/WhatsAppCampaigns/bloc/campaign_bloc.dart';
 import 'package:roberto/features/WhatsAppCampaigns/bloc/campaign_event.dart';
 import 'package:roberto/features/WhatsAppCampaigns/bloc/campaign_state.dart';
 import 'package:roberto/features/WhatsAppCampaigns/data/models/campaign_model.dart';
+import 'package:roberto/features/WhatsAppCampaigns/data/repositories/campaign_repository.dart';
 import 'package:roberto/features/WhatsAppCampaigns/widget/campaign_card.dart';
 import 'package:roberto/features/WhatsAppCampaigns/widget/create_campaign_form.dart';
 import 'package:roberto/features/management/bloc/management_bloc.dart';
@@ -14,7 +15,8 @@ import 'package:roberto/features/management/data/models/branch_model.dart';
 
 class WhatsAppCampaignsScreen extends StatefulWidget {
   final String? branchId;
-  const WhatsAppCampaignsScreen({super.key, this.branchId});
+  final UserRole role;
+  const WhatsAppCampaignsScreen({super.key, this.branchId, this.role = UserRole.businessOwner});
 
   @override
   State<WhatsAppCampaignsScreen> createState() => _WhatsAppCampaignsScreenState();
@@ -46,6 +48,8 @@ class _WhatsAppCampaignsScreenState extends State<WhatsAppCampaignsScreen> {
       branches = managementState.branches;
     }
 
+    final campaignRepo = context.read<CampaignRepository>();
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -55,6 +59,8 @@ class _WhatsAppCampaignsScreenState extends State<WhatsAppCampaignsScreen> {
           initialData: initialData,
           branches: branches,
           currentBranchId: widget.branchId,
+          isBranchManager: widget.role == UserRole.branchManager,
+          campaignRepository: campaignRepo,
           onCancel: () => Navigator.pop(context),
           onCreate: (data) {
             if (initialData != null) {
@@ -67,6 +73,8 @@ class _WhatsAppCampaignsScreenState extends State<WhatsAppCampaignsScreen> {
                   selectedPeople: data['selectedPeople'],
                   scheduledTime: data['scheduledTime'],
                   endDate: data['endDate'],
+                  country: data['country'],
+                  productType: data['productType'],
                 ),
               );
             } else {
@@ -78,6 +86,8 @@ class _WhatsAppCampaignsScreenState extends State<WhatsAppCampaignsScreen> {
                   selectedPeople: data['selectedPeople'],
                   scheduledTime: data['scheduledTime'],
                   endDate: data['endDate'],
+                  country: data['country'],
+                  productType: data['productType'],
                 ),
               );
             }

@@ -1,0 +1,186 @@
+# NOTE
+# This is a starter production docker-compose.yml skeleton based on our discussion.
+# Merge/adjust service details as needed. The full file exceeded chat size limits.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - backend
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - backend
+
+  backend:
+    build:
+      context: ./Robarto_Backend
+      dockerfile: Dockerfile
+      args:
+        DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    image: omnirraai/backend:latest
+    restart: unless-stopped
+    env_file:
+      - ./Robarto_Backend/.env.production
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      DB_HOST: postgres
+      DB_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      RUN_SEED: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - backend_uploads:/usr/src/app/uploads
+      - ./secrets/roberto-notification-firebase-adminsdk-fbsvc-ebd70cfbdc.json:/usr/src/app/src/app/config/roberto-notification-firebase-adminsdk-fbsvc-ebd70cfbdc.json:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+    networks:
+      - frontend
+      - backend
+
+  backend-worker:
+    image: omnirraai/backend:latest
+    restart: unless-stopped
+    entrypoint: []
+    env_file:
+      - ./Robarto_Backend/.env.production
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+    command:
+      - node
+      - src/app/modules/businessOwner/campaign/campaign.worker.js
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./secrets/roberto-notification-firebase-adminsdk-fbsvc-ebd70cfbdc.json:/usr/src/app/src/app/config/roberto-notification-firebase-adminsdk-fbsvc-ebd70cfbdc.json:ro
+    networks:
+      - backend
+
+  voice-ai:
+    build:
+      context: ./Roberto_Voice_AI
+    image: omnirraai/voice-ai:latest
+    restart: unless-stopped
+    env_file:
+      - ./Roberto_Voice_AI/.env.production
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/"]
+    networks:
+      - frontend
+      - backend
+
+  chatbot:
+    build:
+      context: ./ai-chatbot
+    image: omnirraai/chatbot:latest
+    restart: unless-stopped
+    env_file:
+      - ./ai-chatbot/.env.production
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/"]
+    networks:
+      - frontend
+      - backend
+
+  landing:
+    build:
+      context: ./roberto-landing-page
+    image: omnirraai/landing:latest
+    restart: unless-stopped
+    env_file:
+      - ./roberto-landing-page/.env.production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+    networks:
+      - frontend
+
+  dashboard:
+    build:
+      context: ./roberto-multi-tanent-mobile-dashboard
+    image: omnirraai/dashboard:latest
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+    networks:
+      - frontend
+
+  nginx:
+    image: nginx:1.29-alpine
+    restart: unless-stopped
+    depends_on:
+      - landing
+      - dashboard
+      - backend
+      - voice-ai
+      - chatbot
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/lib/letsencrypt:/var/lib/letsencrypt:ro
+    networks:
+      - frontend
+      - backend
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  backend_uploads:

@@ -157,10 +157,39 @@ const deleteCrmLead = async (req, res, next) => {
     }
 };
 
+const getCrmLeadProductTypes = async (req, res, next) => {
+    try {
+        const managerEmail = req.user?.email;
+        const branchManager = await prisma.branchManager.findUnique({
+            where: { email: managerEmail },
+            include: { branches: true }
+        });
+
+        if (!branchManager) throw new DevBuildError("Branch Manager not found", StatusCodes.BAD_REQUEST);
+
+        const branchId = branchManager.branches[0]?.id;
+        if (!branchId) {
+            throw new DevBuildError("Branch Manager does not have an assigned branch", StatusCodes.BAD_REQUEST);
+        }
+
+        const result = await CrmLeadsManagerService.getCrmLeadProductTypesService(branchManager.businessId, branchId);
+
+        sendResponse(res, {
+            statusCode: StatusCodes.OK,
+            success: true,
+            message: "CRM Lead product types retrieved successfully",
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const CrmLeadsManagerController = {
     createCrmLead,
     getAllCrmLeads,
     getCrmLeadById,
     updateCrmLead,
     deleteCrmLead,
+    getCrmLeadProductTypes,
 };

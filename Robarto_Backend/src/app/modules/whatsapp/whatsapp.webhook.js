@@ -1,4 +1,10 @@
 import prisma from "../../prisma/client.js";
+import { notifyAiAgent } from "../../utils/aiAgent.js";
+import { NotificationService } from "../notification/notification.service.js";
+import { isConversationLimitReached } from "../../utils/limitChecker.js";
+import { envVars } from "../../config/env.js";
+import { MetaGraphAPI } from "./whatsapp.meta.js";
+import { downloadAndSaveMedia } from "../../utils/mediaDownloader.js";
 
 export const handleWebhookEvent = async (body) => {
   if (body.object === "whatsapp_business_account") {
@@ -36,6 +42,30 @@ const processIncomingMessages = async (value) => {
     const name = contact.profile?.name;
     const phoneNumber = waUserId;
 
+    // Check if conversation already exists before checking limits
+    const existingContact = await prisma.whatsappContact.findUnique({
+      where: {
+        businessId_waUserId: { businessId, waUserId },
+      },
+    });
+
+    let existingConv = null;
+    if (existingContact) {
+      existingConv = await prisma.whatsappConversation.findUnique({
+        where: {
+          businessId_contactId: { businessId, contactId: existingContact.id },
+        },
+      });
+    }
+
+    if (!existingConv) {
+      const limitReached = await isConversationLimitReached(businessId);
+      if (limitReached) {
+        console.warn(`[WhatsApp Webhook] Conversation limit reached for business: ${businessId}. Ignoring incoming message.`);
+        continue;
+      }
+    }
+
     // Upsert Contact
     const dbContact = await prisma.whatsappContact.upsert({
       where: {
@@ -62,6 +92,7 @@ const processIncomingMessages = async (value) => {
       },
       update: {
         unreadCount: { increment: 1 },
+        seen: false,
         lastMessageAt: new Date(),
       },
       create: {
@@ -69,6 +100,7 @@ const processIncomingMessages = async (value) => {
         whatsappAccountId: account.id,
         contactId: dbContact.id,
         unreadCount: 1,
+        seen: false,
         lastMessageAt: new Date(),
       },
     });
@@ -77,12 +109,33 @@ const processIncomingMessages = async (value) => {
       const type = message.type;
       let text = null;
       let mediaUrl = null;
+      let localMediaUrl = null;
+      let location = null;
 
       if (type === "text") {
         text = message.text.body;
+      } else if (type === "location") {
+        location = message.location;
       } else if (["image", "video", "audio", "document", "sticker"].includes(type)) {
         const mediaObj = message[type];
         mediaUrl = mediaObj.id; // Store Media ID, to be fetched if necessary
+
+        try {
+          const mediaInfo = await MetaGraphAPI.getMediaUrl(mediaUrl, account.accessToken);
+          if (mediaInfo && mediaInfo.url) {
+            const downloadRes = await downloadAndSaveMedia(
+              mediaInfo.url,
+              "whatsapp",
+              "wa",
+              { Authorization: `Bearer ${account.accessToken}` }
+            );
+            if (downloadRes.success) {
+              localMediaUrl = downloadRes.publicUrl;
+            }
+          }
+        } catch (downloadErr) {
+          console.error("[WhatsApp Webhook] Error downloading WhatsApp media:", downloadErr);
+        }
       }
 
       await prisma.whatsappMessage.create({
@@ -95,16 +148,51 @@ const processIncomingMessages = async (value) => {
           direction: "INCOMING",
           type,
           text,
-          mediaUrl,
+          mediaUrl: localMediaUrl || mediaUrl,
+          location,
           rawPayload: message,
           status: "DELIVERED",
         },
       });
 
+      // Trigger notification for incoming WhatsApp message with throttling
+      NotificationService.shouldSendMessageNotification(conversation.id, "whatsapp").then((shouldNotify) => {
+        if (shouldNotify) {
+          NotificationService.createAndSendNotification({
+            title: "New WhatsApp Message",
+            message: `Message: "${text || "Attachment/Other"}"`,
+            type: "NEW_MESSAGE",
+            businessId: businessId,
+            branchId: account.branchId || null,
+            conversationId: conversation.id,
+          }).catch(err => console.error("Error sending WhatsApp incoming message notification:", err));
+        }
+      }).catch(err => console.error("Error checking WhatsApp throttling:", err));
+
       // Update conversation's last message ID
       await prisma.whatsappConversation.update({
         where: { id: conversation.id },
         data: { lastMessageId: message.id },
+      });
+
+      // Construct AI message body (if text, send body; if media, send proxy media URL)
+      let aiMessage = "";
+      if (type === "text") {
+        aiMessage = text || "";
+      } else if (type === "location" && location) {
+        aiMessage = `[Location: latitude ${location.latitude}, longitude ${location.longitude}]`;
+      } else if (mediaUrl) {
+        const urlToSend = localMediaUrl || `${envVars.BACKEND_URL}/v1/whatsapp/media/${mediaUrl}`;
+        aiMessage = `[Media ${type}: ${urlToSend}]`;
+      }
+
+      // Notify AI Agent of incoming WhatsApp message
+      notifyAiAgent({
+        businessId,
+        recipientId: waUserId,
+        conversationId: conversation.id,
+        channel: "whatsapp",
+        message: aiMessage
       });
     }
   }

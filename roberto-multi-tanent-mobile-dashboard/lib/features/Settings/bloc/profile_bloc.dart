@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:roberto/features/Auth/data/models/user_model.dart';
 import 'package:roberto/features/Settings/bloc/profile_event.dart';
 import 'package:roberto/features/Settings/bloc/profile_state.dart';
 import 'package:roberto/features/Settings/data/repositories/profile_repository.dart';
@@ -9,6 +10,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ProfileBloc({required this.profileRepository}) : super(ProfileInitial()) {
     on<FetchProfileRequested>(_onFetchProfileRequested);
     on<UpdateProfileRequested>(_onUpdateProfileRequested);
+    on<ChangePasswordRequested>(_onChangePasswordRequested);
   }
 
   Future<void> _onFetchProfileRequested(
@@ -51,6 +53,36 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       } else if (currentState is ProfileUpdating) {
         emit(ProfileLoaded(user: currentState.currentUser));
       }
+    }
+  }
+
+  Future<void> _onChangePasswordRequested(
+    ChangePasswordRequested event,
+    Emitter<ProfileState> emit,
+  ) async {
+    final currentState = state;
+    UserModel? currentUser;
+    if (currentState is ProfileLoaded) {
+      currentUser = currentState.user;
+    } else if (currentState is ProfileUpdating) {
+      currentUser = currentState.currentUser;
+    } else if (currentState is PasswordChangeError) {
+      currentUser = currentState.currentUser;
+    }
+
+    if (currentUser == null) return;
+
+    emit(PasswordChanging(currentUser: currentUser));
+    try {
+      await profileRepository.changePassword(
+        oldPassword: event.oldPassword,
+        newPassword: event.newPassword,
+      );
+      emit(PasswordChangeSuccess(user: currentUser));
+      emit(ProfileLoaded(user: currentUser));
+    } catch (e) {
+      emit(PasswordChangeError(message: e.toString(), currentUser: currentUser));
+      emit(ProfileLoaded(user: currentUser));
     }
   }
 }
