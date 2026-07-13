@@ -12,6 +12,10 @@ const createParcelDeliverySchema = z.object({
 
         // parcel details
         pickupAddress: z.string().optional(),
+        pickupDate: z.string().optional().nullable(),
+        pickup_date: z.string().optional().nullable(),
+        pickupTime: z.string().optional().nullable(),
+        pickup_time: z.string().optional().nullable(),
         deliveryDate: z.string().optional(),
         deliveryAddress: z.string().optional(),
         productType: z.string().optional(),
@@ -37,6 +41,10 @@ const updateParcelDeliverySchema = z.object({
 
         // parcel details
         pickupAddress: z.string().optional(),
+        pickupDate: z.string().optional().nullable(),
+        pickup_date: z.string().optional().nullable(),
+        pickupTime: z.string().optional().nullable(),
+        pickup_time: z.string().optional().nullable(),
         deliveryDate: z.string().optional(),
         deliveryAddress: z.string().optional(),
         productType: z.string().optional(),
