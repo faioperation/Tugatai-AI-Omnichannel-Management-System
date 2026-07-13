@@ -25,6 +25,8 @@ const createBookingSchema = z.object({
 
         // PARCEL_DELIVERY details
         pickupAddress: z.string().optional(),
+        pickupDate: z.string().optional().nullable(),
+        pickupTime: z.string().optional().nullable(),
         productHeight: z.string().nullable().optional(),
         productWeight: z.union([z.string(), z.number()]).nullable().optional(),
 
@@ -60,6 +62,8 @@ const updateBookingSchema = z.object({
 
         // PARCEL_DELIVERY details
         pickupAddress: z.string().optional(),
+        pickupDate: z.string().optional().nullable(),
+        pickupTime: z.string().optional().nullable(),
         productHeight: z.string().nullable().optional(),
         productWeight: z.union([z.string(), z.number()]).nullable().optional(),
 

@@ -205,6 +205,18 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     return appt.isNotEmpty ? appt : "N/A";
   }
 
+  String _formatPickupTime(OrderMod order) {
+    if (order.pickupTime != null && order.pickupTime!.isNotEmpty) {
+      if (order.pickupDate != null && order.pickupDate!.isNotEmpty) {
+        final parsed = _parseDateString(order.pickupDate);
+        final dateStr = parsed != null ? DateFormat('dd MMM yyyy').format(parsed) : order.pickupDate!;
+        return '$dateStr, ${order.pickupTime}';
+      }
+      return order.pickupTime!;
+    }
+    return 'N/A';
+  }
+
   @override
   void didUpdateWidget(covariant OrderBookingScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -955,6 +967,8 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                   Expanded(
                       flex: 2,
                       child: CustomHeadder(label: priceLabel, textAlign: TextAlign.center)),
+                  const Expanded(
+                      flex: 2, child: CustomHeadder(label: 'Pickup Time', textAlign: TextAlign.center)),
                   Expanded(
                       flex: 2, child: CustomHeadder(label: timeLabel, textAlign: TextAlign.center)),
                   const Expanded(flex: 3, child: CustomHeadder(label: 'Actions', textAlign: TextAlign.center)),
@@ -1054,13 +1068,37 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                       fontSize: 13)),
             ),
           ),
+          // Pickup Time
+          Expanded(
+            flex: 2,
+            child: Center(
+              child: Text(
+                _formatPickupTime(order),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: theme.hintColor, fontSize: 13),
+              ),
+            ),
+          ),
           // Delivery Time
           Expanded(
             flex: 2,
             child: Center(
-              child: Text(_formatDeliveryDate(order),
-                  style: TextStyle(
-                      color: theme.hintColor, fontSize: 13)),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(_formatDeliveryDate(order),
+                      style: TextStyle(
+                          color: theme.hintColor, fontSize: 13)),
+                  if (order.deliveryTime != null && order.deliveryTime!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(order.deliveryTime!,
+                        style: TextStyle(
+                            color: theme.hintColor.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.w500)),
+                  ],
+                ],
+              ),
             ),
           ),
           // Actions
@@ -1771,6 +1809,53 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     return '${months[date.month - 1]} ${date.year}';
   }
 
+  DateTime _getOrderComparableDateTime(OrderMod o) {
+    DateTime? date;
+    String? timeStr;
+    
+    if (o.bookingType == 'Parcel Delivery') {
+      date = _parseDateString(o.pickupDate);
+      timeStr = o.pickupTime;
+    } else if (o.bookingType == 'Appointment Booking') {
+      date = _parseDateString(o.appointmentDate);
+      timeStr = o.appointmentTime;
+    } else {
+      // Default: Order Booking
+      date = _parseDateString(o.deliveryDate);
+      timeStr = null; // No time field for Order Booking
+    }
+    
+    // Fallback if no date is parsed
+    if (date == null) {
+      return o.createdAt ?? DateTime(2100, 1, 1);
+    }
+    
+    // Parse time minutes safely
+    int minutes = 0;
+    if (timeStr != null && timeStr.trim().isNotEmpty) {
+      final cleaned = timeStr.trim().toLowerCase();
+      final isPm = cleaned.contains('pm');
+      final isAm = cleaned.contains('am');
+      
+      final timePart = cleaned.replaceAll('am', '').replaceAll('pm', '').trim();
+      final parts = timePart.split(':');
+      if (parts.isNotEmpty) {
+        try {
+          int hour = int.parse(parts[0].trim());
+          int minute = parts.length > 1 ? int.parse(parts[1].trim()) : 0;
+          if (isPm && hour < 12) {
+            hour += 12;
+          } else if (isAm && hour == 12) {
+            hour = 0;
+          }
+          minutes = hour * 60 + minute;
+        } catch (_) {}
+      }
+    }
+    
+    return DateTime(date.year, date.month, date.day).add(Duration(minutes: minutes));
+  }
+
   Widget _buildCalendarSidebar(ThemeData theme, bool isDark) {
     final selectedDay = _selectedDay ?? DateTime.now();
     final dayStr = '${_getMonthYear(selectedDay).split(' ')[0]} ${selectedDay.day}';
@@ -1779,6 +1864,12 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       final orderDate = _parseDateString(o.deliveryDate) ?? _parseDateString(o.appointmentDate);
       return orderDate != null && orderDate.year == selectedDay.year && orderDate.month == selectedDay.month && orderDate.day == selectedDay.day;
     }).toList();
+
+    filteredOrders.sort((a, b) {
+      final aDt = _getOrderComparableDateTime(a);
+      final bDt = _getOrderComparableDateTime(b);
+      return aDt.compareTo(bDt);
+    });
 
     final googleFilteredEvents = _googleEvents.where((e) {
       final start = e['start']?['dateTime'];
@@ -1930,9 +2021,12 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                           fontWeight: FontWeight.bold,
                           color: theme.colorScheme.onSurface,
                           fontSize: 14)),
-                  Text(time,
-                      style: TextStyle(
-                          fontSize: 12, color: theme.textTheme.bodySmall?.color ?? const Color(0xff6B7280))),
+                  Text(
+                    order.bookingType == 'Parcel Delivery' && order.pickupTime != null && order.pickupTime!.isNotEmpty 
+                        ? '$time (Pickup: ${order.pickupTime})' 
+                        : time,
+                    style: TextStyle(
+                        fontSize: 12, color: theme.textTheme.bodySmall?.color ?? const Color(0xff6B7280))),
                 ],
               ),
               _buildStatusBadge(status),
@@ -1945,10 +2039,16 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                   color: theme.colorScheme.onSurface,
                   fontSize: 13)),
           const SizedBox(height: 8),
-          _buildSidebarItemRow(Icons.location_on_outlined,
-              '123 Main St, City to\n123 Main St, City', theme),
+          _buildSidebarItemRow(
+              Icons.location_on_outlined,
+              order.bookingType == 'Appointment Booking'
+                  ? (order.platform ?? 'Online Meeting')
+                  : order.bookingType == 'Parcel Delivery'
+                      ? '${order.pickupAddress ?? "N/A"} to\n${order.deliveryAddress ?? "N/A"}'
+                      : (order.deliveryAddress ?? 'N/A'),
+              theme),
           const SizedBox(height: 6),
-          _buildSidebarItemRow(Icons.phone_outlined, '+1 234 567 8901', theme),
+          _buildSidebarItemRow(Icons.phone_outlined, order.phone.isNotEmpty ? order.phone : 'N/A', theme),
           const SizedBox(height: 6),
           _buildSidebarItemRow(Icons.inventory_2_outlined, items, theme),
           const SizedBox(height: 16),
