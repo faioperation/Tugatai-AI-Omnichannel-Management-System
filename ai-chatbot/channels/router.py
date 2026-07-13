@@ -8,17 +8,18 @@ async def send_response(
     recipient_id: str,
     conversation_id: str,
     message: str,
-    branch_id: str = None
+    branch_id: str = None,
+    continue_ai: bool = True
 ):
 
     if channel == "whatsapp":
-        await send_whatsapp(business_id, recipient_id, conversation_id, message, branch_id)
+        await send_whatsapp(business_id, recipient_id, conversation_id, message, branch_id, continue_ai)
     
     elif channel == "facebook":
-        await send_facebook(business_id, recipient_id, message, branch_id)
+        await send_facebook(business_id, recipient_id, message, branch_id, continue_ai)
     
     elif channel == "instagram":
-        await send_instagram(business_id, recipient_id, message, branch_id)
+        await send_instagram(business_id, recipient_id, message, branch_id, continue_ai)
     
     else:
         print(f"Unknown channel received: {channel}")

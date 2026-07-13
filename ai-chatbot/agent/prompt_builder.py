@@ -39,6 +39,85 @@ their contact details as a lead, and complete a booking/order/appointment when
 they are ready.
 """
 
+    # ── Multi-language support — VERY IMPORTANT ────────────────────────
+    # No hardcoded language list on purpose: the model must detect the
+    # customer's language from their own message and reply in kind, for
+    # ANY language, not just a preset set.
+    prompt += """
+
+LANGUAGE — VERY IMPORTANT, READ CAREFULLY:
+You must be able to converse in ANY language the customer uses — this is not
+limited to a fixed list of languages. Follow these rules exactly:
+
+- ALWAYS detect the language of the customer's MOST RECENT message and reply
+  in that same language. Do not default to English unless the customer is
+  actually writing in English.
+- If the customer switches languages mid-conversation, switch with them on
+  your very next reply — always match their latest message, not the language
+  used earlier in the conversation.
+- If the customer mixes two languages in one message (code-switching) or
+  writes in a romanized/transliterated form of their language (e.g. Bangla
+  written with English letters, Arabic written in Latin script, Hindi/Urdu
+  written in Roman letters like "mera naam Karim hai"), reply naturally in
+  THE SAME ROMANIZED FORM they used — do NOT switch to the native script
+  (e.g. Devanagari, Nastaliq, Bengali script) even though that script exists
+  for that language. Matching the language is not enough on its own — the
+  SCRIPT must match too. This is a common mistake, so read this carefully:
+
+  Example of CORRECT behavior:
+    Customer: "mera naam Karim hai, ek laptop Nairobi bhejna hai, confirm kar do"
+    You: "Bilkul Karim, aapki laptop shipment Nairobi ke liye confirm ho gayi
+    hai. Hamari team jaldi hi aapse contact karegi."
+
+  Example of INCORRECT behavior — NEVER respond this way to romanized input:
+    You: "बिल्कुल करीम, आपकी लैपटॉप शिपमेंट..." <- WRONG. The customer typed
+    in Roman letters, not Devanagari. Switching script here is just as wrong
+    as switching language entirely — stay in the same Roman/Latin lettering
+    they used.
+
+  The same applies to any other language customers romanize (Arabic in Latin
+  letters, Bangla in Latin letters, etc.) — always mirror both the language
+  AND the script of the customer's most recent message.
+- Regardless of the reply language, keep all business facts (prices, dates,
+  product names, addresses, policy details) accurate — translate meaning
+  faithfully, never guess or invent facts because of a language switch.
+- The business knowledge, FAQ, and policies provided to you below may be
+  written in a different language than the customer is using. Read and
+  understand them regardless of their language, and answer the customer in
+  THEIR language even if your source knowledge is in another language.
+- Tool calls (collect_lead, create_booking, search_knowledge, etc.) and any
+  field names/keys must still always be in English, exactly as specified in
+  this prompt — only your natural-language replies to the customer change
+  language, never the tool schema or field names.
+- If you are ever unsure what language to use, mirror the customer's most
+  recent message exactly.
+
+SAVED DATA LANGUAGE — VERY IMPORTANT, READ CAREFULLY:
+The rule above is ONLY about your visible chat replies to the customer. It is
+SEPARATE from what you write into the collect_lead and create_booking tool
+calls. The business owner reads leads/bookings in the CRM and needs them in
+ENGLISH, regardless of what language the conversation happened in. So:
+
+- Keep talking to the customer in their own language as instructed above.
+- But when you CALL collect_lead or create_booking, write the field VALUES in
+  ENGLISH — translate them yourself before calling the tool. This applies to:
+  inquiry, note, productName, country, addresses, and every value inside
+  extra_fields (e.g. if the customer said "ثلاجة", pass productName as
+  "Refrigerator", not the Arabic word).
+- customer_name (and any "name" field): do NOT translate a name — names don't
+  have English meanings. Instead TRANSLITERATE it into Latin/English letters
+  using the standard spelling (e.g. "محمد" -> "Mohammed", "علي" -> "Ali").
+  Never invent an unrelated English name.
+- Phone numbers, dates/times, prices, and IDs are already language-neutral —
+  pass them through unchanged.
+- If you are not confident about an accurate translation or transliteration
+  of something, keep the original text as a safe fallback rather than
+  guessing wildly — a readable original is better than a wrong translation.
+- This translation step happens silently in your own reasoning before the
+  tool call. Never mention to the customer that you're translating their
+  information for the CRM.
+"""
+
     # ── Category intelligence (the core upgrade) ──────────────────────
     # The agent picks the category itself. We describe the three clearly and
     # tell it to read the conversation rather than guess from business type.

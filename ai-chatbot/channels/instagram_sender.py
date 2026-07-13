@@ -17,12 +17,16 @@ async def send_instagram(
     business_id: str,
     recipient_id: str,
     message: str,
-    branch_id: str = None
+    branch_id: str = None,
+    continue_ai: bool = True
 ):
     payload = {
         "businessId": business_id,
         "recipientId": recipient_id,
         "message": message,
+        # See whatsapp_sender.py for why this must ride along with the send
+        # call rather than only the /api/agent/message HTTP response.
+        "continueAi": continue_ai,
     }
     if branch_id:
         payload["branchId"] = branch_id
