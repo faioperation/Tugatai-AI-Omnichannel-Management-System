@@ -5,6 +5,14 @@ import { NotificationService } from "../notification/notification.service.js";
 
 export const WhatsappService = {
   connectAccount: async (businessId, payload) => {
+    // Clean up any existing connection for this WhatsApp phone number under a DIFFERENT business
+    await prisma.whatsappAccount.deleteMany({
+      where: {
+        phoneNumberId: payload.phoneNumberId,
+        businessId: { not: businessId },
+      },
+    });
+
     return await prisma.whatsappAccount.upsert({
       where: {
         businessId_phoneNumberId: {

@@ -6,6 +6,7 @@ import { envVars } from "../../../config/env.js";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
 import { sendEmail } from "../../../utils/sendEmail.js";
 import { generateInvoicePdf } from "../../../utils/generateInvoicePdf.js";
+import { NotificationService } from "../../notification/notification.service.js";
 
 const mapBusinessType = (type) => {
     if (!type) return null;
@@ -164,6 +165,14 @@ const createBusinessService = async (payload) => {
     });
 
     const { business, user, plan, newSubscription } = result;
+
+    // Trigger notification to System Owners
+    NotificationService.createAndSendNotification({
+        title: "New Business Registered",
+        message: `A new business "${business.name}" has been registered by ${user.firstName || user.email}.`,
+        type: "BUSINESS_REGISTER",
+        businessId: business.id,
+    }).catch(err => console.error("Error sending business registration notification:", err));
 
     // ── Post-transaction: generate PDF + send email ────────────────────────
     if (user?.email) {

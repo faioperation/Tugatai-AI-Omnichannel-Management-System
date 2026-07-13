@@ -3,6 +3,7 @@
 import jwt from "jsonwebtoken";
 import prisma from "../prisma/client.js";
 import { envVars } from "../config/env.js";
+import { NotificationService } from "../modules/notification/notification.service.js";
 
 export const checkAuthMiddleware =
   (...allowedRoles) =>
@@ -95,6 +96,14 @@ export const checkAuthMiddleware =
                 where: { id: business.id },
                 data: { status: "INACTIVE" }
               });
+
+              // Trigger notification to System Owners
+              NotificationService.createAndSendNotification({
+                title: "Subscription Ended",
+                message: `Subscription for business "${business.name}" has ended.`,
+                type: "SUBSCRIPTION_END",
+                businessId: business.id,
+              }).catch(err => console.error("Error sending subscription end notification:", err));
 
               // Update business reference in local memory
               business = updatedBusiness;

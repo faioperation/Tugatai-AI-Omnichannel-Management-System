@@ -24,16 +24,21 @@ const createAndSendNotification = async ({
       recipients.add(userId);
     }
 
-    // 2. All SYSTEM_OWNER users receive notifications, EXCEPT:
-    //    - Social media notifications (type: "NEW_MESSAGE")
-    //    - Order / Appointment bookings (type containing "BOOKING" or "DELIVERY", e.g. "ORDER_BOOKING", "APPOINTMENT_BOOKING", "PARCEL_DELIVERY")
-    //    - CRM Leads / Voice calls (type: "VOICE_CALL")
-    const isExcludedForSystemOwner = 
-      type === "NEW_MESSAGE" || 
-      type === "VOICE_CALL" || 
-      (type && (type.includes("BOOKING") || type.includes("DELIVERY")));
+    // 2. All SYSTEM_OWNER users receive ONLY these specific notifications:
+    //    - DEMO_BOOKING
+    //    - BUSINESS_REGISTER
+    //    - SUBSCRIPTION_END
+    //    - SUBSCRIPTION_PURCHASE
+    //    - BRANCH_CREATE
+    const isAllowedForSystemOwner = [
+      "DEMO_BOOKING",
+      "BUSINESS_REGISTER",
+      "SUBSCRIPTION_END",
+      "SUBSCRIPTION_PURCHASE",
+      "BRANCH_CREATE"
+    ].includes(type);
 
-    if (!isExcludedForSystemOwner) {
+    if (isAllowedForSystemOwner) {
       const systemOwners = await prisma.user.findMany({
         where: {
           roles: {
