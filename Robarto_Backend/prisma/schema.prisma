@@ -876,6 +876,7 @@ model WhatsappMessage {
   type              String // text, image, video, audio, document, sticker, template
   text              String?
   mediaUrl          String?                  @map("media_url")
+  location          Json?
   status            WhatsappMessageStatus?
   rawPayload        Json?                    @map("raw_payload")
   continueAi        Boolean                  @default(true) @map("continue_ai")

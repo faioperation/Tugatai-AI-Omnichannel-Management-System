@@ -110,9 +110,12 @@ const processIncomingMessages = async (value) => {
       let text = null;
       let mediaUrl = null;
       let localMediaUrl = null;
+      let location = null;
 
       if (type === "text") {
         text = message.text.body;
+      } else if (type === "location") {
+        location = message.location;
       } else if (["image", "video", "audio", "document", "sticker"].includes(type)) {
         const mediaObj = message[type];
         mediaUrl = mediaObj.id; // Store Media ID, to be fetched if necessary
@@ -146,6 +149,7 @@ const processIncomingMessages = async (value) => {
           type,
           text,
           mediaUrl: localMediaUrl || mediaUrl,
+          location,
           rawPayload: message,
           status: "DELIVERED",
         },
@@ -175,6 +179,8 @@ const processIncomingMessages = async (value) => {
       let aiMessage = "";
       if (type === "text") {
         aiMessage = text || "";
+      } else if (type === "location" && location) {
+        aiMessage = `[Location: latitude ${location.latitude}, longitude ${location.longitude}]`;
       } else if (mediaUrl) {
         const urlToSend = localMediaUrl || `${envVars.BACKEND_URL}/v1/whatsapp/media/${mediaUrl}`;
         aiMessage = `[Media ${type}: ${urlToSend}]`;

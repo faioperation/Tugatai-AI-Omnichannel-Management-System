@@ -54,14 +54,14 @@ const handleCallback = async (req, res, next) => {
     // Determine front-end redirect path based on role
     const redirectPath = role === "BRANCH_MANAGER" 
       ? "/branch-manager/order-booking" 
-      : "/business-owner/order-booking";
+      : "/business-owner/settings";
 
     res.redirect(`${envVars.FRONT_END_URL}${redirectPath}?googleCalendar=connected&branchId=${branchId}`);
   } catch (error) {
     console.error("Error in Google Calendar OAuth callback:", error);
     
     // Attempt to parse role from state for correct redirection even on failure
-    let redirectPath = "/business-owner/order-booking";
+    let redirectPath = "/business-owner/settings";
     if (req.query.state) {
       const parts = req.query.state.split(":");
       if (parts[2] === "BRANCH_MANAGER") {

@@ -5,6 +5,7 @@ import { StatusCodes } from "http-status-codes";
 import { envVars } from "../../config/env.js";
 import { sendEmail } from "../../utils/sendEmail.js";
 import { generateInvoicePdf } from "../../utils/generateInvoicePdf.js";
+import { NotificationService } from "../notification/notification.service.js";
 
 const stripe = new Stripe(envVars.STRIPE_SECRET_KEY);
 
@@ -177,6 +178,14 @@ const processStripeWebhook = async (event) => {
           createdById:   business.ownerId,
         },
       });
+
+      // Trigger notification to System Owners
+      NotificationService.createAndSendNotification({
+        title: "Subscription Purchased",
+        message: `Business "${business.name}" has purchased the plan "${plan.name}".`,
+        type: "SUBSCRIPTION_PURCHASE",
+        businessId: business.id,
+      }).catch(err => console.error("Error sending subscription purchase notification:", err));
 
       // Send subscription success email
       if (business.owner?.email) {

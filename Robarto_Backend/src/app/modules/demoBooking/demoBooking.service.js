@@ -2,11 +2,20 @@ import prisma from "../../prisma/client.js";
 import DevBuildError from "../../lib/DevBuildError.js";
 import { StatusCodes } from "http-status-codes";
 import { QueryBuilder } from "../../utils/QueryBuilder.js";
+import { NotificationService } from "../notification/notification.service.js";
 
 const createDemoBookingService = async (payload) => {
     const result = await prisma.demoBooking.create({
         data: payload,
     });
+
+    // Trigger notification to System Owners
+    NotificationService.createAndSendNotification({
+        title: "New Demo Booking",
+        message: `A new demo booking has been requested by ${result.name} (${result.email}).`,
+        type: "DEMO_BOOKING",
+    }).catch(err => console.error("Error sending demo booking notification:", err));
+
     return result;
 };
 
