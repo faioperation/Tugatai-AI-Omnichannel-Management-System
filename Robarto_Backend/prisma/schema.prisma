@@ -340,6 +340,8 @@ model Business {
   agentTrainings        AgentTraining[]
   auditLogs             AuditLog[]             @relation("BusinessAuditLogs")
   notifications         Notification[]         @relation("BusinessNotifications")
+  additionalDetails     AdditionalDetail[]     @relation("BusinessAdditionalDetails")
+  agents                Agent[]                @relation("BusinessAgents")
 
   @@map("businesses")
 }
@@ -609,6 +611,7 @@ model AdditionalDetail {
   deletedAt    DateTime? @map("deleted_at")
 
   feature      Feature?  @relation(fields: [featureId], references: [id], onDelete: SetNull)
+  business     Business  @relation("BusinessAdditionalDetails", fields: [businessId], references: [id], onDelete: Cascade)
 
   @@map("additional_details")
 }
@@ -916,6 +919,8 @@ model Agent {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
+
+  business    Business  @relation("BusinessAgents", fields: [businessId], references: [id], onDelete: Cascade)
 
   @@map("agents")
 }

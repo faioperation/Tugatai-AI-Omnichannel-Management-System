@@ -77,9 +77,18 @@ export const authFacebookCallback = async (req, res, next) => {
 
     // 4. Save pages in database and subscribe to webhooks
     for (const page of pages) {
-      // Check if connection exists
+      // Clean up any existing connection for this page under a DIFFERENT business
+      await prisma.socialConnection.deleteMany({
+        where: {
+          provider: "facebook",
+          pageId: page.id,
+          businessId: { not: businessId },
+        },
+      });
+
+      // Check if connection exists for this page and branch under the SAME business
       const connection = await prisma.socialConnection.findFirst({
-        where: { businessId, pageId: page.id, provider: "facebook" },
+        where: { businessId, pageId: page.id, provider: "facebook", branchId: branchId || null },
       });
 
       if (connection) {
@@ -90,7 +99,6 @@ export const authFacebookCallback = async (req, res, next) => {
             accessToken: page.access_token,
             pageName: page.name,
             isActive: true,
-            branchId: branchId || undefined,
           },
         });
       } else {

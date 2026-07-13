@@ -83,9 +83,18 @@ export const authFacebookCallback = async (req, res, next) => {
       if (page.instagram_business_account) {
         const igAccountId = page.instagram_business_account.id;
         
-        // Check if connection exists
+        // Clean up any existing connection for this instagram account under a DIFFERENT business
+        await prisma.socialConnection.deleteMany({
+          where: {
+            provider: "instagram",
+            pageId: igAccountId,
+            businessId: { not: businessId },
+          },
+        });
+
+        // Check if connection exists for this instagram account and branch under the SAME business
         const connection = await prisma.socialConnection.findFirst({
-          where: { businessId, pageId: igAccountId, provider: "instagram" },
+          where: { businessId, pageId: igAccountId, provider: "instagram", branchId: branchId || null },
         });
 
         if (connection) {
@@ -96,7 +105,6 @@ export const authFacebookCallback = async (req, res, next) => {
               accessToken: page.access_token, // We use the Facebook Page Token to interact with IG Graph API
               pageName: page.name + " (Instagram)",
               isActive: true,
-              branchId: branchId || undefined,
             },
           });
         } else {
