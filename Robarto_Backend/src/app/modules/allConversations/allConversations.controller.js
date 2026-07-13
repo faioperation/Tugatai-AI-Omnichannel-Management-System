@@ -14,14 +14,26 @@ export const AllConversationsController = {
       // If owner: filter by query branchId (optional), else return all.
       // If branch manager: strictly filter by their branchId.
       const branchId = isOwner ? (req.query.branchId || null) : userBranchId;
+      const { continueAi } = req.query;
 
-      const conversations = await AllConversationsService.getAllConversations(businessId, branchId);
+      let conversations = await AllConversationsService.getAllConversations(businessId, branchId);
+
+      // Filter by continueAi if specified
+      if (continueAi === "false") {
+        conversations = conversations.filter(c => c.continueAi === false);
+      } else if (continueAi === "true") {
+        conversations = conversations.filter(c => c.continueAi === true);
+      }
+
+      // Calculate count of continueAi: false in the returned list
+      const continueAiFalseCount = conversations.filter(c => c.continueAi === false).length;
 
       sendResponse(res, {
         statusCode: 200,
         success: true,
         message: "All conversations retrieved successfully",
         data: conversations,
+        continueAiFalseCount,
       });
     } catch (error) {
       next(error);
