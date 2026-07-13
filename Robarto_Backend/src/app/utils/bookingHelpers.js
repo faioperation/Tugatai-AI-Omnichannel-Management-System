@@ -76,6 +76,8 @@ export const buildDetailsPayload = (businessType, payload, bookingId, businessId
             branchId: branchId || null,
             parcelDeliveryId: bookingId,
             pickupAddress: payload.pickupAddress || payload.pickup_address || null,
+            pickupDate: payload.pickupDate || payload.pickup_date || null,
+            pickupTime: payload.pickupTime || payload.pickup_time || null,
             deliveryDate: payload.deliveryDate || payload.delivery_date || null,
             deliveryAddress: payload.deliveryAddress || payload.delivery_address || null,
             productType: payload.productType || payload.product_type || null,
@@ -116,6 +118,10 @@ export const buildDetailsUpdatePayload = (businessType, payload) => {
         if (payload.duration !== undefined) data.duration = payload.duration;
     } else if (businessType === "PARCEL_DELIVERY") {
         if (payload.pickupAddress !== undefined) data.pickupAddress = payload.pickupAddress;
+        if (payload.pickupDate !== undefined) data.pickupDate = payload.pickupDate;
+        if (payload.pickup_date !== undefined) data.pickupDate = payload.pickup_date;
+        if (payload.pickupTime !== undefined) data.pickupTime = payload.pickupTime;
+        if (payload.pickup_time !== undefined) data.pickupTime = payload.pickup_time;
         if (payload.deliveryDate !== undefined) data.deliveryDate = payload.deliveryDate;
         if (payload.deliveryAddress !== undefined) data.deliveryAddress = payload.deliveryAddress;
         if (payload.productType !== undefined) data.productType = payload.productType;
@@ -163,6 +169,10 @@ export const saveAdditionalDetails = async (tx, businessId, branchId, bookingId,
         "platform",
         "duration",
         "pickupAddress",
+        "pickupDate",
+        "pickup_date",
+        "pickupTime",
+        "pickup_time",
         "productHeight",
         "productWeight",
         "userId",
@@ -218,6 +228,10 @@ export const updateAdditionalDetails = async (tx, businessId, branchId, bookingI
         "platform",
         "duration",
         "pickupAddress",
+        "pickupDate",
+        "pickup_date",
+        "pickupTime",
+        "pickup_time",
         "productHeight",
         "productWeight",
         "userId",
