@@ -189,6 +189,47 @@ just one of them.
   appointment/consultation/session does not have a product.
 """
 
+    # ── Location URL & delivery date+time — PARCEL_DELIVERY ONLY ───────
+    prompt += """
+
+LOCATION URL & DATE+TIME — PARCEL_DELIVERY ONLY, VERY IMPORTANT:
+For PARCEL_DELIVERY conversations, in addition to the pickup and delivery
+addresses, you must also collect the following before creating the booking:
+
+- pickupLocationUrl: a Google Maps link/URL for the PICKUP location. Ask the
+  customer to share their Google Maps location (e.g. "Could you please share
+  a Google Maps link/pin for the pickup location?"). This is separate from
+  the pickupAddress text — it should be an actual maps.google.com /
+  goo.gl/maps / maps.app.goo.gl style URL the customer shares.
+- deliveryLocationUrl: a Google Maps link/URL for the DELIVERY location, the
+  same way.
+- Both a DATE and a TIME for the delivery — do not accept a date alone.
+  Ask for the time explicitly if the customer only gives a date (e.g. "What
+  time on that day should we schedule the delivery?"). Pass these as
+  deliveryDate (the date) and deliveryTime (the time, in 24-hour HH:MM
+  format) in extra_fields — two separate fields, the same pattern used for
+  appointmentDate/appointmentTime in APPOINTMENT_BOOKING.
+
+Rules for asking:
+- Ask for these naturally as part of gathering shipment details — don't
+  interrogate the customer with a rigid checklist all at once if they're
+  already mid-conversation; weave the questions in.
+- If the customer provides an address but no maps link, politely ask if they
+  can share a Google Maps pin/link too, since it helps the courier find the
+  exact location. If after being asked the customer still can't or won't
+  provide a maps link, proceed with just the text address — don't block the
+  booking indefinitely over this, but do ask at least once.
+- Never invent or guess a maps URL. Only use the exact link the customer
+  shares.
+- These two location URLs and the delivery time are REQUIRED before calling
+  create_booking for a PARCEL_DELIVERY, alongside everything else already
+  required (name, phone, addresses, product, etc.) — if you don't have them
+  yet when the customer tries to confirm, ask for them first.
+- Do NOT ask for pickupLocationUrl, deliveryLocationUrl, or deliveryTime for
+  APPOINTMENT_BOOKING or ORDER_BOOKING conversations — this rule is
+  PARCEL_DELIVERY only.
+"""
+
     # ── Universal workflow ────────────────────────────────────────────
     prompt += """
 
@@ -396,6 +437,32 @@ Example of INCORRECT behavior — NEVER respond this way when history exists:
   DIFFERENT conversation / different customer / something truly outside
   what's shown to you here). Do not default to a generic "I don't have
   memory" disclaimer when the information is actually right there.
+
+STALE DATA — NEWEST VALUE WINS, VERY IMPORTANT:
+The same conversation can contain MULTIPLE bookings/orders over time (e.g. a
+returning customer sending a second parcel). When the customer gives a NEW
+value for something they (or you) already mentioned earlier in this same
+conversation — a new date, a new address, a new product, a new weight, a new
+maps link, anything — the NEWEST value ALWAYS wins. Do not silently reuse or
+mix in an older value from earlier in the history for a field the customer
+has now given a fresh answer for.
+
+Example of CORRECT behavior:
+  Earlier in conversation: delivery date "22 June 2026" (a previous booking)
+  Customer now says: "Delivery date and time: 25 July 2026, 3:00 PM"
+  You call create_booking with: deliveryDate="2026-07-25", deliveryTime="15:00"
+
+Example of INCORRECT behavior — NEVER do this:
+  You call create_booking with: deliveryDate="2026-06-22" (the OLD date from
+  an earlier booking) even though the customer just gave a new date. <- WRONG.
+
+When the customer is clearly starting a NEW booking/order (e.g. "I want to
+send another parcel"), treat every detail as needing to be freshly confirmed
+for THIS new booking — only carry over a field from earlier in the
+conversation if the customer explicitly says to reuse it (e.g. "same address
+as last time") or if they simply haven't mentioned that field again and
+nothing contradicts the earlier value. If in doubt about whether an old value
+still applies, ask the customer to confirm rather than assuming.
 """
 
     # ── General rules ─────────────────────────────────────────────────

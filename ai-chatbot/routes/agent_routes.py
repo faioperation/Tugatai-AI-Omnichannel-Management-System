@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends
 from core.security import verify_token
 from webhooks.incoming import handle_incoming, paused_conversations
+from agent.reply_suggester import generate_reply_suggestion
 
 router = APIRouter()
 
@@ -87,3 +88,41 @@ async def agent_handoff(payload: dict, _=Depends(verify_token)):
         return {"status": "resumed"}
 
     return {"status": "error", "message": "action must be pause or resume"}
+
+
+# AI-assisted reply for human agents — the frontend's "Reply" (sparkle)
+# button calls this when a human wants AI help drafting a response while
+# they're the one handling the conversation (e.g. after a handoff). This
+# ONLY returns suggested text — it does NOT send anything to the customer,
+# does NOT save anything to conversation memory, and does NOT let the model
+# call collect_lead / create_booking / handoff_human. The frontend should
+# place the returned text into the reply box, editable, and only send it
+# through the normal send flow once the human agent confirms/edits it.
+@router.post("/agent/suggest-reply")
+async def suggest_reply(payload: dict, _=Depends(verify_token)):
+    business_id = payload.get("business_id") or payload.get("businessId")
+    subject = payload.get("subject")
+    conversation_id = payload.get("conversation_id") or payload.get("conversationId")
+    recipient_id = payload.get("recipient_id") or payload.get("recipientId")
+    branch_id = payload.get("branch_id") or payload.get("branchId")
+
+    if not business_id or not conversation_id or not recipient_id:
+        result = {
+            "status": "error",
+            "message": "business_id, conversation_id, and recipient_id are required",
+            "suggestedReply": None,
+        }
+        _record_debug(payload, result)
+        return result
+
+    draft = await generate_reply_suggestion(
+        business_id=business_id,
+        subject=subject,
+        conversation_id=conversation_id,
+        recipient_id=recipient_id,
+        branch_id=branch_id,
+    )
+
+    result = {"status": "ok", "suggestedReply": draft}
+    _record_debug(payload, result)
+    return result

@@ -73,9 +73,21 @@ def make_create_booking(branch_id: str = None, conversation_id: str = None):
           customer actually provided - never invent values.
 
           For PARCEL_DELIVERY, relevant keys include:
-            pickupAddress, deliveryAddress, deliveryDate, productType,
-            productWeight, productHeight, receiverName, receiverPhone,
-            insuranceRequired
+            pickupAddress, deliveryAddress, deliveryDate, deliveryTime,
+            productType, productWeight, productHeight, receiverName,
+            receiverPhone, insuranceRequired, pickupLocationUrl,
+            deliveryLocationUrl
+
+            REQUIRED for PARCEL_DELIVERY specifically (in addition to the
+            common required fields above): pickupLocationUrl and
+            deliveryLocationUrl (a Google Maps link/pin the customer shares
+            for each location - never invent one yourself), and BOTH
+            deliveryDate and deliveryTime (a date alone is not enough - ask
+            for the time too, 24-hour HH:MM format). Ask for these naturally
+            during the conversation if you don't have them yet; if the
+            customer still can't provide a maps link after being asked once,
+            proceed with just the text address rather than blocking the
+            booking indefinitely.
 
           For APPOINTMENT_BOOKING, relevant keys include:
             appointmentDate, appointmentTime (ISO 8601 string), platform
