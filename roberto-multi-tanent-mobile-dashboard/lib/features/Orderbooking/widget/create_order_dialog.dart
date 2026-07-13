@@ -39,6 +39,8 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
 
   // Parcel Delivery fields
   late TextEditingController _pickupAddressCtrl;
+  late TextEditingController _pickupDateCtrl;
+  late TextEditingController _pickupTimeCtrl;
   late TextEditingController _deliveryDateCtrl;
   late TextEditingController _deliveryAddressCtrl;
   late TextEditingController _productTypeCtrl;
@@ -96,6 +98,8 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
 
     // Parcel fields init
     _pickupAddressCtrl = TextEditingController(text: o?.pickupAddress ?? '');
+    _pickupDateCtrl = TextEditingController(text: o?.pickupDate ?? '');
+    _pickupTimeCtrl = TextEditingController(text: o?.pickupTime ?? '');
     _deliveryDateCtrl = TextEditingController(text: o?.deliveryDate ?? '');
     _deliveryAddressCtrl = TextEditingController(text: o?.deliveryAddress ?? '');
     _productTypeCtrl = TextEditingController(text: o?.productType ?? '');
@@ -122,6 +126,8 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
       'duration',
       'customRequirement',
       'pickupAddress',
+      'pickupDate',
+      'pickupTime',
       'deliveryDate',
       'deliveryAddress',
       'productType',
@@ -173,6 +179,8 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
     _customRequirementCtrl.dispose();
 
     _pickupAddressCtrl.dispose();
+    _pickupDateCtrl.dispose();
+    _pickupTimeCtrl.dispose();
     _deliveryDateCtrl.dispose();
     _deliveryAddressCtrl.dispose();
     _productTypeCtrl.dispose();
@@ -239,6 +247,8 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
         }
       } else if (_bookingType == 'Parcel Delivery') {
         payload['pickupAddress'] = _pickupAddressCtrl.text.trim();
+        payload['pickupDate'] = _pickupDateCtrl.text.trim();
+        payload['pickupTime'] = _pickupTimeCtrl.text.trim();
         payload['deliveryDate'] = _deliveryDateCtrl.text.trim();
         payload['deliveryAddress'] = _deliveryAddressCtrl.text.trim();
         payload['productType'] = _productTypeCtrl.text.trim();
@@ -249,6 +259,8 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
         }
         payload['receiverPhone'] = _receiverPhoneCtrl.text.trim();
       } else if (_bookingType == 'Order Booking') {
+        payload['pickupDate'] = _pickupDateCtrl.text.trim();
+        payload['pickupTime'] = _pickupTimeCtrl.text.trim();
         payload['deliveryDate'] = _deliveryDateCtrl.text.trim();
         payload['deliveryAddress'] = _deliveryAddressCtrl.text.trim();
         payload['productType'] = _productTypeCtrl.text.trim();
@@ -463,6 +475,27 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                           children: [
                             Expanded(child: _buildDatePickerField(
                               context: context,
+                              controller: _pickupDateCtrl,
+                              label: 'Pickup Date',
+                              hintText: 'YYYY-MM-DD',
+                              theme: theme,
+                            )),
+                            const SizedBox(width: 16),
+                            Expanded(child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Pickup Time', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                                const SizedBox(height: 8),
+                                CustomTextfield(validator: (v) => null, controller: _pickupTimeCtrl, hintText: 'e.g. 10:00 AM'),
+                              ],
+                            )),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(child: _buildDatePickerField(
+                              context: context,
                               controller: _deliveryDateCtrl,
                               label: 'Delivery Date',
                               hintText: '2026-06-24',
@@ -540,6 +573,27 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                             Text('Company Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                             const SizedBox(height: 8),
                             CustomTextfield(validator: (v) => null, controller: _companyNameCtrl, hintText: 'Enter Company Name'),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(child: _buildDatePickerField(
+                              context: context,
+                              controller: _pickupDateCtrl,
+                              label: 'Pickup Date',
+                              hintText: 'YYYY-MM-DD',
+                              theme: theme,
+                            )),
+                            const SizedBox(width: 16),
+                            Expanded(child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Pickup Time', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
+                                const SizedBox(height: 8),
+                                CustomTextfield(validator: (v) => null, controller: _pickupTimeCtrl, hintText: 'e.g. 10:00 AM'),
+                              ],
+                            )),
                           ],
                         ),
                         const SizedBox(height: 16),

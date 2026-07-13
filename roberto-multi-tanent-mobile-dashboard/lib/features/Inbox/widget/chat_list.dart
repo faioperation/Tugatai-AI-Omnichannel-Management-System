@@ -10,6 +10,9 @@ class ChatList extends StatelessWidget {
   final bool isLoading;
   final ValueChanged<String> onPlatformChanged;
   final ValueChanged<ConversationMod> onConversationSelected;
+  final bool? filterContinueAi;
+  final ValueChanged<bool?> onFilterContinueAiChanged;
+  final int continueAiFalseCount;
 
   const ChatList({
     super.key,
@@ -19,6 +22,9 @@ class ChatList extends StatelessWidget {
     required this.isLoading,
     required this.onPlatformChanged,
     required this.onConversationSelected,
+    required this.filterContinueAi,
+    required this.onFilterContinueAiChanged,
+    required this.continueAiFalseCount,
   });
 
   Widget _buildFilterItem(String platform, String? iconPath, String title, String count, BuildContext context) {
@@ -238,6 +244,92 @@ class ChatList extends StatelessWidget {
     );
   }
 
+  Widget _buildContinueAiFilter(BuildContext context) {
+    final String helpMeLabel = continueAiFalseCount > 0 
+        ? "Help me ($continueAiFalseCount)" 
+        : "Help me";
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildFilterChip("All Chats", filterContinueAi == null, () => onFilterContinueAiChanged(null), context),
+          const SizedBox(width: 8),
+          _buildFilterChip(
+            helpMeLabel, 
+            filterContinueAi == false, 
+            () => onFilterContinueAiChanged(false), 
+            context,
+            isHelpMe: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(
+    String label, 
+    bool isSelected, 
+    VoidCallback onTap, 
+    BuildContext context, {
+    bool isHelpMe = false,
+  }) {
+    final theme = Theme.of(context);
+    final Color borderColor = isHelpMe 
+        ? const Color(0xffEF4444) 
+        : (isSelected ? AppColor.primary : Colors.grey.withOpacity(0.3));
+
+    final Color bgColor = isSelected
+        ? (isHelpMe ? const Color(0xffEF4444) : AppColor.primary)
+        : (theme.brightness == Brightness.light ? const Color(0xffF3F4F6) : theme.colorScheme.surface);
+
+    final Color textColor = isSelected 
+        ? Colors.white 
+        : (isHelpMe ? const Color(0xffEF4444) : theme.colorScheme.onSurface);
+
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: borderColor,
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isHelpMe) ...[
+                Icon(
+                  Icons.error_outline,
+                  size: 14,
+                  color: textColor,
+                ),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: textColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -269,6 +361,8 @@ class ChatList extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 16),
+          _buildContinueAiFilter(context),
+          const Divider(height: 16),
           _buildFilterItem('all', null, "All", allCount, context),
           _buildFilterItem('messenger', "assets/facebook.svg", "Facebook", messengerCount, context),
           _buildFilterItem('instagram', "assets/instagram.svg", "Instagram", instagramCount, context),

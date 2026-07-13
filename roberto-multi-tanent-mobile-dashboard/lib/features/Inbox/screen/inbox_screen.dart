@@ -37,6 +37,8 @@ class _InboxScreenState extends State<InboxScreen> {
   Timer? _conversationsPollTimer;
   bool _isAiOn = true;
   final Set<String> _resumedAiConversationIds = {};
+  bool? _filterContinueAi;
+  int _continueAiFalseCount = 0;
 
   List<ConversationMod> _mapConversationsWithOverrides(List<ConversationMod> list) {
     return list.map((c) {
@@ -95,17 +97,19 @@ class _InboxScreenState extends State<InboxScreen> {
 
     try {
       final inboxRepo = context.read<InboxRepository>();
-      final res = await inboxRepo.getConversations('all', branchId: widget.branchId);
+      final res = await inboxRepo.getConversations('all', branchId: widget.branchId, continueAi: _filterContinueAi);
 
       if (res['success'] == true && mounted) {
         setState(() {
           _conversations = _mapConversationsWithOverrides(res['conversations'] as List<ConversationMod>);
+          _continueAiFalseCount = res['continueAiFalseCount'] as int? ?? 0;
           _conversationsLoading = false;
           
           if (_selectedConversation != null) {
             final match = _conversations.where((c) => c.id == _selectedConversation!.id);
             if (match.isNotEmpty) {
               _selectedConversation = match.first;
+              _isAiOn = match.first.aiReply;
             } else {
               _selectedConversation = null;
               _messages.clear();
@@ -165,16 +169,18 @@ class _InboxScreenState extends State<InboxScreen> {
   Future<void> _fetchConversationsSilent() async {
     try {
       final inboxRepo = context.read<InboxRepository>();
-      final res = await inboxRepo.getConversations('all', branchId: widget.branchId);
+      final res = await inboxRepo.getConversations('all', branchId: widget.branchId, continueAi: _filterContinueAi);
 
       if (res['success'] == true && mounted) {
         setState(() {
           _conversations = _mapConversationsWithOverrides(res['conversations'] as List<ConversationMod>);
+          _continueAiFalseCount = res['continueAiFalseCount'] as int? ?? 0;
           
           if (_selectedConversation != null) {
             final match = _conversations.where((c) => c.id == _selectedConversation!.id);
             if (match.isNotEmpty) {
               _selectedConversation = match.first;
+              _isAiOn = match.first.aiReply;
             }
           }
         });
@@ -634,6 +640,14 @@ class _InboxScreenState extends State<InboxScreen> {
                               selectedConversation: _selectedConversation,
                               selectedPlatform: _selectedPlatform,
                               isLoading: _conversationsLoading,
+                              filterContinueAi: _filterContinueAi,
+                              continueAiFalseCount: _continueAiFalseCount,
+                              onFilterContinueAiChanged: (val) {
+                                setState(() {
+                                  _filterContinueAi = val;
+                                });
+                                _fetchConversations();
+                              },
                               onPlatformChanged: (platform) {
                                 setState(() {
                                   _selectedPlatform = platform;
@@ -676,6 +690,14 @@ class _InboxScreenState extends State<InboxScreen> {
                                   selectedConversation: _selectedConversation,
                                   selectedPlatform: _selectedPlatform,
                                   isLoading: _conversationsLoading,
+                                  filterContinueAi: _filterContinueAi,
+                                  continueAiFalseCount: _continueAiFalseCount,
+                                  onFilterContinueAiChanged: (val) {
+                                    setState(() {
+                                      _filterContinueAi = val;
+                                    });
+                                    _fetchConversations();
+                                  },
                                   onPlatformChanged: (platform) {
                                     setState(() {
                                       _selectedPlatform = platform;
@@ -715,6 +737,14 @@ class _InboxScreenState extends State<InboxScreen> {
                                       selectedConversation: _selectedConversation,
                                       selectedPlatform: _selectedPlatform,
                                       isLoading: _conversationsLoading,
+                                      filterContinueAi: _filterContinueAi,
+                                      continueAiFalseCount: _continueAiFalseCount,
+                                      onFilterContinueAiChanged: (val) {
+                                        setState(() {
+                                          _filterContinueAi = val;
+                                        });
+                                        _fetchConversations();
+                                      },
                                       onPlatformChanged: (platform) {
                                         setState(() {
                                           _selectedPlatform = platform;

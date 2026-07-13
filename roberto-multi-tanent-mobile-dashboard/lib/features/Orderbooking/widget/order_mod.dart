@@ -43,7 +43,10 @@ class OrderMod {
 
   final String? bookingType;
   final String? pickupAddress;
+  final String? pickupDate;
+  final String? pickupTime;
   final String? deliveryDate;
+  final String? deliveryTime;
   final String? deliveryAddress;
   final String? productType;
   final String? productHeight;
@@ -87,7 +90,10 @@ class OrderMod {
     this.duration,
     this.bookingType,
     this.pickupAddress,
+    this.pickupDate,
+    this.pickupTime,
     this.deliveryDate,
+    this.deliveryTime,
     this.deliveryAddress,
     this.productType,
     this.productHeight,
@@ -186,7 +192,10 @@ class OrderMod {
 
       bookingType: detailsMap['bookingType'] ?? (detailsMap['appointmentDate'] != null ? 'Appointment Booking' : (detailsMap['pickupAddress'] != null ? 'Parcel Delivery' : 'Order Booking')),
       pickupAddress: detailsMap['pickupAddress'],
+      pickupDate: detailsMap['pickupDate'],
+      pickupTime: detailsMap['pickupTime'],
       deliveryDate: detailsMap['deliveryDate'],
+      deliveryTime: detailsMap['deliveryTime'],
       deliveryAddress: detailsMap['deliveryAddress'],
       productType: detailsMap['productType'] ?? json['productType'],
       productHeight: detailsMap['productHeight']?.toString(),

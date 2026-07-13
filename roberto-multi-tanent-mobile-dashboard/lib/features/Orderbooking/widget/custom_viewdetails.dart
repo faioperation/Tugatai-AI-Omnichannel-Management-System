@@ -34,6 +34,8 @@ class CustomViewdetails extends StatelessWidget {
       'duration',
       'customRequirement',
       'pickupAddress',
+      'pickupDate',
+      'pickupTime',
       'deliveryDate',
       'deliveryAddress',
       'productType',
@@ -211,6 +213,18 @@ class CustomViewdetails extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     _buildDetailRow(
+                      'Pickup Date',
+                      order.pickupDate ?? 'N/A',
+                      theme,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'Pickup Time',
+                      order.pickupTime ?? 'N/A',
+                      theme,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
                       'Delivery Date',
                       order.deliveryDate ?? 'N/A',
                       theme,
@@ -243,6 +257,18 @@ class CustomViewdetails extends StatelessWidget {
                     _buildDetailRow(
                       'Company',
                       order.companyName ?? 'N/A',
+                      theme,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'Pickup Date',
+                      order.pickupDate ?? 'N/A',
+                      theme,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'Pickup Time',
+                      order.pickupTime ?? 'N/A',
                       theme,
                     ),
                     const SizedBox(height: 8),
@@ -637,6 +663,8 @@ class CustomViewdetails extends StatelessWidget {
       'duration',
       'customRequirement',
       'pickupAddress',
+      'pickupDate',
+      'pickupTime',
       'deliveryDate',
       'deliveryAddress',
       'productType',
@@ -843,6 +871,14 @@ class CustomViewdetails extends StatelessWidget {
                           order.pickupAddress ?? 'N/A',
                         ),
                         _buildPdfRow(
+                          'Pickup Date',
+                          order.pickupDate ?? 'N/A',
+                        ),
+                        _buildPdfRow(
+                          'Pickup Time',
+                          order.pickupTime ?? 'N/A',
+                        ),
+                        _buildPdfRow(
                           'Delivery Address',
                           order.deliveryAddress ?? 'N/A',
                         ),
@@ -862,6 +898,14 @@ class CustomViewdetails extends StatelessWidget {
                         _buildPdfRow(
                           'Company Name',
                           order.companyName ?? 'N/A',
+                        ),
+                        _buildPdfRow(
+                          'Pickup Date',
+                          order.pickupDate ?? 'N/A',
+                        ),
+                        _buildPdfRow(
+                          'Pickup Time',
+                          order.pickupTime ?? 'N/A',
                         ),
                         _buildPdfRow(
                           'Delivery Date',

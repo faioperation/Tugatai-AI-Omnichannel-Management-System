@@ -83,6 +83,14 @@ class _DashboardShellState extends State<DashboardShell> {
   @override
   void initState() {
     super.initState();
+    final token = LocalStorageService.accessToken;
+    if (token == null || token.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        navigatorKey.currentState?.pushNamedAndRemoveUntil(Routes.login, (route) => false);
+      });
+      _selectedBranch = widget.assignedBranch ?? _branches[0];
+      return;
+    }
     final savedBranch = LocalStorageService.selectedBranch;
     _selectedBranch = savedBranch ?? widget.assignedBranch ?? _branches[0];
     if (widget.initialItem != null) {

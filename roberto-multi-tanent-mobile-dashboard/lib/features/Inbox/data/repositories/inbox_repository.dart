@@ -7,8 +7,19 @@ class InboxRepository {
 
   InboxRepository({required this.networkClient});
 
-  Future<Map<String, dynamic>> getConversations(String platform, {String? branchId}) async {
-    final url = branchId != null ? '${ApiConstants.allConversations}?branchId=$branchId' : ApiConstants.allConversations;
+  Future<Map<String, dynamic>> getConversations(String platform, {String? branchId, bool? continueAi}) async {
+    String url = ApiConstants.allConversations;
+    final params = <String, String>{};
+    if (branchId != null) {
+      params['branchId'] = branchId;
+    }
+    if (continueAi != null) {
+      params['continueAi'] = continueAi.toString();
+    }
+    if (params.isNotEmpty) {
+      final queryString = Uri(queryParameters: params).query;
+      url = '$url?$queryString';
+    }
 
     final response = await networkClient.getRequest(url);
 
@@ -20,9 +31,11 @@ class InboxRepository {
           list.add(ConversationMod.fromJson(item));
         }
       }
+      final continueAiFalseCount = data != null ? (data['continueAiFalseCount'] as int? ?? 0) : 0;
       return {
         'success': true,
         'conversations': list,
+        'continueAiFalseCount': continueAiFalseCount,
       };
     } else {
       return {
