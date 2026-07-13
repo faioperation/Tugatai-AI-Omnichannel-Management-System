@@ -6,6 +6,35 @@ import { MetaGraphAPI } from "../../whatsapp/whatsapp.meta.js";
 import { isConversationLimitReached } from "../../../utils/limitChecker.js";
 import { campaignQueue } from "./campaign.queue.js";
 
+const parseAsQatarTime = (dateInput) => {
+    if (!dateInput) return null;
+    if (dateInput instanceof Date) return dateInput;
+
+    const dateStr = String(dateInput).trim();
+
+    // Check if it already has timezone information (Z, z, +0300, +03:00, -05:00 etc)
+    const hasTimezone = /[Zz]|\+\d{2}:?\d{2}|-\d{2}:?\d{2}/.test(dateStr);
+    if (hasTimezone) {
+        return new Date(dateStr);
+    }
+
+    // Normalize space to 'T'
+    let normalized = dateStr.replace(/\s+/, "T");
+
+    // Append Qatar offset (+03:00)
+    if (normalized.includes("T")) {
+        normalized = normalized + "+03:00";
+    } else {
+        normalized = normalized + "T00:00:00+03:00";
+    }
+
+    const parsed = new Date(normalized);
+    if (isNaN(parsed.getTime())) {
+        return new Date(dateInput);
+    }
+    return parsed;
+};
+
 const formatCampaign = (campaign) => {
     if (!campaign) return campaign;
     const now = new Date();
@@ -21,15 +50,15 @@ const createCampaignService = async (businessId, payload) => {
     const rawScheduledTime = payload.scheduledTime || payload.scheduled_time;
     const rawEndDate = payload.endDate || payload.end_date;
 
-    const parsedTime = new Date(rawScheduledTime);
-    if (isNaN(parsedTime.getTime())) {
+    const parsedTime = parseAsQatarTime(rawScheduledTime);
+    if (!parsedTime || isNaN(parsedTime.getTime())) {
         throw new DevBuildError("Invalid scheduledTime format", StatusCodes.BAD_REQUEST);
     }
 
     let parsedEndDate = null;
     if (rawEndDate) {
-        parsedEndDate = new Date(rawEndDate);
-        if (isNaN(parsedEndDate.getTime())) {
+        parsedEndDate = parseAsQatarTime(rawEndDate);
+        if (!parsedEndDate || isNaN(parsedEndDate.getTime())) {
             throw new DevBuildError("Invalid endDate format", StatusCodes.BAD_REQUEST);
         }
     }
@@ -115,8 +144,8 @@ const updateCampaignService = async (businessId, id, payload) => {
     
     const rawScheduledTime = payload.scheduledTime || payload.scheduled_time;
     if (rawScheduledTime) {
-        const parsedTime = new Date(rawScheduledTime);
-        if (isNaN(parsedTime.getTime())) {
+        const parsedTime = parseAsQatarTime(rawScheduledTime);
+        if (!parsedTime || isNaN(parsedTime.getTime())) {
             throw new DevBuildError("Invalid scheduledTime format", StatusCodes.BAD_REQUEST);
         }
         updateData.scheduledTime = parsedTime;
@@ -127,8 +156,8 @@ const updateCampaignService = async (businessId, id, payload) => {
     if (hasEndDateField) {
         const rawEndDate = payload.endDate !== undefined ? payload.endDate : payload.end_date;
         if (rawEndDate) {
-            const parsedEndDate = new Date(rawEndDate);
-            if (isNaN(parsedEndDate.getTime())) {
+            const parsedEndDate = parseAsQatarTime(rawEndDate);
+            if (!parsedEndDate || isNaN(parsedEndDate.getTime())) {
                 throw new DevBuildError("Invalid endDate format", StatusCodes.BAD_REQUEST);
             }
             updateData.endDate = parsedEndDate;
@@ -332,18 +361,18 @@ const processSingleCampaign = async (campaignId) => {
 
                 // Construct the combined message containing title, scheduled time, optional end date, and campaign message
                 const formattedDate = new Date(campaign.scheduledTime).toLocaleString("en-US", {
-                    timeZone: "UTC",
+                    timeZone: "Asia/Qatar",
                     dateStyle: "medium",
                     timeStyle: "short",
                 });
-                let dateLine = `*Scheduled Date:* ${formattedDate} UTC`;
+                let dateLine = `*Scheduled Date:* ${formattedDate} (Qatar Time)`;
                 if (campaign.endDate) {
                     const formattedEndDate = new Date(campaign.endDate).toLocaleString("en-US", {
-                        timeZone: "UTC",
+                        timeZone: "Asia/Qatar",
                         dateStyle: "medium",
                         timeStyle: "short",
                     });
-                    dateLine += `\n*End Date:* ${formattedEndDate} UTC`;
+                    dateLine += `\n*End Date:* ${formattedEndDate} (Qatar Time)`;
                 }
                 const fullMessage = `*Campaign:* ${campaign.title}\n${dateLine}\n\n${campaign.message}`;
 
