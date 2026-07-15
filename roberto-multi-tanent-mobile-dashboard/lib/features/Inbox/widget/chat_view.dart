@@ -9,6 +9,8 @@ import 'package:roberto/core/network/api_constants.dart';
 import 'package:http/http.dart' show get;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:roberto/features/Inbox/widget/inline_audio_player.dart';
+import 'package:roberto/features/Settings/bloc/profile_bloc.dart';
+import 'package:roberto/features/Settings/bloc/profile_state.dart';
 
 class ChatView extends StatefulWidget {
   final ConversationMod? conversation;
@@ -41,6 +43,7 @@ class ChatView extends StatefulWidget {
 class _ChatViewState extends State<ChatView> {
   final TextEditingController controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  bool _isGeneratingReply = false;
 
   @override
   void initState() {
@@ -56,6 +59,9 @@ class _ChatViewState extends State<ChatView> {
         widget.conversation?.id != oldWidget.conversation?.id) {
       _scrollToBottom();
     }
+    if (widget.conversation?.id != oldWidget.conversation?.id) {
+      controller.clear();
+    }
   }
 
   @override
@@ -63,6 +69,74 @@ class _ChatViewState extends State<ChatView> {
     _scrollController.dispose();
     controller.dispose();
     super.dispose();
+  }
+
+  String _getBusinessType() {
+    try {
+      final profileState = context.read<ProfileBloc>().state;
+      if (profileState is ProfileLoaded) {
+        return profileState.user.businessType ?? '';
+      } else if (profileState is ProfileUpdateSuccess) {
+        return profileState.user.businessType ?? '';
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  String _getNormalizedBusinessType() {
+    final raw = _getBusinessType();
+    if (raw.isEmpty) return 'PARCEL_DELIVERY'; // default fallback
+    return raw.toUpperCase().replaceAll(' ', '_');
+  }
+
+  Future<void> _generateSuggestedReply() async {
+    final convId = widget.conversation?.id;
+    if (convId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a conversation first')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isGeneratingReply = true;
+    });
+
+    try {
+      final inboxRepo = context.read<InboxRepository>();
+      final subject = _getNormalizedBusinessType();
+      final res = await inboxRepo.suggestReply(convId, subject);
+
+      if (!mounted) return;
+
+      if (res['success'] == true) {
+        final data = res['data']?['data'];
+        if (data != null && data['suggestedReply'] != null) {
+          final replyText = data['suggestedReply'] as String;
+          setState(() {
+            controller.text = replyText;
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No suggested reply generated')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(res['message'] ?? 'Failed to generate suggested reply')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGeneratingReply = false;
+        });
+      }
+    }
   }
 
   void _scrollToBottom() {
@@ -243,6 +317,28 @@ class _ChatViewState extends State<ChatView> {
                     }
                   },
                 ),
+                const SizedBox(width: 4),
+                _isGeneratingReply
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Padding(
+                          padding: EdgeInsets.all(4.0),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.purple),
+                        ),
+                      )
+                    : OutlinedButton.icon(
+                        onPressed: _generateSuggestedReply,
+                        icon: const Icon(Icons.auto_awesome, size: 14, color: Colors.purple),
+                        label: const Text('Generate Reply', style: TextStyle(fontSize: 12, color: Colors.purple, fontWeight: FontWeight.w600)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.purple, width: 1.2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
                 const SizedBox(width: 10),
 
                 Expanded(
@@ -255,6 +351,8 @@ class _ChatViewState extends State<ChatView> {
                     child: TextField(
                       controller: controller,
                       style: TextStyle(color: theme.colorScheme.onSurface),
+                      maxLines: null,
+                      keyboardType: TextInputType.multiline,
                       decoration: const InputDecoration(
                         hintText: "Type a message",
                         border: InputBorder.none,
