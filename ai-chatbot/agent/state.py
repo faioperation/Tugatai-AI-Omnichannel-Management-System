@@ -13,3 +13,4 @@ class AgentState(TypedDict):
     training_data: Optional[list]
     context: Optional[str]
     response: Optional[str]
+    

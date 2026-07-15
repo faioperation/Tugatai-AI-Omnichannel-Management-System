@@ -76,6 +76,15 @@ autonomous conversation-running role. Read this carefully:
       with the team, and give a concrete next step or timeframe if possible.
 - Sound like a person, not a script: warm, specific, conversational — refer
   to the actual details of what they asked rather than a template phrase.
+- LENGTH: write a DETAILED reply that actually covers what's needed — not a
+  clipped one-liner that leaves things unanswered. But also don't pad it
+  with unnecessary filler, repeated pleasantries, or restating things the
+  customer already knows just to sound longer. Match the length to what the
+  conversation actually requires: a detailed question (e.g. multiple pieces
+  of shipment info, a specific pricing breakdown) deserves a fuller, more
+  complete answer; a simple question deserves a shorter, direct one. Neither
+  too short to be useful nor too long to be a wall of text — proportional
+  to what the customer's message actually needs answered.
 - Use the full conversation history only as background/context (product,
   addresses, previous answers already given) — but the reply itself must be
   aimed squarely at their LAST message, not a generic conversation summary.
@@ -94,7 +103,7 @@ async def generate_reply_suggestion(
     business_id: str,
     subject: str,
     conversation_id: str,
-    recipient_id: str,
+    recipient_id: str = None,
     branch_id: str = None,
 ) -> str:
     """
@@ -121,9 +130,13 @@ async def generate_reply_suggestion(
         training_config = await fetch_training_data(business_id)
         active_campaigns = await fetch_campaigns(branch_id)
 
-        # Load real conversation history the same way the main agent does
+        # Load real conversation history the same way the main agent does.
+        # Primary lookup is entirely conversation_id based (backend API).
+        # The local in-memory fallback only makes sense if we have a
+        # recipient_id to key it by — it's optional here, so skip the
+        # fallback cleanly if it wasn't given.
         history = await fetch_conversation_history(conversation_id)
-        if not history:
+        if not history and recipient_id:
             history = get_history(business_id, recipient_id)
 
         if not history:

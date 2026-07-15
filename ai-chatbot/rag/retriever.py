@@ -22,7 +22,6 @@ async def retrieve(query: str, subject: str, top_k: int = 4) -> str:
         include_metadata=True
     )
 
-    # Debug — see what Pinecone is returning
     print(f"\n[RAG DEBUG] Query: {query}")
     print(f"[RAG DEBUG] Namespace: base-{subject}")
     print(f"[RAG DEBUG] Matches found: {len(results.matches)}")
@@ -30,7 +29,6 @@ async def retrieve(query: str, subject: str, top_k: int = 4) -> str:
         print(f"[RAG DEBUG] Match {i+1} score: {match.score}")
         print(f"[RAG DEBUG] Match {i+1} text: {match.metadata.get('text', '')[:100]}")
 
-    # Extract chunks
     chunks = []
     for match in results.matches:
         if match.metadata and "text" in match.metadata:
