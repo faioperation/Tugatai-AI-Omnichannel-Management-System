@@ -228,4 +228,27 @@ class InboxRepository {
       };
     }
   }
+
+  Future<Map<String, dynamic>> suggestReply(String conversationId, String subject) async {
+    final url = ApiConstants.suggestReply;
+    final response = await networkClient.postRequest(
+      url,
+      body: {
+        'conversation_id': conversationId,
+        'subject': subject,
+      },
+    );
+
+    if (response.isSuccess) {
+      return {
+        'success': true,
+        'data': response.responseData,
+      };
+    } else {
+      return {
+        'success': false,
+        'message': response.errorMassage ?? 'Failed to generate suggested reply',
+      };
+    }
+  }
 }
