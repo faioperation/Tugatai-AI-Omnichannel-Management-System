@@ -12,6 +12,21 @@ const parseSafeDate = (value) => {
     return date;
 };
 
+const getFlexibleValue = (payload, standardKey, fallbackKeys = []) => {
+    if (!payload || typeof payload !== "object") return undefined;
+
+    // Build list of target keys normalized (lowercase alphanumeric)
+    const targets = [standardKey, ...fallbackKeys].map(k => k.toLowerCase().replace(/[^a-z0-9]/g, ""));
+
+    for (const key of Object.keys(payload)) {
+        const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (targets.includes(cleanKey)) {
+            return payload[key];
+        }
+    }
+    return undefined; // key is missing
+};
+
 /**
  * Returns the correct Prisma model config based on businessType.
  */
@@ -59,15 +74,15 @@ export const buildMainPayload = (businessId, payload) => {
  */
 export const buildDetailsPayload = (businessType, payload, bookingId, businessId, branchId) => {
     if (businessType === "APPOINTMENT_BOOKING") {
-        const rawTime = payload.appointmentTime || payload.appointment_time;
+        const rawTime = getFlexibleValue(payload, "appointmentTime", ["appointment_time"]);
         return {
             businessId,
             branchId: branchId || null,
             appointmentId: bookingId,
-            appointmentDate: payload.appointmentDate || payload.appointment_date || null,
+            appointmentDate: getFlexibleValue(payload, "appointmentDate", ["appointment_date"]) ?? null,
             appointmentTime: parseSafeDate(rawTime),
-            platform: payload.platform || null,
-            duration: payload.duration || null,
+            platform: getFlexibleValue(payload, "platform") ?? null,
+            duration: getFlexibleValue(payload, "duration") ?? null,
         };
     }
     if (businessType === "PARCEL_DELIVERY") {
@@ -75,15 +90,15 @@ export const buildDetailsPayload = (businessType, payload, bookingId, businessId
             businessId,
             branchId: branchId || null,
             parcelDeliveryId: bookingId,
-            pickupAddress: payload.pickupAddress || payload.pickup_address || null,
-            pickupDate: payload.pickupDate || payload.pickup_date || null,
-            pickupTime: payload.pickupTime || payload.pickup_time || null,
-            deliveryDate: payload.deliveryDate || payload.delivery_date || null,
-            deliveryAddress: payload.deliveryAddress || payload.delivery_address || null,
-            productType: payload.productType || payload.product_type || null,
-            productHeight: payload.productHeight || payload.product_height || null,
+            pickupAddress: getFlexibleValue(payload, "pickupAddress", ["pickup_address"]) ?? null,
+            pickupDate: getFlexibleValue(payload, "pickupDate", ["pickup_date"]) ?? null,
+            pickupTime: getFlexibleValue(payload, "pickupTime", ["pickup_time"]) ?? null,
+            deliveryDate: getFlexibleValue(payload, "deliveryDate", ["delivery_date"]) ?? null,
+            deliveryAddress: getFlexibleValue(payload, "deliveryAddress", ["delivery_address", "destination"]) ?? null,
+            productType: getFlexibleValue(payload, "productType", ["product_type", "packageType", "package_type", "shipmentType", "shipment_type"]) ?? null,
+            productHeight: getFlexibleValue(payload, "productHeight", ["product_height", "packageHeight", "package_height"]) ?? null,
             productWeight: (() => {
-                const w = payload.productWeight !== undefined ? payload.productWeight : payload.product_weight;
+                const w = getFlexibleValue(payload, "productWeight", ["product_weight", "packageWeight", "package_weight", "weightKg", "weight_kg"]);
                 if (w === undefined || w === null || w === "") return null;
                 const parsed = parseInt(w, 10);
                 return isNaN(parsed) ? null : parsed;
@@ -95,9 +110,9 @@ export const buildDetailsPayload = (businessType, payload, bookingId, businessId
         businessId,
         branchId: branchId || null,
         orderId: bookingId,
-        deliveryDate: payload.deliveryDate || payload.delivery_date || null,
-        deliveryAddress: payload.deliveryAddress || payload.delivery_address || null,
-        productType: payload.productType || payload.product_type || null,
+        deliveryDate: getFlexibleValue(payload, "deliveryDate", ["delivery_date"]) ?? null,
+        deliveryAddress: getFlexibleValue(payload, "deliveryAddress", ["delivery_address", "destination"]) ?? null,
+        productType: getFlexibleValue(payload, "productType", ["product_type", "packageType", "package_type"]) ?? null,
     };
 };
 
@@ -107,27 +122,40 @@ export const buildDetailsPayload = (businessType, payload, bookingId, businessId
 export const buildDetailsUpdatePayload = (businessType, payload) => {
     const data = {};
     if (businessType === "APPOINTMENT_BOOKING") {
-        const rawTime = payload.appointmentTime || payload.appointment_time;
-        if (payload.appointmentDate !== undefined || payload.appointment_date !== undefined) {
-            data.appointmentDate = payload.appointmentDate || payload.appointment_date;
-        }
-        if (payload.appointmentTime !== undefined || payload.appointment_time !== undefined) {
-            data.appointmentTime = parseSafeDate(rawTime);
-        }
-        if (payload.platform !== undefined) data.platform = payload.platform;
-        if (payload.duration !== undefined) data.duration = payload.duration;
+        const rawTime = getFlexibleValue(payload, "appointmentTime", ["appointment_time"]);
+        const appointmentDate = getFlexibleValue(payload, "appointmentDate", ["appointment_date"]);
+        if (appointmentDate !== undefined) data.appointmentDate = appointmentDate;
+        if (rawTime !== undefined) data.appointmentTime = parseSafeDate(rawTime);
+        
+        const platform = getFlexibleValue(payload, "platform");
+        if (platform !== undefined) data.platform = platform;
+        
+        const duration = getFlexibleValue(payload, "duration");
+        if (duration !== undefined) data.duration = duration;
     } else if (businessType === "PARCEL_DELIVERY") {
-        if (payload.pickupAddress !== undefined) data.pickupAddress = payload.pickupAddress;
-        if (payload.pickupDate !== undefined) data.pickupDate = payload.pickupDate;
-        if (payload.pickup_date !== undefined) data.pickupDate = payload.pickup_date;
-        if (payload.pickupTime !== undefined) data.pickupTime = payload.pickupTime;
-        if (payload.pickup_time !== undefined) data.pickupTime = payload.pickup_time;
-        if (payload.deliveryDate !== undefined) data.deliveryDate = payload.deliveryDate;
-        if (payload.deliveryAddress !== undefined) data.deliveryAddress = payload.deliveryAddress;
-        if (payload.productType !== undefined) data.productType = payload.productType;
-        if (payload.productHeight !== undefined) data.productHeight = payload.productHeight;
-        if (payload.productWeight !== undefined) {
-            const w = payload.productWeight;
+        const pickupAddress = getFlexibleValue(payload, "pickupAddress", ["pickup_address"]);
+        if (pickupAddress !== undefined) data.pickupAddress = pickupAddress;
+        
+        const pickupDate = getFlexibleValue(payload, "pickupDate", ["pickup_date"]);
+        if (pickupDate !== undefined) data.pickupDate = pickupDate;
+        
+        const pickupTime = getFlexibleValue(payload, "pickupTime", ["pickup_time"]);
+        if (pickupTime !== undefined) data.pickupTime = pickupTime;
+
+        const deliveryDate = getFlexibleValue(payload, "deliveryDate", ["delivery_date"]);
+        if (deliveryDate !== undefined) data.deliveryDate = deliveryDate;
+
+        const deliveryAddress = getFlexibleValue(payload, "deliveryAddress", ["delivery_address", "destination"]);
+        if (deliveryAddress !== undefined) data.deliveryAddress = deliveryAddress;
+
+        const productType = getFlexibleValue(payload, "productType", ["product_type", "packageType", "package_type", "shipmentType", "shipment_type"]);
+        if (productType !== undefined) data.productType = productType;
+
+        const productHeight = getFlexibleValue(payload, "productHeight", ["product_height", "packageHeight", "package_height"]);
+        if (productHeight !== undefined) data.productHeight = productHeight;
+
+        const w = getFlexibleValue(payload, "productWeight", ["product_weight", "packageWeight", "package_weight", "weightKg", "weight_kg"]);
+        if (w !== undefined) {
             if (w === null || w === "") {
                 data.productWeight = null;
             } else {
@@ -136,9 +164,14 @@ export const buildDetailsUpdatePayload = (businessType, payload) => {
             }
         }
     } else {
-        if (payload.deliveryDate !== undefined) data.deliveryDate = payload.deliveryDate;
-        if (payload.deliveryAddress !== undefined) data.deliveryAddress = payload.deliveryAddress;
-        if (payload.productType !== undefined) data.productType = payload.productType;
+        const deliveryDate = getFlexibleValue(payload, "deliveryDate", ["delivery_date"]);
+        if (deliveryDate !== undefined) data.deliveryDate = deliveryDate;
+
+        const deliveryAddress = getFlexibleValue(payload, "deliveryAddress", ["delivery_address", "destination"]);
+        if (deliveryAddress !== undefined) data.deliveryAddress = deliveryAddress;
+
+        const productType = getFlexibleValue(payload, "productType", ["product_type", "packageType", "package_type"]);
+        if (productType !== undefined) data.productType = productType;
     }
     return data;
 };

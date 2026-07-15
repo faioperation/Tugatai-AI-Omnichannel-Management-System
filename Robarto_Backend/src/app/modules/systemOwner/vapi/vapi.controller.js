@@ -45,16 +45,24 @@ export const handleVapiWebhook = async (req, res, next) => {
           const businessType = business?.businessType || "ORDER_BOOKING";
           const { model, detailsModel, detailsRelation } = getBookingModel(businessType);
 
+          const bookingData = {
+            businessId: agent.businessId,
+            branchId: agent.branchId || null,
+            customerName,
+            customerNumber,
+            email,
+            price: String(price),
+            note,
+          };
+
+          if (businessType !== "APPOINTMENT_BOOKING") {
+            bookingData.productName = structuredData.productName || structuredData.product_name ||
+              structuredData.packageName || structuredData.package_name ||
+              structuredData["PACKAGE NAME"] || structuredData["PRODUCT NAME"] || null;
+          }
+
           const booking = await model.create({
-            data: {
-              businessId: agent.businessId,
-              branchId: agent.branchId || null,
-              customerName,
-              customerNumber,
-              email,
-              price: String(price),
-              note,
-            }
+            data: bookingData
           });
 
           const detailsPayload = buildDetailsPayload(businessType, structuredData, booking.id, agent.businessId, agent.branchId);
