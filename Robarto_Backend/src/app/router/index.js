@@ -44,6 +44,7 @@ import { PricingCalculatorRoutes } from "../modules/pricingCalculator/pricingCal
 import { AllConversationsRoutes } from "../modules/allConversations/allConversations.route.js";
 import { DemoBookingRoutes } from "../modules/demoBooking/demoBooking.route.js";
 import { PublicMessageHistoryRoutes } from "../modules/publicApi/messageHistory/messageHistory.route.js";
+import { AssistantReplyRoutes } from "../modules/assistantReply/assistantReply.route.js";
 
 export const router = Router();
 
@@ -83,6 +84,7 @@ const moduleRoutes = [
   { path: "/conversations", route: AllConversationsRoutes },
   { path: "/webhook", route: VapiRoutes },
   { path: "/demo-bookings", route: DemoBookingRoutes },
+  { path: "/agent", route: AssistantReplyRoutes },
 
   // Public API Folder Routes (At the absolute bottom)
   { path: "/global/business", route: GlobalBusinessRoutes },
