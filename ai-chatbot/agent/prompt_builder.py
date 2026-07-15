@@ -435,12 +435,6 @@ Business Information:
         prompt += "If customer asks about campaigns or offers, say there are no active campaigns at the moment.\n"
 
     # ── Conversation memory awareness — VERY IMPORTANT ────────────────
-    # A plain instruction alone wasn't enough to override the model's
-    # trained tendency to deny "memory of past conversations" for
-    # meta-questions (e.g. "what did we discuss earlier?"). Adding a
-    # concrete example of correct vs incorrect behavior makes this far more
-    # reliable, since it gives the model a pattern to match against instead
-    # of an abstract rule to interpret.
     prompt += """
 
 CONVERSATION MEMORY — VERY IMPORTANT, READ CAREFULLY:
