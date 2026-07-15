@@ -103,13 +103,18 @@ async def suggest_reply(payload: dict, _=Depends(verify_token)):
     business_id = payload.get("business_id") or payload.get("businessId")
     subject = payload.get("subject")
     conversation_id = payload.get("conversation_id") or payload.get("conversationId")
+    # recipient_id is OPTIONAL here — it's only used as a local in-memory
+    # fallback if the backend's own conversation_id-based history lookup
+    # comes back empty. The primary lookup is entirely conversation_id
+    # based, so this endpoint works off business_id + subject +
+    # conversation_id alone.
     recipient_id = payload.get("recipient_id") or payload.get("recipientId")
     branch_id = payload.get("branch_id") or payload.get("branchId")
 
-    if not business_id or not conversation_id or not recipient_id:
+    if not business_id or not conversation_id:
         result = {
             "status": "error",
-            "message": "business_id, conversation_id, and recipient_id are required",
+            "message": "business_id and conversation_id are required",
             "suggestedReply": None,
         }
         _record_debug(payload, result)
