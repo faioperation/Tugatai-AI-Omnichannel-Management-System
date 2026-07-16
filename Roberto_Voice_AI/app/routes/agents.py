@@ -189,6 +189,7 @@ async def create_agent(
         schema_properties["package_name"] = {"type": "string", "description": "The name or description of the package to be delivered."}
         schema_properties["package_type"] = {"type": "string", "description": "The type or category of the package."}
         schema_properties["weight_kg"] = {"type": "number", "description": "The estimated weight of the package in kilograms."}
+        schema_properties["pickup_time"] = {"type": "string", "description": "The customer's requested pickup time for the parcel. It must be in a time format (e.g. HH:MM AM/PM like '02:30 PM' or '14:30')."}
     
     if isinstance(dynamic_fields, dict):
         for field_name, field_desc in dynamic_fields.items():
