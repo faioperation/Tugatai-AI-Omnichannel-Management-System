@@ -17,17 +17,76 @@ export const handleVapiWebhook = async (req, res, next) => {
       payload.message?.assistant?.id ||
       payload.agentId || null;
 
+    const vapiCallId = payload.message?.call?.id || payload.call?.id || payload.message?.callId || payload.callId || null;
     const hasAnalysis = analysis && Object.keys(analysis).length > 0;
-    const isEndOfCall = eventType === "end-of-call-report" || eventType === "end-of-call";
+    const isToolCall = eventType === "tool-calls";
+    const isEndOfCall = eventType === "end-of-call-report" || eventType === "end-of-call" || isToolCall;
 
     console.log(`🤖 [Vapi Webhook] Triggered | Event Type: ${eventType} | Agent ID: ${agentId}`);
+
+    let responsePayload = { success: true, message: "Webhook processed successfully" };
 
     if (agentId && (isEndOfCall || hasAnalysis)) {
       try {
         const agent = await prisma.agent.findFirst({ where: { vapiId: agentId } });
 
         if (agent) {
-          const structuredData = analysis?.structuredData || {};
+          // Check for duplicate processing using vapiCallId
+          if (vapiCallId) {
+            const existingLead = await prisma.crmLead.findFirst({
+              where: { conversationId: vapiCallId }
+            });
+            if (existingLead) {
+              console.log(`ℹ️ [Vapi Webhook] CrmLead with conversationId ${vapiCallId} already exists. Skipping duplicate.`);
+              if (isToolCall) {
+                const toolCalls = payload.message?.toolCalls || payload.toolCalls || [];
+                const toolCallId = toolCalls[0]?.id;
+                return res.status(StatusCodes.OK).json({
+                  results: [
+                    {
+                      toolCallId: toolCallId,
+                      result: "Duplicate call detected. Processed previously."
+                    }
+                  ]
+                });
+              }
+              return res.status(StatusCodes.OK).json({ success: true, message: "Duplicate webhook skipped" });
+            }
+          }
+
+          let structuredData = analysis?.structuredData || {};
+          let toolCallId = null;
+
+          if (isToolCall) {
+            const toolCalls = payload.message?.toolCalls || payload.toolCalls || [];
+            const toolCall = toolCalls[0];
+            toolCallId = toolCall?.id;
+            let toolArguments = {};
+            if (toolCall?.function?.arguments) {
+              const args = toolCall.function.arguments;
+              if (typeof args === "string") {
+                try {
+                  toolArguments = JSON.parse(args);
+                } catch (e) {
+                  console.error("Failed to parse tool arguments:", e);
+                }
+              } else if (typeof args === "object") {
+                toolArguments = args;
+              }
+            }
+            // Normalize toolArguments to match structuredData keys
+            const normalizedArgs = {
+              customerName: toolArguments.customer_name || toolArguments.customerName || toolArguments.name || "",
+              customerNumber: toolArguments.customer_phone || toolArguments.customerNumber || toolArguments.phone || "",
+              email: toolArguments.email || "",
+              price: toolArguments.price || toolArguments.cost || "0",
+              note: toolArguments.note || toolArguments.details || toolArguments.notes || "",
+              booking_confirmation: toolArguments.booking_confirmation,
+              bookingConfirmation: toolArguments.bookingConfirmation,
+              ...toolArguments
+            };
+            structuredData = { ...structuredData, ...normalizedArgs };
+          }
 
           const customerName = structuredData.customerName || structuredData.name ||
             payload.message?.customer?.name || "Vapi Customer";
@@ -71,6 +130,7 @@ export const handleVapiWebhook = async (req, res, next) => {
               email,
               price: String(price),
               note,
+              conversationId: vapiCallId,
             };
 
             if (businessType !== "APPOINTMENT_BOOKING") {
@@ -111,10 +171,23 @@ export const handleVapiWebhook = async (req, res, next) => {
             email,
             phone: customerNumber,
             note,
+            conversationId: vapiCallId,
             metadata: structuredData,
           });
           const newLead = await prisma.crmLead.create({ data: cleanLead });
           console.log(`👥 [Vapi CRM Lead Success] Created CrmLead: ${newLead.id} for Customer: ${customerName}`);
+
+          // Set response payload if it's a tool call
+          if (isToolCall) {
+            responsePayload = {
+              results: [
+                {
+                  toolCallId: toolCallId,
+                  result: isBookingConfirmed ? "Booking confirmed and saved successfully." : "Lead captured successfully."
+                }
+              ]
+            };
+          }
 
         } else {
           console.warn(`⚠️ [Vapi] No Agent found for ID: ${agentId}`);
@@ -124,7 +197,7 @@ export const handleVapiWebhook = async (req, res, next) => {
       }
     }
 
-    res.status(StatusCodes.OK).json({ success: true, message: "Webhook processed successfully" });
+    res.status(StatusCodes.OK).json(responsePayload);
   } catch (error) {
     next(error);
   }
