@@ -1671,8 +1671,8 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   Widget _buildCalendarCell(DateTime day, ThemeData theme, bool isDark,
       {bool isSelected = false, bool isToday = false}) {
     // Count orders dynamically for this day
-    final dayOrders = _orders.where((o) {
-      final orderDate = _parseDateString(o.deliveryDate) ?? _parseDateString(o.appointmentDate);
+    final dayOrders = _filteredOrders.where((o) {
+      final orderDate = _parseDateString(o.pickupDate) ?? _parseDateString(o.deliveryDate) ?? _parseDateString(o.appointmentDate);
       return orderDate != null && orderDate.year == day.year && orderDate.month == day.month && orderDate.day == day.day;
     }).toList();
     
@@ -1860,8 +1860,8 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     final selectedDay = _selectedDay ?? DateTime.now();
     final dayStr = '${_getMonthYear(selectedDay).split(' ')[0]} ${selectedDay.day}';
 
-    final filteredOrders = _orders.where((o) {
-      final orderDate = _parseDateString(o.deliveryDate) ?? _parseDateString(o.appointmentDate);
+    final filteredOrders = _filteredOrders.where((o) {
+      final orderDate = _parseDateString(o.pickupDate) ?? _parseDateString(o.deliveryDate) ?? _parseDateString(o.appointmentDate);
       return orderDate != null && orderDate.year == selectedDay.year && orderDate.month == selectedDay.month && orderDate.day == selectedDay.day;
     }).toList();
 
