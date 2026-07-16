@@ -17,10 +17,18 @@ export const handleVapiWebhook = async (req, res, next) => {
       payload.message?.assistant?.id ||
       payload.agentId || null;
 
-    console.log("🤖 [Vapi Webhook] Agent ID:", agentId);
-
     const hasAnalysis = analysis && Object.keys(analysis).length > 0;
     const isEndOfCall = eventType === "end-of-call-report" || eventType === "end-of-call";
+
+    console.log("\n==================================================");
+    console.log("🤖 [Vapi Webhook] Webhook Triggered!");
+    console.log("Event Type:", eventType);
+    console.log("Agent ID:", agentId);
+    console.log("Has Analysis:", hasAnalysis);
+    console.log("Is End of Call:", isEndOfCall);
+    console.log("Analysis Data:", JSON.stringify(analysis, null, 2));
+    console.log("Full Payload:", JSON.stringify(payload, null, 2));
+    console.log("==================================================\n");
 
     if (agentId && (isEndOfCall || hasAnalysis)) {
       try {
