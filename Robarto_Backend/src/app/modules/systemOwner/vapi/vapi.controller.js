@@ -8,21 +8,33 @@ export const handleVapiWebhook = async (req, res, next) => {
   try {
     const payload = req.body;
     const eventType = payload.message?.type || payload.type;
-    const analysis = payload.message?.analysis || payload.analysis || payload.message?.call?.analysis || null;
+    const analysis = payload.message?.analysis ||
+      payload.message?.call?.analysis ||
+      payload.call?.analysis ||
+      payload.analysis || null;
 
     const agentId = payload.message?.call?.assistantId ||
       payload.message?.assistantId ||
-      payload.assistantId ||
       payload.message?.call?.assistant?.id ||
       payload.message?.assistant?.id ||
+      payload.call?.assistantId ||
+      payload.call?.assistant?.id ||
+      payload.assistantId ||
       payload.agentId || null;
 
-    const vapiCallId = payload.message?.call?.id || payload.call?.id || payload.message?.callId || payload.callId || null;
+    const vapiCallId = payload.message?.call?.id ||
+      payload.call?.id ||
+      payload.message?.callId ||
+      payload.callId || null;
     const hasAnalysis = analysis && Object.keys(analysis).length > 0;
     const isToolCall = eventType === "tool-calls";
     const isEndOfCall = eventType === "end-of-call-report" || eventType === "end-of-call" || isToolCall;
 
-    console.log(`🤖 [Vapi Webhook] Triggered | Event Type: ${eventType} | Agent ID: ${agentId}`);
+    console.log(`🤖 [Vapi Webhook] Triggered | Event Type: ${eventType} | Agent ID: ${agentId} | Call ID: ${vapiCallId}`);
+
+    if (eventType === "end-of-call-report" || eventType === "end-of-call") {
+      console.log(`📞 [Vapi End of Call Report Payload]:`, JSON.stringify(payload, null, 2));
+    }
 
     let responsePayload = { success: true, message: "Webhook processed successfully" };
 
