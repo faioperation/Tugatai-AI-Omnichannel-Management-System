@@ -56,10 +56,11 @@ export const handleVapiWebhook = async (req, res, next) => {
 
           let structuredData = analysis?.structuredData || {};
           let toolCallId = null;
+          let toolCall = null;
 
           if (isToolCall) {
             const toolCalls = payload.message?.toolCalls || payload.toolCalls || [];
-            const toolCall = toolCalls[0];
+            toolCall = toolCalls[0];
             toolCallId = toolCall?.id;
             let toolArguments = {};
             if (toolCall?.function?.arguments) {
@@ -81,6 +82,8 @@ export const handleVapiWebhook = async (req, res, next) => {
               email: toolArguments.email || "",
               price: toolArguments.price || toolArguments.cost || "0",
               note: toolArguments.note || toolArguments.details || toolArguments.notes || "",
+              pickupAddress: toolArguments.pickup_address || toolArguments.pickupAddress || toolArguments.address || "",
+              deliveryAddress: toolArguments.delivery_address || toolArguments.deliveryAddress || toolArguments.address || "",
               booking_confirmation: toolArguments.booking_confirmation,
               bookingConfirmation: toolArguments.bookingConfirmation,
               ...toolArguments
@@ -96,11 +99,15 @@ export const handleVapiWebhook = async (req, res, next) => {
           const price = structuredData.price || structuredData.cost || "0";
           const note = structuredData.note || structuredData.notes || analysis?.summary || "";
 
+          const isConfirmBookingTool = isToolCall &&
+            (toolCall?.function?.name === "confirm_booking" || toolCall?.name === "confirm_booking");
+
           const bookingConfirmationVal = structuredData.booking_confirmation !== undefined
             ? structuredData.booking_confirmation
             : structuredData.bookingConfirmation;
 
-          const isBookingConfirmed = bookingConfirmationVal === true ||
+          const isBookingConfirmed = isConfirmBookingTool ||
+            bookingConfirmationVal === true ||
             bookingConfirmationVal === "true" ||
             bookingConfirmationVal === "True" ||
             bookingConfirmationVal === 1 ||
@@ -111,6 +118,7 @@ export const handleVapiWebhook = async (req, res, next) => {
           console.log(`Customer: ${customerName} | Phone: ${customerNumber}`);
           console.log(`booking_confirmation field value:`, bookingConfirmationVal);
           console.log(`Is Booking Confirmed: ${isBookingConfirmed}`);
+          console.log(`Analysis / Structured Data:`, JSON.stringify(structuredData, null, 2));
           console.log(`==================================================\n`);
 
           if (isBookingConfirmed) {
