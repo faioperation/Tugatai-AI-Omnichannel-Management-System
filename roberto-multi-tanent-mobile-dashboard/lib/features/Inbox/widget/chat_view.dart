@@ -139,6 +139,35 @@ class _ChatViewState extends State<ChatView> {
     }
   }
 
+  String? _extractMapUrl(String text) {
+    // 1. First try to extract a URL from the text containing maps or google.com
+    final regExp = RegExp(r'(https?://[^\s]+)');
+    final matches = regExp.allMatches(text);
+    for (var match in matches) {
+      final url = match.group(0);
+      if (url != null && (url.contains('maps') || url.contains('google.com') || url.contains('goo.gl'))) {
+        return url;
+      }
+    }
+
+    // 2. If no URL, try to extract latitude and longitude values
+    final latReg = RegExp(r'(?:latitude|lat)\s*:\s*([-\d\.]+)', caseSensitive: false);
+    final lngReg = RegExp(r'(?:longitude|lng|long)\s*:\s*([-\d\.]+)', caseSensitive: false);
+    
+    final latMatch = latReg.firstMatch(text);
+    final lngMatch = lngReg.firstMatch(text);
+    
+    if (latMatch != null && lngMatch != null) {
+      final lat = latMatch.group(1);
+      final lng = lngMatch.group(1);
+      if (lat != null && lng != null) {
+        return 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+      }
+    }
+    
+    return null;
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -602,12 +631,28 @@ class _ChatViewState extends State<ChatView> {
         ),
       );
     } else {
-      bubbleContent = Text(
-        msg.messageText,
-        style: TextStyle(
-          color: isMe ? Colors.white : (isDark ? Colors.white : Colors.black),
-        ),
-      );
+      final mapUrl = _extractMapUrl(msg.messageText);
+      if (mapUrl != null) {
+        bubbleContent = SelectableText(
+          mapUrl,
+          onTap: () async {
+            final uri = Uri.parse(mapUrl);
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          },
+          style: TextStyle(
+            color: isMe ? Colors.white : (isDark ? Colors.blue[300] : Colors.blue[800]),
+            decoration: TextDecoration.underline,
+            fontSize: 13,
+          ),
+        );
+      } else {
+        bubbleContent = Text(
+          msg.messageText,
+          style: TextStyle(
+            color: isMe ? Colors.white : (isDark ? Colors.white : Colors.black),
+          ),
+        );
+      }
     }
 
     return Align(
