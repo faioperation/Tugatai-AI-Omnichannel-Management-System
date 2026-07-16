@@ -238,8 +238,26 @@ async def handle_vapi_webhook(request: Request):
                         else:
                             collected[f"_tool_{func_name}"] = "completed"
 
+            # Merge structured data if available in message, analysis or artifact
+            structured_data = {}
+            for source in [
+                message.get("analysis", {}),
+                message,
+                artifact,
+                data.get("analysis", {})
+            ]:
+                if isinstance(source, dict):
+                    sdata = source.get("structuredData")
+                    if isinstance(sdata, dict):
+                        structured_data.update(sdata)
+
+            if structured_data:
+                logger.info(f"[VAPI_WEBHOOK] Found structured data from Vapi analysis: {structured_data}")
+                collected.update(structured_data)
+
             # Determine lead status
-            final_status = _determine_lead_status(collected)
+            final_status = collected.get("lead_status") or _determine_lead_status(collected)
+            collected["lead_status"] = final_status
             collected_fields = [k for k in collected.keys() if not k.startswith("_tool_")]
 
             # Duration and recording
