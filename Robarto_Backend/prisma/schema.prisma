@@ -579,6 +579,8 @@ model ParcelDetails {
   productType      String?        @map("product_type")
   productHeight    String?        @map("product_height")
   productWeight    Int?           @map("product_weight")
+  receiverName     String?        @map("receiver_name")
+  receiverPhone    String?        @map("receiver_phone")
   createdAt        DateTime       @default(now()) @map("created_at")
   updatedAt        DateTime       @updatedAt @map("updated_at")
   deletedAt        DateTime?      @map("deleted_at")
