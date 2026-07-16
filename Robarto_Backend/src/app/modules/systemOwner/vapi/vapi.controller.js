@@ -1,7 +1,7 @@
 import { StatusCodes } from "http-status-codes";
 import prisma from "../../../prisma/client.js";
 import { extractLeadPayload } from "../../../utils/workflowHelpers.js";
-import { getBookingModel, buildDetailsPayload, saveAdditionalDetails } from "../../../utils/bookingHelpers.js";
+import { getBookingModel, buildDetailsPayload, saveAdditionalDetails, buildDetailsUpdatePayload, updateAdditionalDetails } from "../../../utils/bookingHelpers.js";
 import { NotificationService } from "../../notification/notification.service.js";
 
 export const handleVapiWebhook = async (req, res, next) => {
@@ -31,27 +31,12 @@ export const handleVapiWebhook = async (req, res, next) => {
         const agent = await prisma.agent.findFirst({ where: { vapiId: agentId } });
 
         if (agent) {
-          // Check for duplicate processing using vapiCallId
+          // Check if CRM Lead already exists for this call to determine create vs update
+          let existingLead = null;
           if (vapiCallId) {
-            const existingLead = await prisma.crmLead.findFirst({
+            existingLead = await prisma.crmLead.findFirst({
               where: { conversationId: vapiCallId }
             });
-            if (existingLead) {
-              console.log(`ℹ️ [Vapi Webhook] CrmLead with conversationId ${vapiCallId} already exists. Skipping duplicate.`);
-              if (isToolCall) {
-                const toolCalls = payload.message?.toolCalls || payload.toolCalls || [];
-                const toolCallId = toolCalls[0]?.id;
-                return res.status(StatusCodes.OK).json({
-                  results: [
-                    {
-                      toolCallId: toolCallId,
-                      result: "Duplicate call detected. Processed previously."
-                    }
-                  ]
-                });
-              }
-              return res.status(StatusCodes.OK).json({ success: true, message: "Duplicate webhook skipped" });
-            }
           }
 
           let structuredData = analysis?.structuredData || {};
@@ -121,14 +106,22 @@ export const handleVapiWebhook = async (req, res, next) => {
           console.log(`Analysis / Structured Data:`, JSON.stringify(structuredData, null, 2));
           console.log(`==================================================\n`);
 
+          // Resolve business type
+          const business = await prisma.business.findUnique({
+            where: { id: agent.businessId },
+            select: { businessType: true }
+          });
+          const businessType = business?.businessType || "ORDER_BOOKING";
+          const { model, detailsModel, detailsKey, detailsRelation } = getBookingModel(businessType);
+
           if (isBookingConfirmed) {
-            // Resolve business type
-            const business = await prisma.business.findUnique({
-              where: { id: agent.businessId },
-              select: { businessType: true }
-            });
-            const businessType = business?.businessType || "ORDER_BOOKING";
-            const { model, detailsModel, detailsRelation } = getBookingModel(businessType);
+            // Check if booking already exists for this call
+            let existingBooking = null;
+            if (vapiCallId) {
+              existingBooking = await model.findFirst({
+                where: { conversationId: vapiCallId }
+              });
+            }
 
             const bookingData = {
               businessId: agent.businessId,
@@ -147,32 +140,53 @@ export const handleVapiWebhook = async (req, res, next) => {
                 structuredData["PACKAGE NAME"] || structuredData["PRODUCT NAME"] || null;
             }
 
-            const booking = await model.create({
-              data: bookingData
-            });
+            if (existingBooking) {
+              // UPDATE existing booking
+              await model.update({
+                where: { id: existingBooking.id },
+                data: bookingData
+              });
 
-            const detailsPayload = buildDetailsPayload(businessType, structuredData, booking.id, agent.businessId, agent.branchId);
-            await detailsModel.create({ data: detailsPayload });
+              const detailsUpdatePayload = buildDetailsUpdatePayload(businessType, structuredData);
+              if (Object.keys(detailsUpdatePayload).length > 0) {
+                await detailsModel.updateMany({
+                  where: { [detailsKey]: existingBooking.id },
+                  data: detailsUpdatePayload
+                });
+              }
 
-            // Save any non-standard additional fields
-            await saveAdditionalDetails(prisma, agent.businessId, agent.branchId, booking.id, structuredData);
+              // Update additional fields
+              await updateAdditionalDetails(prisma, agent.businessId, agent.branchId, existingBooking.id, structuredData);
+              console.log(`✅ [Vapi Booking Update] Updated existing ${businessType} booking: ${existingBooking.id}`);
+            } else {
+              // CREATE new booking
+              const booking = await model.create({
+                data: bookingData
+              });
 
-            console.log(`✅ [Vapi Booking Success] Created ${businessType} booking: ${booking.id}`);
+              const detailsPayload = buildDetailsPayload(businessType, structuredData, booking.id, agent.businessId, agent.branchId);
+              await detailsModel.create({ data: detailsPayload });
 
-            // Trigger notification for Voice Call Booking
-            NotificationService.createAndSendNotification({
-              title: `New ${businessType.replace('_', ' ')} (Voice Call)`,
-              message: `Booking for ${customerName} (${customerNumber}) confirmed via Voice Call.`,
-              type: "VOICE_CALL",
-              businessId: agent.businessId,
-              branchId: agent.branchId || null,
-              bookingId: booking.id,
-            }).catch(err => console.error("Error sending Voice Call booking notification:", err));
+              // Save any non-standard additional fields
+              await saveAdditionalDetails(prisma, agent.businessId, agent.branchId, booking.id, structuredData);
+
+              console.log(`✅ [Vapi Booking Success] Created ${businessType} booking: ${booking.id}`);
+
+              // Trigger notification for Voice Call Booking
+              NotificationService.createAndSendNotification({
+                title: `New ${businessType.replace('_', ' ')} (Voice Call)`,
+                message: `Booking for ${customerName} (${customerNumber}) confirmed via Voice Call.`,
+                type: "VOICE_CALL",
+                businessId: agent.businessId,
+                branchId: agent.branchId || null,
+                bookingId: booking.id,
+              }).catch(err => console.error("Error sending Voice Call booking notification:", err));
+            }
           } else {
-            console.log(`ℹ️ [Vapi Booking Skipped] booking_confirmation is not true, skipping booking creation.`);
+            console.log(`ℹ️ [Vapi Booking Skipped] booking_confirmation is not true, skipping booking creation/update.`);
           }
 
-          // Create CRM Lead (always, for every call)
+          // Create or Update CRM Lead (always, for every call)
           const cleanLead = await extractLeadPayload(agent.businessId, {
             branchId: agent.branchId,
             name: customerName,
@@ -182,8 +196,26 @@ export const handleVapiWebhook = async (req, res, next) => {
             conversationId: vapiCallId,
             metadata: structuredData,
           });
-          const newLead = await prisma.crmLead.create({ data: cleanLead });
-          console.log(`👥 [Vapi CRM Lead Success] Created CrmLead: ${newLead.id} for Customer: ${customerName}`);
+
+          if (existingLead) {
+            // UPDATE existing lead
+            delete cleanLead.businessId;
+            delete cleanLead.conversationId;
+            cleanLead.metadata = {
+              ...(existingLead.metadata && typeof existingLead.metadata === "object" ? existingLead.metadata : {}),
+              ...structuredData
+            };
+
+            const updatedLead = await prisma.crmLead.update({
+              where: { id: existingLead.id },
+              data: cleanLead
+            });
+            console.log(`👥 [Vapi CRM Lead Update] Updated CrmLead: ${updatedLead.id} for Customer: ${customerName}`);
+          } else {
+            // CREATE new lead
+            const newLead = await prisma.crmLead.create({ data: cleanLead });
+            console.log(`👥 [Vapi CRM Lead Success] Created CrmLead: ${newLead.id} for Customer: ${customerName}`);
+          }
 
           // Set response payload if it's a tool call
           if (isToolCall) {
@@ -191,7 +223,7 @@ export const handleVapiWebhook = async (req, res, next) => {
               results: [
                 {
                   toolCallId: toolCallId,
-                  result: isBookingConfirmed ? "Booking confirmed and saved successfully." : "Lead captured successfully."
+                  result: isBookingConfirmed ? "Booking processed successfully." : "Lead captured successfully."
                 }
               ]
             };
