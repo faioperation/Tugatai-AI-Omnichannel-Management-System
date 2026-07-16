@@ -111,6 +111,7 @@ export const handleVapiWebhook = async (req, res, next) => {
           console.log(`Customer: ${customerName} | Phone: ${customerNumber}`);
           console.log(`booking_confirmation field value:`, bookingConfirmationVal);
           console.log(`Is Booking Confirmed: ${isBookingConfirmed}`);
+          console.log(`Analysis / Structured Data:`, JSON.stringify(structuredData, null, 2));
           console.log(`==================================================\n`);
 
           if (isBookingConfirmed) {
