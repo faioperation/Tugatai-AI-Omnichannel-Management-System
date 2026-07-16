@@ -60,29 +60,31 @@ export const handleVapiWebhook = async (req, res, next) => {
                 toolArguments = args;
               }
             }
-            // Normalize toolArguments to match structuredData keys
-            const normalizedArgs = {
-              customerName: toolArguments.customer_name || toolArguments.customerName || toolArguments.name || "",
-              customerNumber: toolArguments.customer_phone || toolArguments.customerNumber || toolArguments.phone || "",
-              email: toolArguments.email || "",
-              price: toolArguments.price || toolArguments.cost || "0",
-              note: toolArguments.note || toolArguments.details || toolArguments.notes || "",
-              pickupAddress: toolArguments.pickup_address || toolArguments.pickupAddress || toolArguments.address || "",
-              deliveryAddress: toolArguments.delivery_address || toolArguments.deliveryAddress || toolArguments.address || "",
-              booking_confirmation: toolArguments.booking_confirmation,
-              bookingConfirmation: toolArguments.bookingConfirmation,
-              ...toolArguments
-            };
-            structuredData = { ...structuredData, ...normalizedArgs };
+            structuredData = { ...structuredData, ...toolArguments };
           }
 
-          const customerName = structuredData.customerName || structuredData.name ||
+          // Normalize keys for both tool-calls and end-of-call-report structuredData
+          const normalizedArgs = {
+            customerName: structuredData.customerName || structuredData.customer_name || structuredData.name || structuredData.sender_name || "",
+            customerNumber: structuredData.customerNumber || structuredData.customer_phone || structuredData.phone || structuredData.sender_phone || structuredData.sender_phone_number || "",
+            email: structuredData.email || "",
+            price: structuredData.price || structuredData.cost || "0",
+            note: structuredData.note || structuredData.notes || structuredData.call_summary || analysis?.summary || "",
+            pickupAddress: structuredData.pickupAddress || structuredData.pickup_address || structuredData.address || "",
+            deliveryAddress: structuredData.deliveryAddress || structuredData.delivery_address || structuredData.address || "",
+            booking_confirmation: structuredData.booking_confirmation,
+            bookingConfirmation: structuredData.bookingConfirmation,
+            ...structuredData
+          };
+          structuredData = normalizedArgs;
+
+          const customerName = structuredData.customerName ||
             payload.message?.customer?.name || "Vapi Customer";
-          const customerNumber = structuredData.customerNumber || structuredData.phone ||
+          const customerNumber = structuredData.customerNumber ||
             payload.message?.customer?.number || "";
           const email = structuredData.email || "";
-          const price = structuredData.price || structuredData.cost || "0";
-          const note = structuredData.note || structuredData.notes || analysis?.summary || "";
+          const price = structuredData.price || "0";
+          const note = structuredData.note || "";
 
           const isConfirmBookingTool = isToolCall &&
             (toolCall?.function?.name === "confirm_booking" || toolCall?.name === "confirm_booking");
