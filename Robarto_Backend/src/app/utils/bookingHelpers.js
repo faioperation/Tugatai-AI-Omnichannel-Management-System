@@ -104,7 +104,7 @@ export const buildDetailsPayload = (businessType, payload, bookingId, businessId
                 return isNaN(parsed) ? null : parsed;
             })(),
             receiverName: getFlexibleValue(payload, "receiverName", ["receiver_name"]) ?? null,
-            receiverPhone: getFlexibleValue(payload, "receiverPhone", ["receiver_phone"]) ?? null,
+            receiverPhone: getFlexibleValue(payload, "receiverPhone", ["receiver_phone", "receiver_phone_number", "receiverPhoneNumber"]) ?? null,
         };
     }
     // Default: ORDER_BOOKING
@@ -169,7 +169,7 @@ export const buildDetailsUpdatePayload = (businessType, payload) => {
         const receiverName = getFlexibleValue(payload, "receiverName", ["receiver_name"]);
         if (receiverName !== undefined) data.receiverName = receiverName;
 
-        const receiverPhone = getFlexibleValue(payload, "receiverPhone", ["receiver_phone"]);
+        const receiverPhone = getFlexibleValue(payload, "receiverPhone", ["receiver_phone", "receiver_phone_number", "receiverPhoneNumber"]);
         if (receiverPhone !== undefined) data.receiverPhone = receiverPhone;
     } else {
         const deliveryDate = getFlexibleValue(payload, "deliveryDate", ["delivery_date"]);
