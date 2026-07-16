@@ -206,6 +206,7 @@ def _tool_params(tool_name: str) -> tuple[str, dict]:
                     "sender_phone_number":       {"type": "string", "description": "The contact number of the sender."},
                     "booking_confirmation":      {"type": "boolean", "description": "True if the booking is confirmed, otherwise False."},
                     "preferred_pickup_date":     {"type": "string", "description": "Preferred pickup date or schedule details."},
+                    "pickup_time":               {"type": "string", "description": "Preferred pickup time. MUST be in a time format (e.g. '02:30 PM' or '14:30'). This is mandatory for parcel delivery businesses."},
                     "receiver_phone_number":     {"type": "string", "description": "The contact number of the receiver."},
                     "destination_country_city":  {"type": "string", "description": "The destination country and city."}
                 },

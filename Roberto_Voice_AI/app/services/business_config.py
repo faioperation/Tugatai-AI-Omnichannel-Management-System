@@ -42,7 +42,7 @@ BUSINESS_TYPES: Dict[str, Dict[str, Any]] = {
 - Search your knowledge base or product catalog to calculate the exact pricing. Read back the exact result. Do not guess.
 
 ### 2. BOOKING CONFIRMATION:
-- Once customer agrees to quote: collect name, phone, pickup location, preferred pickup time.
+- Once customer agrees to quote: collect name, phone, pickup location, and preferred pickup time. You MUST ask the customer for their preferred pickup time. It MUST be in a specific time-wise format (e.g. HH:MM AM/PM like '02:30 PM' or '14:30'). Collecting the pickup time in a time-wise format is mandatory.
 - Trigger `confirm_booking` to finalize. Read back the booking reference clearly.
 
 ### 3. ESCALATION:
@@ -408,10 +408,10 @@ Provide your response in JSON format matching the following keys:
 3. "business_type": The closest matching business type from: "cargo", "restaurant", "legal", "education", "real_estate", "healthcare", "generic".
 4. "language": Two-letter language code (e.g., "en", "es", "ar").
 5. "custom_layer2": A bulleted list defining the agent's identity, persona, and specific vocal tone/rules. Explicitly include dynamic vocal delivery instructions based on the script (e.g. "Use rich, appetizing descriptive language when discussing menu items", or "Speak with empathetic, clear pacing for medical queries").
-6. "custom_layer3": A structured guide for the agent's main flows and scenarios (e.g. booking appointment, taking order, providing quote, escalating call). Be detailed and specific to this business's script, specifying exactly what fields/data the agent needs to collect.
+6. "custom_layer3": A structured guide for the agent's main flows and scenarios (e.g. booking appointment, taking order, providing quote, escalating call). Be detailed and specific to this business's script, specifying exactly what fields/data the agent needs to collect. If the business is cargo (parcel delivery), you MUST specify in 'custom_layer3' that the agent must ask the customer for their preferred pickup time in a specific time-wise format (e.g. '02:30 PM' or '14:30'), and that collecting this information is mandatory.
 7. "tools": A list of tool names the agent will need. Choose from: "confirm_booking", "collect_info", "escalate_to_human". Choose "confirm_booking" if booking is needed; "escalate_to_human" if human handoff is needed; "collect_info" for other general form submissions. Do not use get_quote, the agent should quote based on its knowledge base.
 8. "first_message": A warm, business-specific first greeting that the agent will speak when the call starts.
-9. "extracted_data_fields": A JSON object defining specific data fields the agent must extract at the end of the call, based on this business's needs (e.g. for a restaurant: party_size, booking_time; for cargo: weight_kg, destination). Each key should be the field name, and the value should be a brief string description of what the field is. DO NOT include generic fields like lead_status, call_summary, customer_name, customer_phone, as they are already included by default.
+9. "extracted_data_fields": A JSON object defining specific data fields the agent must extract at the end of the call, based on this business's needs (e.g. for a restaurant: party_size, booking_time; for cargo: weight_kg, destination, pickup_time). If the business is cargo (parcel delivery), you MUST include 'pickup_time' as a required field with a description stating it must be a time-wise value (e.g., '02:30 PM' or '14:30'). Each key should be the field name, and the value should be a brief string description of what the field is. DO NOT include generic fields like lead_status, call_summary, customer_name, customer_phone, as they are already included by default.
 
 Make sure the JSON is valid and only return the JSON block.
 """
