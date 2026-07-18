@@ -379,17 +379,23 @@ export const normalizeTimeString = (timeStr) => {
     if (!timeStr) return null;
     const trimmed = timeStr.trim();
     
-    // Check if it's already HH:mm or HH:mm:ss
-    if (/^\d{2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+    // Check if it's already HH:mm:ss
+    if (/^\d{2}:\d{2}:\d{2}$/.test(trimmed)) {
         return trimmed;
     }
     
-    // Check if it has AM/PM (e.g. 10:00 AM or 10:00am)
-    const matchAmPm = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    // Check if it's HH:mm
+    if (/^\d{2}:\d{2}$/.test(trimmed)) {
+        return `${trimmed}:00`;
+    }
+    
+    // Check if it has AM/PM (e.g. 10:00 AM, 10:00:00 AM, etc.)
+    const matchAmPm = trimmed.match(/^(\d{1,2})(?::(\d{2}))?(?::(\d{2}))?\s*(AM|PM)$/i);
     if (matchAmPm) {
         let hours = parseInt(matchAmPm[1], 10);
-        const minutes = matchAmPm[2];
-        const ampm = matchAmPm[3].toUpperCase();
+        const minutes = matchAmPm[2] || "00";
+        const seconds = matchAmPm[3] || "00";
+        const ampm = matchAmPm[4].toUpperCase();
         
         if (ampm === "PM" && hours < 12) {
             hours += 12;
@@ -397,7 +403,15 @@ export const normalizeTimeString = (timeStr) => {
             hours = 0;
         }
         
-        return `${String(hours).padStart(2, "0")}:${minutes}`;
+        return `${String(hours).padStart(2, "0")}:${minutes}:${seconds}`;
+    }
+    
+    // Fallback if it matches single/double digit hours/minutes without AM/PM
+    const matchSimple = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+    if (matchSimple) {
+        const hours = String(parseInt(matchSimple[1], 10)).padStart(2, "0");
+        const minutes = matchSimple[2];
+        return `${hours}:${minutes}:00`;
     }
     
     return trimmed;
