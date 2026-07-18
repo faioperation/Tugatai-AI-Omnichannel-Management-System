@@ -221,6 +221,42 @@ const deleteCampaignService = async (businessId, id) => {
     return campaign;
 };
 
+const cleanAndPrependCountryCode = (phone) => {
+    if (!phone) return "";
+    
+    // Remove non-digits
+    let digits = phone.replace(/\D/g, "");
+    
+    // Remove leading double-zeros (e.g. 00880... -> 880...)
+    if (digits.startsWith("00")) {
+        digits = digits.slice(2);
+    }
+    
+    // If it starts with a single '0' (e.g. 01712345678), remove it for length & prefix check
+    let startsWithZero = false;
+    if (digits.startsWith("0") && !digits.startsWith("00")) {
+        digits = digits.slice(1);
+        startsWithZero = true;
+    }
+    
+    // Now check if it matches Bangladeshi mobile format (starts with 1 and is 10 digits long)
+    if (digits.length === 10 && digits.startsWith("1")) {
+        return "880" + digits;
+    }
+    
+    // Check if it matches Qatar mobile format (starts with 3, 5, 6, 7 and is 8 digits long)
+    if (digits.length === 8 && /^[3567]/.test(digits)) {
+        return "974" + digits;
+    }
+    
+    // Restore the leading zero if it was there and didn't match the standard formats
+    if (startsWithZero) {
+        digits = "0" + digits;
+    }
+    
+    return digits;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Process one single campaign (called by BullMQ Worker)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -296,7 +332,7 @@ const processSingleCampaign = async (campaignId) => {
 
         for (const lead of leads) {
             try {
-                const formattedPhone = lead.phone.replace(/\D/g, "");
+                const formattedPhone = cleanAndPrependCountryCode(lead.phone);
                 if (!formattedPhone || formattedPhone.length < 7) {
                     console.warn(`⚠️ Skipping invalid phone number "${lead.phone}" (Lead ID: ${lead.id})`);
                     continue;
@@ -304,7 +340,7 @@ const processSingleCampaign = async (campaignId) => {
 
                 // Deduplicate to prevent sending the message multiple times to the same number in a single campaign run
                 if (seenPhones.has(formattedPhone)) {
-                    console.log(`⚠️ Skipping duplicate phone number "${formattedPhone}" (Lead ID: ${lead.id})`);
+                    console.log(`⚠️ Skipping duplicate phone number "${lead.phone}" (Normalized: ${formattedPhone}, Lead ID: ${lead.id})`);
                     continue;
                 }
                 seenPhones.add(formattedPhone);
