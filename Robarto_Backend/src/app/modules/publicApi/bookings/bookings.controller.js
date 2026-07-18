@@ -9,6 +9,7 @@ import {
     buildDetailsPayload,
     saveAdditionalDetails,
     attachDetails,
+    parseDateAndTimeFromPayload,
 } from "../../../utils/bookingHelpers.js";
 
 export const createBooking = async (req, res, next) => {
@@ -55,6 +56,8 @@ export const createBooking = async (req, res, next) => {
       }
     }
 
+    const { date, time } = parseDateAndTimeFromPayload(req.body);
+
     const result = await prisma.$transaction(async (tx) => {
       const booking = await model.create({
         data: {
@@ -68,6 +71,8 @@ export const createBooking = async (req, res, next) => {
           note: req.body.note || req.body.orderNote || null,
           status: req.body.status || "PENDING",
           conversationId,
+          calenderDate: date || null,
+          calenderTime: time || null,
         }
       });
 
