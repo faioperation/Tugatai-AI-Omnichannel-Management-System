@@ -3,6 +3,7 @@ import DevBuildError from "../../../lib/DevBuildError.js";
 import { StatusCodes } from "http-status-codes";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
 import { GoogleCalendarService } from "../../googleCalendar/googleCalendar.service.js";
+import { parseDateAndTimeFromPayload } from "../../../utils/bookingHelpers.js";
 
 const buildMainPayload = (businessId, payload) => {
     const extracted = {};
@@ -13,19 +14,9 @@ const buildMainPayload = (businessId, payload) => {
     if (payload.price !== undefined) extracted.price = String(payload.price);
     extracted.businessId = businessId;
 
-    // Automatically extract and split datetime if provided in standard payloads
-    const rawDateTime = payload.datetime || payload.date_time || payload.dateTime;
-    if (rawDateTime && typeof rawDateTime === "string") {
-        const cleanVal = rawDateTime.trim();
-        const separator = cleanVal.includes("T") ? "T" : (cleanVal.includes(" ") ? " " : null);
-        if (separator) {
-            const parts = cleanVal.split(separator);
-            extracted.calenderDate = parts[0] || null;
-            extracted.calenderTime = parts[1] || null;
-        } else if (cleanVal.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            extracted.calenderDate = cleanVal;
-        }
-    }
+    const { date, time } = parseDateAndTimeFromPayload(payload);
+    if (date) extracted.calenderDate = date;
+    if (time) extracted.calenderTime = time;
 
     return extracted;
 };
