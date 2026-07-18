@@ -61,11 +61,26 @@ export const getBookingModel = (businessType) => {
  */
 export const buildMainPayload = (businessId, payload) => {
     const extracted = { businessId };
-    const fields = ["branchId", "createdById", "customerName", "customerNumber", "email", "country", "note", "status", "conversationId", "productName"];
+    const fields = ["branchId", "createdById", "customerName", "customerNumber", "email", "country", "note", "status", "conversationId", "productName", "calenderDate", "calenderTime"];
     for (const f of fields) {
         if (payload[f] !== undefined) extracted[f] = payload[f];
     }
     if (payload.price !== undefined) extracted.price = String(payload.price);
+
+    // Automatically extract and split datetime if provided in standard payloads
+    const rawDateTime = payload.datetime || payload.date_time || payload.dateTime;
+    if (rawDateTime && typeof rawDateTime === "string") {
+        const cleanVal = rawDateTime.trim();
+        const separator = cleanVal.includes("T") ? "T" : (cleanVal.includes(" ") ? " " : null);
+        if (separator) {
+            const parts = cleanVal.split(separator);
+            extracted.calenderDate = parts[0] || null;
+            extracted.calenderTime = parts[1] || null;
+        } else if (cleanVal.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            extracted.calenderDate = cleanVal;
+        }
+    }
+
     return extracted;
 };
 
@@ -226,29 +241,12 @@ export const saveAdditionalDetails = async (tx, businessId, branchId, bookingId,
     for (const key of Object.keys(payload)) {
         if (!standardFields.has(key) && payload[key] !== undefined && payload[key] !== null) {
             const val = typeof payload[key] === 'object' ? JSON.stringify(payload[key]) : String(payload[key]);
-            
-            let calenderDate = null;
-            let calenderTime = null;
-            if (key === "datetime" && typeof val === "string") {
-                const cleanVal = val.trim();
-                const separator = cleanVal.includes("T") ? "T" : (cleanVal.includes(" ") ? " " : null);
-                if (separator) {
-                    const parts = cleanVal.split(separator);
-                    calenderDate = parts[0] || null;
-                    calenderTime = parts[1] || null;
-                } else if (cleanVal.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                    calenderDate = cleanVal;
-                }
-            }
-
             additionalDetailsData.push({
                 businessId,
                 branchId: branchId || null,
                 referenceId: bookingId,
                 key,
                 value: val,
-                calenderDate,
-                calenderTime,
             });
         }
     }
@@ -303,20 +301,6 @@ export const updateAdditionalDetails = async (tx, businessId, branchId, bookingI
             const value = payload[key];
             const val = typeof value === 'object' ? JSON.stringify(value) : String(value);
 
-            let calenderDate = null;
-            let calenderTime = null;
-            if (key === "datetime" && typeof val === "string") {
-                const cleanVal = val.trim();
-                const separator = cleanVal.includes("T") ? "T" : (cleanVal.includes(" ") ? " " : null);
-                if (separator) {
-                    const parts = cleanVal.split(separator);
-                    calenderDate = parts[0] || null;
-                    calenderTime = parts[1] || null;
-                } else if (cleanVal.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                    calenderDate = cleanVal;
-                }
-            }
-
             const existingDetail = await tx.additionalDetail.findFirst({
                 where: { referenceId: bookingId, key }
             });
@@ -327,11 +311,7 @@ export const updateAdditionalDetails = async (tx, businessId, branchId, bookingI
                 } else {
                     await tx.additionalDetail.update({
                         where: { id: existingDetail.id },
-                        data: { 
-                            value: val,
-                            calenderDate,
-                            calenderTime
-                        }
+                        data: { value: val }
                     });
                 }
             } else if (value !== null) {
@@ -341,9 +321,7 @@ export const updateAdditionalDetails = async (tx, businessId, branchId, bookingI
                         branchId: branchId || null,
                         referenceId: bookingId,
                         key,
-                        value: val,
-                        calenderDate,
-                        calenderTime
+                        value: val
                     }
                 });
             }

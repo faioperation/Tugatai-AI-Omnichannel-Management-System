@@ -6,12 +6,27 @@ import { GoogleCalendarService } from "../../googleCalendar/googleCalendar.servi
 
 const buildMainPayload = (businessId, payload) => {
     const extracted = {};
-    const fields = ["branchId", "createdById", "customerName", "customerNumber", "email", "note", "status"];
+    const fields = ["branchId", "createdById", "customerName", "customerNumber", "email", "note", "status", "calenderDate", "calenderTime"];
     for (const f of fields) {
         if (payload[f] !== undefined) extracted[f] = payload[f];
     }
     if (payload.price !== undefined) extracted.price = String(payload.price);
     extracted.businessId = businessId;
+
+    // Automatically extract and split datetime if provided in standard payloads
+    const rawDateTime = payload.datetime || payload.date_time || payload.dateTime;
+    if (rawDateTime && typeof rawDateTime === "string") {
+        const cleanVal = rawDateTime.trim();
+        const separator = cleanVal.includes("T") ? "T" : (cleanVal.includes(" ") ? " " : null);
+        if (separator) {
+            const parts = cleanVal.split(separator);
+            extracted.calenderDate = parts[0] || null;
+            extracted.calenderTime = parts[1] || null;
+        } else if (cleanVal.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            extracted.calenderDate = cleanVal;
+        }
+    }
+
     return extracted;
 };
 
