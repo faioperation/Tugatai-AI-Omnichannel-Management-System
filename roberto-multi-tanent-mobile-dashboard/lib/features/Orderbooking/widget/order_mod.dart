@@ -55,6 +55,8 @@ class OrderMod {
   final String? productName;
   final String? customRequirement;
   final String? country;
+  final String? calenderDate;
+  final String? calenderTime;
   final Map<String, dynamic> rawAdditionalDetails;
 
   // UI Helpers
@@ -102,6 +104,8 @@ class OrderMod {
     this.productName,
     this.customRequirement,
     this.country,
+    this.calenderDate,
+    this.calenderTime,
     this.rawAdditionalDetails = const {},
   })  : avatarInitials = customerName.isNotEmpty ? customerName.substring(0, 1).toUpperCase() : 'U',
         avatarColor = _generateColor(customerName);
@@ -204,6 +208,8 @@ class OrderMod {
       productName: detailsMap['productName'] ?? json['productName'],
       customRequirement: detailsMap['customRequirement'],
       country: detailsMap['country'] ?? json['country'],
+      calenderDate: detailsMap['calenderDate'] ?? detailsMap['calendarDate'] ?? json['calenderDate'] ?? json['calendarDate'],
+      calenderTime: detailsMap['calenderTime'] ?? detailsMap['calendarTime'] ?? json['calenderTime'] ?? json['calendarTime'],
       rawAdditionalDetails: detailsMap,
     );
   }

@@ -84,13 +84,13 @@ class _CustomUpdateLeadState extends State<CustomUpdateLead> {
     final name = _nameController.text.trim();
 
     final metadata = {
-      if (_companyNameController.text.isNotEmpty) 'companyName': _companyNameController.text.trim(),
-      if (_industryController.text.isNotEmpty) 'industry': _industryController.text.trim(),
-      if (_studentCountController.text.isNotEmpty) 'studentCount': int.tryParse(_studentCountController.text.trim()),
-      if (_budgetController.text.isNotEmpty) 'budget': int.tryParse(_budgetController.text.trim()),
-      if (_interestedServiceController.text.isNotEmpty) 'interestedService': _interestedServiceController.text.trim(),
-      if (_preferredContactMethodController.text.isNotEmpty) 'preferredContactMethod': _preferredContactMethodController.text.trim(),
-      if (_followUpDateController.text.isNotEmpty) 'followUpDate': _followUpDateController.text.trim(),
+      if (_companyNameController.text.trim().isNotEmpty) 'companyName': _companyNameController.text.trim(),
+      if (_industryController.text.trim().isNotEmpty) 'industry': _industryController.text.trim(),
+      if (_studentCountController.text.trim().isNotEmpty) 'studentCount': int.tryParse(_studentCountController.text.trim()),
+      if (_budgetController.text.trim().isNotEmpty) 'budget': int.tryParse(_budgetController.text.trim()),
+      if (_interestedServiceController.text.trim().isNotEmpty) 'interestedService': _interestedServiceController.text.trim(),
+      if (_preferredContactMethodController.text.trim().isNotEmpty) 'preferredContactMethod': _preferredContactMethodController.text.trim(),
+      if (_followUpDateController.text.trim().isNotEmpty) 'followUpDate': _followUpDateController.text.trim(),
     };
 
     context.read<CrmBloc>().add(UpdateLead(
@@ -177,7 +177,7 @@ class _CustomUpdateLeadState extends State<CustomUpdateLead> {
               CustomTextfield(
                 controller: _nameController, 
                 hintText: "Name",
-                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+                validator: (v) => null,
               ),
 
               const SizedBox(height: 15),
@@ -187,7 +187,7 @@ class _CustomUpdateLeadState extends State<CustomUpdateLead> {
               CustomTextfield(
                 controller: _emailController, 
                 hintText: "Email",
-                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+                validator: (v) => null,
               ),
 
               const SizedBox(height: 15),
@@ -197,7 +197,7 @@ class _CustomUpdateLeadState extends State<CustomUpdateLead> {
               CustomTextfield(
                 controller: _phoneController, 
                 hintText: "Phone",
-                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+                validator: (v) => null,
               ),
 
               const SizedBox(height: 15),
@@ -207,7 +207,7 @@ class _CustomUpdateLeadState extends State<CustomUpdateLead> {
               CustomTextfield(
                 controller: _sourceController, 
                 hintText: "Source",
-                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+                validator: (v) => null,
               ),
 
               const SizedBox(height: 15),
@@ -217,7 +217,7 @@ class _CustomUpdateLeadState extends State<CustomUpdateLead> {
               CustomTextfield(
                 controller: _addressController, 
                 hintText: "Address",
-                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+                validator: (v) => null,
               ),
 
               const SizedBox(height: 15),
@@ -237,7 +237,7 @@ class _CustomUpdateLeadState extends State<CustomUpdateLead> {
               CustomTextfield(
                 controller: _statusController, 
                 hintText: "Status",
-                validator: (v) => v == null || v.isEmpty ? 'This field is required' : null,
+                validator: (v) => null,
               ),
 
               const SizedBox(height: 25),
@@ -246,37 +246,37 @@ class _CustomUpdateLeadState extends State<CustomUpdateLead> {
 
               const Text("Company Name"),
               const SizedBox(height: 6),
-              CustomTextfield(controller: _companyNameController, hintText: "Company Name"),
+              CustomTextfield(controller: _companyNameController, hintText: "Company Name", validator: (v) => null),
               const SizedBox(height: 15),
 
               const Text("Industry"),
               const SizedBox(height: 6),
-              CustomTextfield(controller: _industryController, hintText: "Industry"),
+              CustomTextfield(controller: _industryController, hintText: "Industry", validator: (v) => null),
               const SizedBox(height: 15),
 
               const Text("Student Count"),
               const SizedBox(height: 6),
-              CustomTextfield(controller: _studentCountController, hintText: "number"),
+              CustomTextfield(controller: _studentCountController, hintText: "number", validator: (v) => null),
               const SizedBox(height: 15),
 
               const Text("Budget"),
               const SizedBox(height: 6),
-              CustomTextfield(controller: _budgetController, hintText: "number"),
+              CustomTextfield(controller: _budgetController, hintText: "number", validator: (v) => null),
               const SizedBox(height: 15),
 
               const Text("Interested Service"),
               const SizedBox(height: 6),
-              CustomTextfield(controller: _interestedServiceController, hintText: "Service"),
+              CustomTextfield(controller: _interestedServiceController, hintText: "Service", validator: (v) => null),
               const SizedBox(height: 15),
 
               const Text("Preferred Contact Method"),
               const SizedBox(height: 6),
-              CustomTextfield(controller: _preferredContactMethodController, hintText: "Phone/Email"),
+              CustomTextfield(controller: _preferredContactMethodController, hintText: "Phone/Email", validator: (v) => null),
               const SizedBox(height: 15),
 
               const Text("Follow Up Date"),
               const SizedBox(height: 6),
-              CustomTextfield(controller: _followUpDateController, hintText: "YYYY-MM-DD"),
+              CustomTextfield(controller: _followUpDateController, hintText: "YYYY-MM-DD", validator: (v) => null),
             ],
           ),
         ),
