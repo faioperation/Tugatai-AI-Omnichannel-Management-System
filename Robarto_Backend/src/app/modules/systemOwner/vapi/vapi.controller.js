@@ -74,22 +74,6 @@ const processVapiData = async ({
       });
     }
 
-    // Extract and split datetime for main booking fields
-    const rawDateTime = normalizedData.datetime || normalizedData.date_time || normalizedData.dateTime;
-    let calenderDate = null;
-    let calenderTime = null;
-    if (rawDateTime && typeof rawDateTime === "string") {
-      const cleanVal = rawDateTime.trim();
-      const separator = cleanVal.includes("T") ? "T" : (cleanVal.includes(" ") ? " " : null);
-      if (separator) {
-        const parts = cleanVal.split(separator);
-        calenderDate = parts[0] || null;
-        calenderTime = parts[1] || null;
-      } else if (cleanVal.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        calenderDate = cleanVal;
-      }
-    }
-
     const bookingData = {
       businessId: agent.businessId,
       branchId: agent.branchId || null,
@@ -99,9 +83,21 @@ const processVapiData = async ({
       price: String(price),
       note,
       conversationId: vapiCallId,
-      calenderDate,
-      calenderTime,
     };
+
+    // Extract and split datetime for main booking fields
+    const rawDateTime = normalizedData.datetime || normalizedData.date_time || normalizedData.dateTime;
+    if (rawDateTime && typeof rawDateTime === "string") {
+      const cleanVal = rawDateTime.trim();
+      const separator = cleanVal.includes("T") ? "T" : (cleanVal.includes(" ") ? " " : null);
+      if (separator) {
+        const parts = cleanVal.split(separator);
+        bookingData.calenderDate = parts[0] || null;
+        bookingData.calenderTime = parts[1] || null;
+      } else if (cleanVal.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        bookingData.calenderDate = cleanVal;
+      }
+    }
 
     if (businessType !== "APPOINTMENT_BOOKING") {
       bookingData.productName = normalizedData.productName || normalizedData.product_name ||
