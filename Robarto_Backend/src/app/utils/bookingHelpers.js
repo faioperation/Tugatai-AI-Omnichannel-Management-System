@@ -67,19 +67,9 @@ export const buildMainPayload = (businessId, payload) => {
     }
     if (payload.price !== undefined) extracted.price = String(payload.price);
 
-    // Automatically extract and split datetime if provided in standard payloads
-    const rawDateTime = payload.datetime || payload.date_time || payload.dateTime;
-    if (rawDateTime && typeof rawDateTime === "string") {
-        const cleanVal = rawDateTime.trim();
-        const separator = cleanVal.includes("T") ? "T" : (cleanVal.includes(" ") ? " " : null);
-        if (separator) {
-            const parts = cleanVal.split(separator);
-            extracted.calenderDate = parts[0] || null;
-            extracted.calenderTime = parts[1] || null;
-        } else if (cleanVal.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            extracted.calenderDate = cleanVal;
-        }
-    }
+    const { date, time } = parseDateAndTimeFromPayload(payload);
+    if (date) extracted.calenderDate = date;
+    if (time) extracted.calenderTime = time;
 
     return extracted;
 };
@@ -362,5 +352,114 @@ export const attachDetails = async (txOrPrisma, bookings) => {
     }));
 
     return isArray ? formatted : formatted[0];
+};
+
+export const normalizeDateString = (dateStr) => {
+    if (!dateStr) return null;
+    const trimmed = dateStr.trim();
+    
+    // Check if it's already YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        return trimmed;
+    }
+    
+    // Try to parse using JS Date
+    const parsed = new Date(trimmed);
+    if (!isNaN(parsed.getTime())) {
+        const year = parsed.getFullYear();
+        const month = String(parsed.getMonth() + 1).padStart(2, "0");
+        const day = String(parsed.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    }
+    
+    return trimmed;
+};
+
+export const normalizeTimeString = (timeStr) => {
+    if (!timeStr) return null;
+    const trimmed = timeStr.trim();
+    
+    // Check if it's already HH:mm or HH:mm:ss
+    if (/^\d{2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+        return trimmed;
+    }
+    
+    // Check if it has AM/PM (e.g. 10:00 AM or 10:00am)
+    const matchAmPm = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (matchAmPm) {
+        let hours = parseInt(matchAmPm[1], 10);
+        const minutes = matchAmPm[2];
+        const ampm = matchAmPm[3].toUpperCase();
+        
+        if (ampm === "PM" && hours < 12) {
+            hours += 12;
+        } else if (ampm === "AM" && hours === 12) {
+            hours = 0;
+        }
+        
+        return `${String(hours).padStart(2, "0")}:${minutes}`;
+    }
+    
+    return trimmed;
+};
+
+export const parseDateAndTimeFromPayload = (payload) => {
+    if (!payload || typeof payload !== "object") return { date: null, time: null };
+
+    let date = null;
+    let time = null;
+
+    // 1. Check if datetime/date_time/dateTime is present
+    const rawDateTime = payload.datetime || payload.date_time || payload.dateTime;
+    if (rawDateTime && typeof rawDateTime === "string") {
+        const cleanVal = rawDateTime.trim();
+        const separator = cleanVal.includes("T") ? "T" : (cleanVal.includes(" ") ? " " : null);
+        if (separator) {
+            const parts = cleanVal.split(separator);
+            date = parts[0] || null;
+            time = parts[1] || null;
+        } else if (cleanVal.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            date = cleanVal;
+        }
+    }
+
+    // 2. If date not set, check individual date fields
+    if (!date) {
+        date = getFlexibleValue(payload, "calenderDate", ["calender_date"]) ||
+               getFlexibleValue(payload, "appointmentDate", ["appointment_date"]) ||
+               getFlexibleValue(payload, "pickupDate", ["pickup_date", "preferred_pickup_date"]) ||
+               getFlexibleValue(payload, "deliveryDate", ["delivery_date"]) ||
+               getFlexibleValue(payload, "date") || null;
+    }
+
+    // 3. If time not set, check individual time fields
+    if (!time) {
+        const rawTime = getFlexibleValue(payload, "calenderTime", ["calender_time"]) ||
+                        getFlexibleValue(payload, "appointmentTime", ["appointment_time"]) ||
+                        getFlexibleValue(payload, "pickupTime", ["pickup_time", "preferred_pickup_time"]) ||
+                        getFlexibleValue(payload, "deliveryTime", ["delivery_time"]) ||
+                        getFlexibleValue(payload, "time") || null;
+        
+        if (rawTime) {
+            if (rawTime instanceof Date) {
+                time = rawTime.toTimeString().split(" ")[0];
+                if (!date) {
+                    date = rawTime.toISOString().split("T")[0];
+                }
+            } else if (typeof rawTime === "string") {
+                time = rawTime.trim();
+            }
+        }
+    }
+
+    // 4. Ensure we format the date and time cleanly
+    if (date && typeof date === "string") {
+        date = normalizeDateString(date);
+    }
+    if (time && typeof time === "string") {
+        time = normalizeTimeString(time);
+    }
+
+    return { date, time };
 };
 
