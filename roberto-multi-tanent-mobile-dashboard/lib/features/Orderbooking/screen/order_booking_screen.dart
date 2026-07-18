@@ -367,38 +367,26 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   }
 
   List<OrderMod> _orders = [];
+  int _total = 0;
+  int _totalPages = 1;
 
   int _currentPage = 1;
-  static const int _itemsPerPage = 20;
+  static const int _itemsPerPage = 10;
 
-  List<OrderMod> get _filteredOrders {
-    final filtered = _orders.where((order) {
-      final matchesSearch = _searchQuery.isEmpty ||
-          order.orderId.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          order.customerName.toLowerCase().contains(_searchQuery.toLowerCase());
-
-      final matchesStatus = _selectedStatus == 'All status' ||
-          (_selectedStatus == 'Pending' &&
-              order.status == OrderStatus.pending) ||
-          (_selectedStatus == 'Confirmed' &&
-              order.status == OrderStatus.confirmed) ||
-          (_selectedStatus == 'Delivered' &&
-              order.status == OrderStatus.delivered);
-
-      return matchesSearch && matchesStatus;
-    }).toList();
-
-    return filtered;
-  }
-
-  List<OrderMod> get _paginatedOrders {
-    final startIndex = (_currentPage - 1) * _itemsPerPage;
-    final endIndex = startIndex + _itemsPerPage;
-    if (startIndex >= _filteredOrders.length) return [];
-    return _filteredOrders.sublist(
-      startIndex,
-      endIndex > _filteredOrders.length ? _filteredOrders.length : endIndex,
-    );
+  // Helper to fire a fetch with current filters + given page
+  void _fetchPage(int page) {
+    final range = _getDateRange(_selectedTime);
+    context.read<BookingBloc>().add(GetBookings(
+      branchId: _getBranchId(),
+      status: _selectedStatus == 'All status' ? '' : _selectedStatus,
+      country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
+      productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
+      search: _searchQuery,
+      page: page,
+      limit: _itemsPerPage,
+      startDate: range['startDate'] ?? '',
+      endDate: range['endDate'] ?? '',
+    ));
   }
 
   //BUILD
@@ -430,6 +418,8 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       builder: (context, state) {
         if (state is BookingLoaded) {
           _orders = state.bookings;
+          _total = state.total;
+          _totalPages = state.totalPages;
         }
 
         return BlocBuilder<ProfileBloc, ProfileState>(
@@ -766,10 +756,13 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
-              onChanged: (v) => setState(() {
-                _searchQuery = v;
-                _currentPage = 1;
-              }),
+              onChanged: (v) {
+                setState(() {
+                  _searchQuery = v;
+                  _currentPage = 1;
+                });
+                _fetchPage(1);
+              },
               style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface),
               decoration: InputDecoration(
                 hintText: 'Search orders...',
@@ -794,15 +787,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
           _selectedStatus = v ?? 'All status';
           _currentPage = 1;
         });
-        final range = _getDateRange(_selectedTime);
-        context.read<BookingBloc>().add(GetBookings(
-          branchId: _getBranchId(),
-          status: v == 'All status' ? '' : (v ?? ''),
-          country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
-          productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
-          startDate: range['startDate'] ?? '',
-          endDate: range['endDate'] ?? '',
-        ));
+        _fetchPage(1);
       },
     );
 
@@ -822,15 +807,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 _selectedCountry = v ?? 'All countries';
                 _currentPage = 1;
               });
-              final range = _getDateRange(_selectedTime);
-              context.read<BookingBloc>().add(GetBookings(
-                branchId: _getBranchId(),
-                status: _selectedStatus == 'All status' ? '' : _selectedStatus,
-                country: v == 'All countries' ? '' : (v ?? ''),
-                productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
-                startDate: range['startDate'] ?? '',
-                endDate: range['endDate'] ?? '',
-              ));
+              _fetchPage(1);
             },
           );
 
@@ -850,15 +827,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 _selectedProductType = v ?? 'All types';
                 _currentPage = 1;
               });
-              final range = _getDateRange(_selectedTime);
-              context.read<BookingBloc>().add(GetBookings(
-                branchId: _getBranchId(),
-                status: _selectedStatus == 'All status' ? '' : _selectedStatus,
-                country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
-                productType: v == 'All types' ? '' : (v ?? ''),
-                startDate: range['startDate'] ?? '',
-                endDate: range['endDate'] ?? '',
-              ));
+              _fetchPage(1);
             },
           );
 
@@ -873,15 +842,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
           _selectedTime = timeFilter;
           _currentPage = 1;
         });
-        final range = _getDateRange(timeFilter);
-        context.read<BookingBloc>().add(GetBookings(
-          branchId: _getBranchId(),
-          status: _selectedStatus == 'All status' ? '' : _selectedStatus,
-          country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
-          productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
-          startDate: range['startDate'] ?? '',
-          endDate: range['endDate'] ?? '',
-        ));
+        _fetchPage(1);
       },
     );
 
@@ -976,7 +937,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
               ),
             ),
             // Rows
-            if (_filteredOrders.isEmpty)
+            if (_orders.isEmpty)
               Padding(
                 padding: const EdgeInsets.all(40),
                 child: Center(
@@ -986,18 +947,21 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 ),
               )
             else
-              ..._paginatedOrders.asMap().entries.map((entry) {
+              ..._orders.asMap().entries.map((entry) {
                 final int globalIndex = (_currentPage - 1) * _itemsPerPage + entry.key + 1;
                 return _buildDesktopRow(entry.value, globalIndex, theme, isDark, bType);
               }),
-            if (_filteredOrders.isNotEmpty)
+            if (_orders.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: CustomPagination(
-                  totalItems: _filteredOrders.length,
+                  totalItems: _total,
                   itemsPerPage: _itemsPerPage,
                   currentPage: _currentPage,
-                  onPageChanged: (page) => setState(() => _currentPage = page),
+                  onPageChanged: (page) {
+                    setState(() => _currentPage = page);
+                    _fetchPage(page);
+                  },
                 ),
               ),
           ],
@@ -1113,7 +1077,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
 
   // ─── MOBILE CARDS ────────────────────────────────────────────────────
   Widget _buildMobileCards(ThemeData theme, bool isDark, String addressLabel, String priceLabel, String timeLabel, String? bType) {
-    if (_filteredOrders.isEmpty) {
+    if (_orders.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(40),
         child: Center(
@@ -1125,16 +1089,19 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
 
     return Column(
       children: [
-        ..._paginatedOrders.asMap().entries.map((entry) {
+        ..._orders.asMap().entries.map((entry) {
           final int globalIndex = (_currentPage - 1) * _itemsPerPage + entry.key + 1;
           return _buildMobileCard(entry.value, globalIndex, theme, isDark, addressLabel, priceLabel, timeLabel, bType);
         }),
-        if (_filteredOrders.isNotEmpty)
+        if (_orders.isNotEmpty)
           CustomPagination(
-            totalItems: _filteredOrders.length,
+            totalItems: _total,
             itemsPerPage: _itemsPerPage,
             currentPage: _currentPage,
-            onPageChanged: (page) => setState(() => _currentPage = page),
+            onPageChanged: (page) {
+              setState(() => _currentPage = page);
+              _fetchPage(page);
+            },
           ),
       ],
     );
@@ -1384,8 +1351,8 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       children: [
         GestureDetector(
           onTap: () {
-            final int idx = _filteredOrders.indexOf(order);
-            final String displayId = idx != -1 ? '#${idx + 1}' : order.orderId;
+            final int idx = _orders.indexOf(order);
+            final String displayId = idx != -1 ? '#${(_currentPage - 1) * _itemsPerPage + idx + 1}' : order.orderId;
             showDialog(
               context: context,
               builder: (context) => CustomViewdetails(
@@ -1672,7 +1639,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       {bool isSelected = false, bool isToday = false}) {
     // Count orders dynamically for this day
     final dayOrders = _orders.where((o) {
-      final orderDate = _parseDateString(o.deliveryDate) ?? _parseDateString(o.appointmentDate);
+      final orderDate = _parseDateString(o.calenderDate) ?? _parseDateString(o.deliveryDate) ?? _parseDateString(o.appointmentDate);
       return orderDate != null && orderDate.year == day.year && orderDate.month == day.month && orderDate.day == day.day;
     }).toList();
     
@@ -1813,7 +1780,10 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     DateTime? date;
     String? timeStr;
     
-    if (o.bookingType == 'Parcel Delivery') {
+    if (o.calenderDate != null && o.calenderDate!.isNotEmpty) {
+      date = _parseDateString(o.calenderDate);
+      timeStr = o.calenderTime;
+    } else if (o.bookingType == 'Parcel Delivery') {
       date = _parseDateString(o.pickupDate);
       timeStr = o.pickupTime;
     } else if (o.bookingType == 'Appointment Booking') {
@@ -1861,11 +1831,20 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     final dayStr = '${_getMonthYear(selectedDay).split(' ')[0]} ${selectedDay.day}';
 
     final filteredOrders = _orders.where((o) {
-      final orderDate = _parseDateString(o.deliveryDate) ?? _parseDateString(o.appointmentDate);
+      final orderDate = _parseDateString(o.calenderDate) ?? _parseDateString(o.deliveryDate) ?? _parseDateString(o.appointmentDate);
       return orderDate != null && orderDate.year == selectedDay.year && orderDate.month == selectedDay.month && orderDate.day == selectedDay.day;
     }).toList();
 
     filteredOrders.sort((a, b) {
+      final aHasTime = (a.calenderTime != null && a.calenderTime!.isNotEmpty) ||
+                       (a.bookingType == 'Parcel Delivery' && a.pickupTime != null && a.pickupTime!.isNotEmpty) ||
+                       (a.bookingType == 'Appointment Booking' && a.appointmentTime != null && a.appointmentTime!.isNotEmpty);
+      final bHasTime = (b.calenderTime != null && b.calenderTime!.isNotEmpty) ||
+                       (b.bookingType == 'Parcel Delivery' && b.pickupTime != null && b.pickupTime!.isNotEmpty) ||
+                       (b.bookingType == 'Appointment Booking' && b.appointmentTime != null && b.appointmentTime!.isNotEmpty);
+      if (aHasTime && !bHasTime) return -1;
+      if (!aHasTime && bHasTime) return 1;
+      
       final aDt = _getOrderComparableDateTime(a);
       final bDt = _getOrderComparableDateTime(b);
       return aDt.compareTo(bDt);
@@ -2022,9 +2001,11 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                           color: theme.colorScheme.onSurface,
                           fontSize: 14)),
                   Text(
-                    order.bookingType == 'Parcel Delivery' && order.pickupTime != null && order.pickupTime!.isNotEmpty 
-                        ? '$time (Pickup: ${order.pickupTime})' 
-                        : time,
+                    order.calenderTime != null && order.calenderTime!.isNotEmpty
+                        ? '${order.calenderTime}'
+                        : order.bookingType == 'Parcel Delivery' && order.pickupTime != null && order.pickupTime!.isNotEmpty 
+                            ? '$time (Pickup: ${order.pickupTime})' 
+                            : time,
                     style: TextStyle(
                         fontSize: 12, color: theme.textTheme.bodySmall?.color ?? const Color(0xff6B7280))),
                 ],

@@ -7,6 +7,9 @@ import 'crm_state.dart';
 class CrmBloc extends Bloc<CrmEvent, CrmState> {
   final CrmRepository crmRepository;
 
+  // Track last used fetch params so refresh after CRUD preserves page/filters
+  FetchLeads? _lastFetchLeads;
+
   CrmBloc({required this.crmRepository}) : super(CrmInitial()) {
     on<FetchLeads>(_onFetchLeads);
     on<CreateLead>(_onCreateLead);
@@ -15,6 +18,7 @@ class CrmBloc extends Bloc<CrmEvent, CrmState> {
   }
 
   Future<void> _onFetchLeads(FetchLeads event, Emitter<CrmState> emit) async {
+    _lastFetchLeads = event; // Remember the last filter state
     emit(CrmLoading());
     try {
       final response = await crmRepository.getLeads(
@@ -40,6 +44,20 @@ class CrmBloc extends Bloc<CrmEvent, CrmState> {
     }
   }
 
+  /// Refresh using last-known filter params so list stays consistent after CRUD
+  void _refreshWithFilters(String branchId, UserRole role) {
+    final last = _lastFetchLeads;
+    add(FetchLeads(
+      branchId: branchId,
+      role: role,
+      page: last?.page ?? 1,
+      limit: last?.limit ?? 10,
+      searchParam: last?.searchParam ?? '',
+      country: last?.country ?? '',
+      productType: last?.productType ?? '',
+    ));
+  }
+
   Future<void> _onCreateLead(CreateLead event, Emitter<CrmState> emit) async {
     emit(CrmActionLoading());
     try {
@@ -59,8 +77,8 @@ class CrmBloc extends Bloc<CrmEvent, CrmState> {
 
       if (response['success'] == true) {
         emit(CrmActionSuccess(message: response['message'] ?? 'Lead created successfully'));
-        // Automatically fetch leads again after a successful creation
-        add(FetchLeads(branchId: event.branchId, role: event.role));
+        // Refresh preserving current page and filters
+        _refreshWithFilters(event.branchId, event.role);
       } else {
         emit(CrmError(message: response['message'] ?? 'Failed to create lead'));
       }
@@ -88,9 +106,9 @@ class CrmBloc extends Bloc<CrmEvent, CrmState> {
 
       if (response['success'] == true) {
         emit(CrmActionSuccess(message: response['message'] ?? 'Lead updated successfully'));
-        // Automatically fetch leads again after a successful update
+        // Refresh preserving current page and filters
         if (event.branchId != null) {
-          add(FetchLeads(branchId: event.branchId!, role: event.role));
+          _refreshWithFilters(event.branchId!, event.role);
         }
       } else {
         emit(CrmError(message: response['message'] ?? 'Failed to update lead'));
@@ -110,8 +128,8 @@ class CrmBloc extends Bloc<CrmEvent, CrmState> {
 
       if (response['success'] == true) {
         emit(CrmActionSuccess(message: response['message'] ?? 'Lead deleted successfully'));
-        // Automatically fetch leads again after a successful deletion
-        add(FetchLeads(branchId: event.branchId, role: event.role));
+        // Refresh preserving current page and filters
+        _refreshWithFilters(event.branchId, event.role);
       } else {
         emit(CrmError(message: response['message'] ?? 'Failed to delete lead'));
       }

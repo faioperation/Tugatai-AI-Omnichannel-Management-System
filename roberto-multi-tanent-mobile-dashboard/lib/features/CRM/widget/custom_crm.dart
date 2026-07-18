@@ -34,7 +34,8 @@ class _CustomCrmState extends State<CustomCrm> {
   List<String> _productTypes = [];
   bool _productTypesLoading = false;
   int _currentPage = 1;
-  static const int _itemsPerPage = 20;
+  static const int _itemsPerPage = 10;
+  int _total = 0;
 
   @override
   void initState() {
@@ -55,9 +56,17 @@ class _CustomCrmState extends State<CustomCrm> {
   }
 
   void _fetchData() {
+    _fetchPage(1);
+  }
+
+  // Fire a paginated fetch using current filters
+  void _fetchPage(int page) {
+    setState(() => _currentPage = page);
     context.read<CrmBloc>().add(FetchLeads(
       branchId: widget.branchId ?? '', 
       role: widget.role,
+      page: page,
+      limit: _itemsPerPage,
       country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
       productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
     ));
@@ -155,26 +164,30 @@ class _CustomCrmState extends State<CustomCrm> {
       builder: (context, state) {
         List<CrmLeadModel> leads = [];
         bool isLoading = true;
+        int totalCount = 0;
 
         if (state is CrmLeadsLoaded) {
           leads = state.leads;
           isLoading = false;
+          totalCount = int.tryParse(state.meta?['totalCount']?.toString() ?? '')
+              ?? int.tryParse(state.meta?['total']?.toString() ?? '')
+              ?? leads.length;
+          // Update _total so pagination is always in sync
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _total != totalCount) {
+              setState(() => _total = totalCount);
+            }
+          });
         } else if (state is CrmError || state is CrmInitial) {
           isLoading = false;
         }
 
-        final filteredLeads = _selectedStatus == "All Status"
+        // Client-side status filter (status not sent to API to keep things simple)
+        final displayedLeads = _selectedStatus == "All Status"
             ? leads
             : leads.where((lead) {
                 return (lead.status ?? '').toLowerCase() == _selectedStatus.toLowerCase();
               }).toList();
-
-        final paginatedLeads = filteredLeads.sublist(
-          (filteredLeads.isNotEmpty) ? (_currentPage - 1) * _itemsPerPage : 0,
-          ((_currentPage * _itemsPerPage) > filteredLeads.length)
-              ? filteredLeads.length
-              : (_currentPage * _itemsPerPage),
-        );
 
         return Container(
           width: double.infinity,
@@ -240,12 +253,7 @@ class _CustomCrmState extends State<CustomCrm> {
                               IconButton(
                                 icon: const Icon(Icons.refresh),
                                 onPressed: () {
-                                  context.read<CrmBloc>().add(FetchLeads(
-                                    branchId: widget.branchId ?? '',
-                                    role: widget.role,
-                                    country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
-                                    productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
-                                  ));
+                                  _fetchPage(_currentPage);
                                 },
                               )
                             ],
@@ -277,13 +285,8 @@ class _CustomCrmState extends State<CustomCrm> {
                             IconButton(
                               icon: const Icon(Icons.refresh),
                               onPressed: () {
-                                context.read<CrmBloc>().add(FetchLeads(
-                                  branchId: widget.branchId ?? '',
-                                  role: widget.role,
-                                  country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
-                                  productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
-                                ));
-                              },
+                                 _fetchPage(_currentPage);
+                               },
                             )
                           ],
                         ),
@@ -348,13 +351,13 @@ class _CustomCrmState extends State<CustomCrm> {
                           padding: EdgeInsets.all(20.0),
                           child: Center(child: CircularProgressIndicator()),
                         )
-                      else if (paginatedLeads.isEmpty)
+                      else if (displayedLeads.isEmpty)
                         const Padding(
                           padding: EdgeInsets.all(20.0),
                           child: Center(child: Text("No leads found")),
                         )
                       else 
-                        ...paginatedLeads.map((lead) => CustomLeadRow(
+                        ...displayedLeads.map((lead) => CustomLeadRow(
                               name: lead.name ?? 'Unknown',
                               email: lead.email ?? '',
                               phone: lead.phone ?? '',
@@ -368,15 +371,14 @@ class _CustomCrmState extends State<CustomCrm> {
                               fullLeadData: lead,
                               role: widget.role,
                             )),
-                      if (filteredLeads.isNotEmpty && !isLoading)
+                      if (_total > 0 && !isLoading)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: CustomPagination(
-                            totalItems: filteredLeads.length,
+                            totalItems: _total,
                             itemsPerPage: _itemsPerPage,
                             currentPage: _currentPage,
-                            onPageChanged: (page) =>
-                                setState(() => _currentPage = page),
+                            onPageChanged: (page) => _fetchPage(page),
                           ),
                         ),
                     ],
@@ -401,12 +403,8 @@ class _CustomCrmState extends State<CustomCrm> {
           _selectedStatus = status;
           _currentPage = 1;
         });
-        context.read<CrmBloc>().add(FetchLeads(
-          branchId: widget.branchId ?? '',
-          role: widget.role,
-          country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
-          productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
-        ));
+        // Status is filtered client-side from current page of data; re-fetch page 1 with current filters
+        _fetchPage(1);
       },
       itemBuilder: (BuildContext context) {
         return statuses.map((String status) {
@@ -464,12 +462,7 @@ class _CustomCrmState extends State<CustomCrm> {
           _selectedCountry = country;
           _currentPage = 1;
         });
-        context.read<CrmBloc>().add(FetchLeads(
-          branchId: widget.branchId ?? '',
-          role: widget.role,
-          country: country == 'All countries' ? '' : country,
-          productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
-        ));
+        _fetchPage(1);
       },
       itemBuilder: (BuildContext context) {
         return countryList.map((String c) {
@@ -527,12 +520,7 @@ class _CustomCrmState extends State<CustomCrm> {
           _selectedProductType = type;
           _currentPage = 1;
         });
-        context.read<CrmBloc>().add(FetchLeads(
-          branchId: widget.branchId ?? '',
-          role: widget.role,
-          country: _selectedCountry == 'All countries' ? '' : _selectedCountry,
-          productType: type == 'All types' ? '' : type,
-        ));
+        _fetchPage(1);
       },
       itemBuilder: (BuildContext context) {
         return typeList.map((String t) {
