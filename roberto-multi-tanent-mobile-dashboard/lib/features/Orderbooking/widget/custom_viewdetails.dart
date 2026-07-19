@@ -55,6 +55,9 @@ class CustomViewdetails extends StatelessWidget {
       'parcelDeliveryId',
       'tenantId',
       'userId',
+      'appointmentId',
+      'appointment_id',
+      'deletedAt',
     };
 
     String formatKeyName(String key) {
@@ -174,7 +177,9 @@ class CustomViewdetails extends StatelessWidget {
 
               // Booking Details Section
               _buildSectionTitle(
-                'Booking Details (${order.bookingType ?? "General"})',
+                order.bookingType == 'Appointment Booking'
+                    ? 'Appointment Details'
+                    : 'Booking Details (${order.bookingType ?? "General"})',
                 theme,
               ),
               const SizedBox(height: 8),
@@ -183,13 +188,13 @@ class CustomViewdetails extends StatelessWidget {
                   if (order.bookingType == 'Appointment Booking') ...[
                     _buildDetailRow(
                       'Date',
-                      order.appointmentDate ?? 'N/A',
+                      (order.appointmentDate != null && order.appointmentDate!.isNotEmpty) ? order.appointmentDate! : (order.calenderDate ?? 'N/A'),
                       theme,
                     ),
                     const SizedBox(height: 8),
                     _buildDetailRow(
                       'Time',
-                      order.appointmentTime ?? 'N/A',
+                      (order.appointmentTime != null && order.appointmentTime!.isNotEmpty) ? order.appointmentTime! : (order.calenderTime ?? 'N/A'),
                       theme,
                     ),
                     const SizedBox(height: 8),
@@ -340,6 +345,7 @@ class CustomViewdetails extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context, ThemeData theme) {
+    final isAppointment = order.bookingType == 'Appointment Booking';
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -348,7 +354,7 @@ class CustomViewdetails extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Order Details',
+                isAppointment ? 'Appointment Details' : 'Order Details',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -357,7 +363,7 @@ class CustomViewdetails extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Complete information about this order',
+                isAppointment ? 'Complete information about this appointment' : 'Complete information about this order',
                 style: TextStyle(fontSize: 14, color: theme.hintColor),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 2,
@@ -377,6 +383,7 @@ class CustomViewdetails extends StatelessWidget {
   }
 
   Widget _buildOrderIdSection(BuildContext context, ThemeData theme) {
+    final isAppointment = order.bookingType == 'Appointment Booking';
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -384,7 +391,7 @@ class CustomViewdetails extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Order ID',
+              isAppointment ? 'Appointment ID' : 'Order ID',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,

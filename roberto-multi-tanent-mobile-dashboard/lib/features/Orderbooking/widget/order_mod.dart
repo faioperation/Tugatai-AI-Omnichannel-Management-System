@@ -194,7 +194,10 @@ class OrderMod {
       platform: detailsMap['platform'],
       duration: detailsMap['duration'],
 
-      bookingType: detailsMap['bookingType'] ?? (detailsMap['appointmentDate'] != null ? 'Appointment Booking' : (detailsMap['pickupAddress'] != null ? 'Parcel Delivery' : 'Order Booking')),
+      bookingType: detailsMap['bookingType'] ??
+          ((json['appointmentDetails'] != null || json['calenderDate'] != null || detailsMap['appointmentDate'] != null)
+              ? 'Appointment Booking'
+              : (detailsMap['pickupAddress'] != null ? 'Parcel Delivery' : 'Order Booking')),
       pickupAddress: detailsMap['pickupAddress'],
       pickupDate: detailsMap['pickupDate'],
       pickupTime: detailsMap['pickupTime'],
