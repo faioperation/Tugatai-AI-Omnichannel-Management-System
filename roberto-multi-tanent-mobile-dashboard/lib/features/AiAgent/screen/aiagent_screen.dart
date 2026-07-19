@@ -9,6 +9,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/features/AiAgent/bloc/agent_training_bloc.dart';
 import 'package:roberto/features/AiAgent/bloc/agent_training_event.dart';
 import 'package:roberto/features/AiAgent/bloc/agent_training_state.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_management_bloc.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_management_event.dart';
 
 class AiagentScreen extends StatefulWidget {
   final String? businessId;
@@ -29,6 +31,8 @@ class _AiagentScreenState extends State<AiagentScreen> {
         FetchAgentTrainingByBusinessRequested(businessId: widget.businessId!),
       );
     }
+    // Also fetch agent management data (contains rulesFile & productFile)
+    context.read<AgentManagementBloc>().add(const FetchAgentsRequested());
   }
 
   @override

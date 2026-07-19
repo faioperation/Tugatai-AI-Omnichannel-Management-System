@@ -149,6 +149,9 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
       'parcelDeliveryId',
       'createdAt',
       'updatedAt',
+      'appointmentId',
+      'appointment_id',
+      'deletedAt',
     };
 
     if (o != null) {

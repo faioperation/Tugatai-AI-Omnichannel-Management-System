@@ -194,6 +194,21 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   }
 
   String _formatDeliveryDate(OrderMod order) {
+    final bType = _getBusinessType();
+    final normalized = bType?.toUpperCase().replaceAll(' ', '_');
+    if (normalized == 'APPOINTMENT_BOOKING') {
+      if (order.calenderDate != null && order.calenderDate!.isNotEmpty) {
+        final parsed = _parseDateString(order.calenderDate);
+        if (parsed != null) {
+          final dateStr = DateFormat('dd MMM yyyy').format(parsed);
+          if (order.calenderTime != null && order.calenderTime!.isNotEmpty) {
+            return '$dateStr, ${order.calenderTime}';
+          }
+          return dateStr;
+        }
+        return order.calenderDate!;
+      }
+    }
     if (order.deliveryDate != null && order.deliveryDate!.isNotEmpty) {
       final parsed = _parseDateString(order.deliveryDate);
       if (parsed != null) {
@@ -928,8 +943,9 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                   Expanded(
                       flex: 2,
                       child: CustomHeadder(label: priceLabel, textAlign: TextAlign.center)),
-                  const Expanded(
-                      flex: 2, child: CustomHeadder(label: 'Pickup Time', textAlign: TextAlign.center)),
+                  if (bType?.toUpperCase().replaceAll(' ', '_') != 'APPOINTMENT_BOOKING')
+                    const Expanded(
+                        flex: 2, child: CustomHeadder(label: 'Pickup Time', textAlign: TextAlign.center)),
                   Expanded(
                       flex: 2, child: CustomHeadder(label: timeLabel, textAlign: TextAlign.center)),
                   const Expanded(flex: 3, child: CustomHeadder(label: 'Actions', textAlign: TextAlign.center)),
@@ -1033,17 +1049,18 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
             ),
           ),
           // Pickup Time
-          Expanded(
-            flex: 2,
-            child: Center(
-              child: Text(
-                _formatPickupTime(order),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: theme.hintColor, fontSize: 13),
+          if (bType?.toUpperCase().replaceAll(' ', '_') != 'APPOINTMENT_BOOKING')
+            Expanded(
+              flex: 2,
+              child: Center(
+                child: Text(
+                  _formatPickupTime(order),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: theme.hintColor, fontSize: 13),
+                ),
               ),
             ),
-          ),
           // Delivery Time
           Expanded(
             flex: 2,
