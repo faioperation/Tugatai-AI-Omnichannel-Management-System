@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:roberto/core/network/api_constants.dart';
 import 'package:roberto/core/services/local_storage_service.dart';
@@ -48,6 +49,29 @@ class AgentTrainingRepository {
     }
   }
 
+  Future<void> _attachFile(
+    http.MultipartRequest request,
+    String fieldName,
+    dynamic file,
+  ) async {
+    if (file == null) return;
+    try {
+      final String fileName = file.name as String;
+      final Uint8List? bytes = file.bytes as Uint8List?;
+      if (bytes != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            fieldName,
+            bytes,
+            filename: fileName,
+          ),
+        );
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
   Future<AgentTraining> createTraining({
     required String businessId,
     required String systemPrompt,
@@ -67,10 +91,9 @@ class AgentTrainingRepository {
       request.fields['businessInformation'] = businessInformation;
     }
 
-    // Since we don't have dart:io available for web by default easily with MultipartFile.fromPath,
-    // we use fromBytes for cross-platform (if passing bytes)
-    // Here we will assume file objects are not being uploaded yet, just text.
-    // If you pass real files in the UI, you would use http.MultipartFile.fromBytes
+    await _attachFile(request, 'productInformation', productInformationFile);
+    await _attachFile(request, 'policiesGuidelines', policiesGuidelinesFile);
+    await _attachFile(request, 'faq', faqFile);
 
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
@@ -83,22 +106,34 @@ class AgentTrainingRepository {
     }
   }
 
-  Future<AgentTraining> updateTraining(
-    String id,
-    Map<String, dynamic> data,
-  ) async {
+  Future<AgentTraining> updateTraining({
+    required String id,
+    String? systemPrompt,
+    String? businessInformation,
+    dynamic productInformationFile,
+    dynamic policiesGuidelinesFile,
+    dynamic faqFile,
+  }) async {
     final token = await _getToken();
     final url = Uri.parse(
       '${ApiConstants.systemOwnerAgentTrainingsSingle}/$id',
     );
-    final response = await http.patch(
-      url,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-      body: json.encode(data),
-    );
+    final request = http.MultipartRequest('PATCH', url)
+      ..headers['Authorization'] = 'Bearer $token';
+
+    if (systemPrompt != null) {
+      request.fields['systemPrompt'] = systemPrompt;
+    }
+    if (businessInformation != null) {
+      request.fields['businessInformation'] = businessInformation;
+    }
+
+    await _attachFile(request, 'productInformation', productInformationFile);
+    await _attachFile(request, 'policiesGuidelines', policiesGuidelinesFile);
+    await _attachFile(request, 'faq', faqFile);
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode == 200) {
       final decoded = json.decode(response.body);

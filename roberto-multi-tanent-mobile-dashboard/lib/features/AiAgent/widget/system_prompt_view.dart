@@ -47,7 +47,7 @@ class _SystemPromptViewState extends State<SystemPromptView> {
       context.read<AgentTrainingBloc>().add(
         UpdateAgentTrainingRequested(
           id: _trainingId!,
-          data: {'systemPrompt': prompt},
+          systemPrompt: prompt,
         ),
       );
     } else {

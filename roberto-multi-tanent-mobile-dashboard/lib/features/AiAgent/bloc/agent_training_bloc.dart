@@ -90,7 +90,14 @@ class AgentTrainingBloc extends Bloc<AgentTrainingEvent, AgentTrainingState> {
   ) async {
     emit(AgentTrainingLoading());
     try {
-      final training = await repository.updateTraining(event.id, event.data);
+      final training = await repository.updateTraining(
+        id: event.id,
+        systemPrompt: event.systemPrompt,
+        businessInformation: event.businessInformation,
+        productInformationFile: event.productInformationFile,
+        policiesGuidelinesFile: event.policiesGuidelinesFile,
+        faqFile: event.faqFile,
+      );
       emit(
         AgentTrainingOperationSuccess(
           training,

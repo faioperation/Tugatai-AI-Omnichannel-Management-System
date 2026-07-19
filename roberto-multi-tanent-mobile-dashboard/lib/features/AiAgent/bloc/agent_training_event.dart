@@ -56,10 +56,28 @@ class CreateAgentTrainingRequested extends AgentTrainingEvent {
 
 class UpdateAgentTrainingRequested extends AgentTrainingEvent {
   final String id;
-  final Map<String, dynamic> data;
+  final String? systemPrompt;
+  final String? businessInformation;
+  final dynamic productInformationFile;
+  final dynamic policiesGuidelinesFile;
+  final dynamic faqFile;
 
-  const UpdateAgentTrainingRequested({required this.id, required this.data});
+  const UpdateAgentTrainingRequested({
+    required this.id,
+    this.systemPrompt,
+    this.businessInformation,
+    this.productInformationFile,
+    this.policiesGuidelinesFile,
+    this.faqFile,
+  });
 
   @override
-  List<Object> get props => [id, data];
+  List<Object?> get props => [
+    id,
+    systemPrompt,
+    businessInformation,
+    productInformationFile,
+    policiesGuidelinesFile,
+    faqFile,
+  ];
 }
