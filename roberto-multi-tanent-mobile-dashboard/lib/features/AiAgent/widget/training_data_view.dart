@@ -1,11 +1,13 @@
-import 'dart:typed_data';
-import 'package:file_picker/file_picker.dart';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:roberto/features/AiAgent/bloc/agent_management_bloc.dart';
-import 'package:roberto/features/AiAgent/bloc/agent_management_event.dart';
-import 'package:roberto/features/AiAgent/bloc/agent_management_state.dart';
-import 'package:roberto/features/AiAgent/data/models/agent_model.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_training_bloc.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_training_event.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_training_state.dart';
+import 'package:roberto/features/AiAgent/data/models/agent_training_model.dart';
+import 'package:roberto/features/Auth/widget/custom_textfield.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class TrainingDataView extends StatefulWidget {
@@ -17,73 +19,162 @@ class TrainingDataView extends StatefulWidget {
 }
 
 class _TrainingDataViewState extends State<TrainingDataView> {
-  // Newly picked local files (before upload)
-  PlatformFile? _newRulesFile;
-  PlatformFile? _newProductFile;
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _businessInfoController = TextEditingController();
 
-  bool _isSaving = false;
+  String? _trainingId;
+
+  // New selected local files
+  PlatformFile? _newProductFile;
+  PlatformFile? _newPoliciesFile;
+  PlatformFile? _newFaqFile;
+
+  // URLs of files stored on the server
+  String? _serverProductUrl;
+  String? _serverPoliciesUrl;
+  String? _serverFaqUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExistingData();
+  }
+
+  void _loadExistingData() {
+    final state = context.read<AgentTrainingBloc>().state;
+    if (state is SingleAgentTrainingLoaded) {
+      _populateFromTraining(state.training);
+    }
+  }
+
+  void _populateFromTraining(AgentTraining training) {
+    _businessInfoController.text = training.businessInformation ?? '';
+    _trainingId = training.id;
+
+    _serverProductUrl = _extractUrl(training.productInformation);
+    _serverPoliciesUrl = _extractUrl(training.policiesGuidelines);
+    _serverFaqUrl = _extractUrl(training.faq);
+  }
+
+  String? _extractUrl(dynamic value) {
+    if (value == null) return null;
+    if (value is String && value.isNotEmpty) return value;
+    if (value is List && value.isNotEmpty) {
+      final first = value.first;
+      if (first is Map) {
+        return first['url']?.toString() ?? first['path']?.toString();
+      }
+    }
+    if (value is Map) {
+      return value['url']?.toString() ?? value['path']?.toString();
+    }
+    return null;
+  }
+
+  String _getFileName(String url) {
+    try {
+      final uri = Uri.parse(url);
+      if (uri.pathSegments.isNotEmpty) return uri.pathSegments.last;
+    } catch (_) {}
+    return url;
+  }
 
   Future<void> _pickFile(String slot) async {
+    List<String> allowedExtensions;
+    if (slot == 'product') {
+      allowedExtensions = ['xlsx', 'xls'];
+    } else {
+      allowedExtensions = ['pdf'];
+    }
+
     final result = await FilePicker.platform.pickFiles(
-      type: FileType.any,
+      type: FileType.custom,
+      allowedExtensions: allowedExtensions,
       withData: true,
     );
+
     if (result != null) {
       setState(() {
-        if (slot == 'rules') {
-          _newRulesFile = result.files.single;
-        } else {
+        if (slot == 'product') {
           _newProductFile = result.files.single;
+        } else if (slot == 'policies') {
+          _newPoliciesFile = result.files.single;
+        } else if (slot == 'faq') {
+          _newFaqFile = result.files.single;
         }
       });
     }
   }
 
-  Future<void> _saveChanges(AgentModel agent) async {
-    final hasRules = _newRulesFile != null;
-    final hasProduct = _newProductFile != null;
+  Future<void> _viewFile(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open the file URL'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
-    if (!hasRules && !hasProduct) {
+  void _saveTrainingData() {
+    if (!_formKey.currentState!.validate()) return;
+
+    final businessInfo = _businessInfoController.text.trim();
+
+    // Validations: businessInfo, productInformation, policiesGuidelines are required.
+    // faq is optional.
+    final hasProduct = _newProductFile != null || (_serverProductUrl != null && _serverProductUrl!.isNotEmpty);
+    final hasPolicies = _newPoliciesFile != null || (_serverPoliciesUrl != null && _serverPoliciesUrl!.isNotEmpty);
+
+    if (!hasProduct) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No new files selected to upload')),
+        const SnackBar(
+          content: Text('Product Information file (Excel) is required'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
 
-    setState(() => _isSaving = true);
+    if (!hasPolicies) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Policies & Guidelines file (PDF) is required'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
-    try {
-      if (hasRules) {
-        // Update rules file (PDF) — uses UpdateAgentRequested
-        context.read<AgentManagementBloc>().add(
-          UpdateAgentRequested(
-            id: agent.id,
-            businessId: agent.businessId,
-            agentName: agent.metadata?.agentName ?? '',
-            fileBytes: _newRulesFile!.bytes?.toList(),
-            fileName: _newRulesFile!.name,
-          ),
-        );
-      }
-
-      if (hasProduct) {
-        // Update product file (Excel) — uses UpdateProductFileRequested
-        context.read<AgentManagementBloc>().add(
-          UpdateProductFileRequested(
-            id: agent.id,
-            vapiId: agent.vapiId ?? '',
-            fileBytes: _newProductFile!.bytes?.toList(),
-            fileName: _newProductFile!.name,
-          ),
-        );
-      }
-
-      setState(() {
-        _newRulesFile = null;
-        _newProductFile = null;
-      });
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
+    if (_trainingId != null) {
+      // PATCH / Update
+      context.read<AgentTrainingBloc>().add(
+        UpdateAgentTrainingRequested(
+          id: _trainingId!,
+          businessInformation: businessInfo,
+          productInformationFile: _newProductFile,
+          policiesGuidelinesFile: _newPoliciesFile,
+          faqFile: _newFaqFile,
+        ),
+      );
+    } else {
+      // POST / Create
+      context.read<AgentTrainingBloc>().add(
+        CreateAgentTrainingRequested(
+          businessId: widget.businessId,
+          systemPrompt: '', // Initial prompt can be empty, updated in Prompt tab
+          businessInformation: businessInfo,
+          productInformationFile: _newProductFile,
+          policiesGuidelinesFile: _newPoliciesFile,
+          faqFile: _newFaqFile,
+        ),
+      );
     }
   }
 
@@ -91,149 +182,169 @@ class _TrainingDataViewState extends State<TrainingDataView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return BlocConsumer<AgentManagementBloc, AgentManagementState>(
+    return BlocConsumer<AgentTrainingBloc, AgentTrainingState>(
       listener: (context, state) {
-        if (state is AgentManagementOperationSuccess) {
+        if (state is SingleAgentTrainingLoaded) {
+          setState(() {
+            _populateFromTraining(state.training);
+            _newProductFile = null;
+            _newPoliciesFile = null;
+            _newFaqFile = null;
+          });
+        } else if (state is AgentTrainingOperationSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.green,
+            ),
           );
-          // Refresh agent list to get new URLs
-          context.read<AgentManagementBloc>().add(const FetchAgentsRequested());
-        } else if (state is AgentManagementError) {
+        } else if (state is AgentTrainingError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       },
       builder: (context, state) {
-        bool isLoading = state is AgentManagementLoading;
+        final isLoading = state is AgentTrainingLoading;
 
-        // Find the agent for this business
-        AgentModel? agent;
-        if (state is AgentManagementLoaded) {
-          agent = state.agents.cast<AgentModel?>().firstWhere(
-            (a) => a?.businessId == widget.businessId,
-            orElse: () => null,
-          );
-        }
-
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: theme.cardTheme.color,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: theme.dividerTheme.color ?? Colors.grey.shade200,
+        return Form(
+          key: _formKey,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: theme.cardTheme.color,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.dividerTheme.color ?? Colors.grey.shade200,
+              ),
             ),
-          ),
-          child: isLoading
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(48),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              : agent == null
-                  ? _buildEmpty(theme)
-                  : _buildContent(theme, agent),
-        );
-      },
-    );
-  }
-
-  Widget _buildContent(ThemeData theme, AgentModel agent) {
-    final bool hasChanges = _newRulesFile != null || _newProductFile != null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Header
                 Text(
-                  'Training Data Files',
+                  'Business Training Data',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: theme.colorScheme.onSurface,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
-                  'View and update files used to train the AI agent',
+                  'Provide business information and documents to train the AI agent.',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 14,
                     color: theme.textTheme.bodyMedium?.color,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Business Information Text Field
+                Text(
+                  'Business Information *',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                CustomTextfield(
+                  hintText: "Enter business name, location, working hours, and services details...",
+                  controller: _businessInfoController,
+                  maxLines: 4,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Business information is required';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+
+                // Product Information Upload (Excel required)
+                _buildFileSlot(
+                  label: 'Product Information (Excel) *',
+                  fileTypeHint: 'Only .xlsx or .xls files are allowed',
+                  icon: Icons.table_chart_outlined,
+                  iconColor: Colors.green.shade600,
+                  serverUrl: _serverProductUrl,
+                  newFile: _newProductFile,
+                  onPick: () => _pickFile('product'),
+                  onClearNew: () => setState(() => _newProductFile = null),
+                ),
+                const SizedBox(height: 20),
+
+                // Policies & Guidelines Upload (PDF required)
+                _buildFileSlot(
+                  label: 'Policies & Guidelines (PDF) *',
+                  fileTypeHint: 'Only .pdf files are allowed',
+                  icon: Icons.picture_as_pdf_outlined,
+                  iconColor: Colors.red.shade600,
+                  serverUrl: _serverPoliciesUrl,
+                  newFile: _newPoliciesFile,
+                  onPick: () => _pickFile('policies'),
+                  onClearNew: () => setState(() => _newPoliciesFile = null),
+                ),
+                const SizedBox(height: 20),
+
+                // FAQ Upload (PDF optional)
+                _buildFileSlot(
+                  label: 'Common FAQs (PDF, Optional)',
+                  fileTypeHint: 'Only .pdf files are allowed',
+                  icon: Icons.question_answer_outlined,
+                  iconColor: Colors.blue.shade600,
+                  serverUrl: _serverFaqUrl,
+                  newFile: _newFaqFile,
+                  onPick: () => _pickFile('faq'),
+                  onClearNew: () => setState(() => _newFaqFile = null),
+                ),
+                const SizedBox(height: 28),
+
+                // Save button
+                ElevatedButton.icon(
+                  onPressed: isLoading ? null : _saveTrainingData,
+                  icon: isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.save_outlined, size: 18),
+                  label: Text(
+                    isLoading ? 'Saving...' : 'Save Training Data',
+                    style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
                   ),
                 ),
               ],
             ),
-            if (hasChanges)
-              ElevatedButton.icon(
-                onPressed: _isSaving ? null : () => _saveChanges(agent),
-                icon: _isSaving
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.cloud_upload_outlined, size: 16),
-                label: Text(_isSaving ? 'Saving...' : 'Save Changes'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                  elevation: 0,
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 24),
-
-        // Policies / Rules File (PDF)
-        _buildFileSlot(
-          theme: theme,
-          label: 'Policies & Rules File',
-          fileTypeHint: 'PDF document',
-          icon: Icons.picture_as_pdf_outlined,
-          iconColor: Colors.red.shade600,
-          serverUrl: agent.rulesFile,
-          newFile: _newRulesFile,
-          onPick: () => _pickFile('rules'),
-          onClearNew: () => setState(() => _newRulesFile = null),
-        ),
-
-        const SizedBox(height: 20),
-
-        // Product File (Excel)
-        _buildFileSlot(
-          theme: theme,
-          label: 'Product Information File',
-          fileTypeHint: 'Excel / spreadsheet',
-          icon: Icons.table_chart_outlined,
-          iconColor: Colors.green.shade600,
-          serverUrl: agent.productFile,
-          newFile: _newProductFile,
-          onPick: () => _pickFile('product'),
-          onClearNew: () => setState(() => _newProductFile = null),
-        ),
-      ],
+          ),
+        );
+      },
     );
   }
 
   Widget _buildFileSlot({
-    required ThemeData theme,
     required String label,
     required String fileTypeHint,
     required IconData icon,
@@ -243,12 +354,13 @@ class _TrainingDataViewState extends State<TrainingDataView> {
     required VoidCallback onPick,
     required VoidCallback onClearNew,
   }) {
+    final theme = Theme.of(context);
     final hasServer = serverUrl != null && serverUrl.isNotEmpty;
     final hasNew = newFile != null;
     final fileName = hasNew
         ? newFile.name
         : hasServer
-            ? _extractFileName(serverUrl)
+            ? _getFileName(serverUrl)
             : null;
 
     return Column(
@@ -265,7 +377,7 @@ class _TrainingDataViewState extends State<TrainingDataView> {
         const SizedBox(height: 8),
 
         if (hasNew || hasServer)
-          // File chip
+          // File display card
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
@@ -308,7 +420,7 @@ class _TrainingDataViewState extends State<TrainingDataView> {
                       const SizedBox(height: 2),
                       Text(
                         hasNew
-                            ? '📎 New file — not yet uploaded'
+                            ? '📎 New file selected'
                             : '✅ Uploaded to server',
                         style: TextStyle(
                           fontSize: 11,
@@ -323,23 +435,27 @@ class _TrainingDataViewState extends State<TrainingDataView> {
                 // View server file button
                 if (hasServer && !hasNew)
                   OutlinedButton.icon(
-                    onPressed: () => _openUrl(serverUrl),
+                    onPressed: () => _viewFile(serverUrl),
                     icon: Icon(Icons.open_in_new, size: 13, color: iconColor),
                     label: Text(
                       'View',
                       style: TextStyle(
-                          fontSize: 12,
-                          color: iconColor,
-                          fontWeight: FontWeight.w500),
+                        fontSize: 12,
+                        color: iconColor,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: iconColor,
                       side: BorderSide(color: iconColor.withOpacity(0.4)),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       minimumSize: Size.zero,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(7)),
+                        borderRadius: BorderRadius.circular(7),
+                      ),
                     ),
                   ),
 
@@ -353,19 +469,24 @@ class _TrainingDataViewState extends State<TrainingDataView> {
                   label: Text(
                     'Replace',
                     style: TextStyle(
-                        fontSize: 12,
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w500),
+                      fontSize: 12,
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: theme.colorScheme.primary,
                     side: BorderSide(
-                        color: theme.colorScheme.primary.withOpacity(0.4)),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      color: theme.colorScheme.primary.withOpacity(0.4),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     minimumSize: Size.zero,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(7)),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
                   ),
                 ),
 
@@ -379,14 +500,16 @@ class _TrainingDataViewState extends State<TrainingDataView> {
                     color: theme.hintColor,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(
-                        minWidth: 28, minHeight: 28),
+                      minWidth: 28,
+                      minHeight: 28,
+                    ),
                   ),
                 ],
               ],
             ),
           )
         else
-          // Upload drop zone
+          // Upload click zone
           InkWell(
             onTap: onPick,
             borderRadius: BorderRadius.circular(10),
@@ -399,8 +522,7 @@ class _TrainingDataViewState extends State<TrainingDataView> {
                   style: BorderStyle.solid,
                 ),
                 borderRadius: BorderRadius.circular(10),
-                color: theme.colorScheme.surfaceContainerHighest
-                    .withOpacity(0.3),
+                color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -429,58 +551,5 @@ class _TrainingDataViewState extends State<TrainingDataView> {
           ),
       ],
     );
-  }
-
-  Widget _buildEmpty(ThemeData theme) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.folder_open_outlined, size: 56, color: theme.hintColor),
-            const SizedBox(height: 14),
-            Text(
-              'No training data found',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'No AI agent has been created for this business yet.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: theme.hintColor),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _extractFileName(String url) {
-    try {
-      final uri = Uri.parse(url);
-      if (uri.pathSegments.isNotEmpty) return uri.pathSegments.last;
-    } catch (_) {}
-    return url;
-  }
-
-  Future<void> _openUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not open file URL'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
   }
 }
