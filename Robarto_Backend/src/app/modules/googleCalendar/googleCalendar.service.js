@@ -179,6 +179,45 @@ const buildAllDayEvent = (dateValue) => {
 };
 
 /**
+ * Builds a timed or all-day event time block flexibly.
+ */
+const buildEventTimeBlock = (dateValue, timeValue, durationMinutes = 60) => {
+  if (!dateValue) return null;
+
+  if (timeValue) {
+    let combinedStr = timeValue;
+    if (typeof dateValue === "string" && typeof timeValue === "string" && !timeValue.includes("T")) {
+      const cleanDate = dateValue.split("T")[0].trim();
+      combinedStr = `${cleanDate}T${timeValue.trim()}`;
+    }
+    let startTime = new Date(combinedStr);
+
+    if (isNaN(startTime.getTime())) {
+      startTime = new Date(dateValue);
+    }
+
+    if (!isNaN(startTime.getTime())) {
+      const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
+      return {
+        start: { dateTime: startTime.toISOString(), timeZone: "UTC" },
+        end: { dateTime: endTime.toISOString(), timeZone: "UTC" },
+      };
+    }
+  }
+
+  const parsedDate = new Date(dateValue);
+  if (!isNaN(parsedDate.getTime()) && parsedDate.getHours() !== 0) {
+    const endTime = new Date(parsedDate.getTime() + durationMinutes * 60 * 1000);
+    return {
+      start: { dateTime: parsedDate.toISOString(), timeZone: "UTC" },
+      end: { dateTime: endTime.toISOString(), timeZone: "UTC" },
+    };
+  }
+
+  return buildAllDayEvent(dateValue);
+};
+
+/**
  * Creates Google Calendar event for any booking category.
  * Supports: APPOINTMENT_BOOKING, ORDER_BOOKING, PARCEL_DELIVERY
  * @param {object} booking - Booking object from DB (with its details relation attached)
@@ -197,7 +236,7 @@ const createEventForBooking = async (booking, connection, businessType) => {
   // ── APPOINTMENT BOOKING ────────────────────────────────────────────────────
   if (businessType === "APPOINTMENT_BOOKING" || booking.appointmentDetails) {
     const details = booking.appointmentDetails || {};
-    const apptTime = details.appointmentTime || (booking.calenderTime && booking.calenderDate ? `${booking.calenderDate}T${booking.calenderTime}` : null);
+    const apptTime = details.appointmentTime || booking.calenderTime;
     const apptDate = details.appointmentDate || booking.calenderDate;
 
     if (!apptTime && !apptDate) {
@@ -205,28 +244,16 @@ const createEventForBooking = async (booking, connection, businessType) => {
       return;
     }
 
-    let timePart;
-    if (apptTime) {
-      const startTime = new Date(apptTime);
-
-      // Parse duration string e.g. "30 mins", "1 hour". Default 60 mins.
-      let durationMinutes = 60;
-      const durationStr = details.duration;
-      if (durationStr) {
-        const match = durationStr.match(/(\d+)/);
-        if (match) {
-          const n = parseInt(match[1], 10);
-          durationMinutes = durationStr.toLowerCase().includes("hour") ? n * 60 : n;
-        }
+    let durationMinutes = 60;
+    if (details.duration) {
+      const match = details.duration.match(/(\d+)/);
+      if (match) {
+        const n = parseInt(match[1], 10);
+        durationMinutes = details.duration.toLowerCase().includes("hour") ? n * 60 : n;
       }
-      const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
-      timePart = {
-        start: { dateTime: startTime.toISOString(), timeZone: "UTC" },
-        end: { dateTime: endTime.toISOString(), timeZone: "UTC" },
-      };
-    } else {
-      timePart = buildAllDayEvent(apptDate);
     }
+
+    const timeBlock = buildEventTimeBlock(apptTime || apptDate, apptTime ? apptTime : null, durationMinutes);
 
     eventResource = {
       summary: `Appointment: ${booking.customerName}`,
@@ -234,23 +261,27 @@ const createEventForBooking = async (booking, connection, businessType) => {
       description: `${baseNote}\nPlatform: ${details.platform || "N/A"}\nDuration: ${details.duration || "N/A"}`,
       attendees: baseAttendees,
       reminders: { useDefault: true },
-      ...timePart,
+      ...timeBlock,
     };
 
   // ── PARCEL DELIVERY ────────────────────────────────────────────────────────
   } else if (businessType === "PARCEL_DELIVERY" || booking.parcelDetails) {
     const details = booking.parcelDetails || {};
-    const targetDate = details.deliveryDate || booking.calenderDate;
+    const targetDate = details.deliveryDate || details.pickupDate || booking.calenderDate;
+    const targetTime = details.pickupTime || booking.calenderTime;
+
     if (!targetDate) {
-      console.log("No delivery date for parcel. Skipping calendar event creation.");
+      console.log("No delivery or pickup date for parcel. Skipping calendar event creation.");
       return;
     }
 
+    const timeBlock = buildEventTimeBlock(targetDate, targetTime);
+
     eventResource = {
-      ...buildAllDayEvent(targetDate),
-      summary: `Parcel Delivery: ${booking.customerName}`,
-      location: details.deliveryAddress || "Not Specified",
-      description: `${baseNote}\nPickup: ${details.pickupAddress || "N/A"}\nDelivery Address: ${details.deliveryAddress || "N/A"}\nProduct Type: ${details.productType || "N/A"}\nWeight: ${details.productWeight ?? "N/A"}`,
+      ...timeBlock,
+      summary: `Parcel Delivery: ${booking.customerName} (${booking.productName || details.productType || "Parcel"})`,
+      location: details.deliveryAddress || details.pickupAddress || "Not Specified",
+      description: `${baseNote}\nPickup Address: ${details.pickupAddress || "N/A"}\nDelivery Address: ${details.deliveryAddress || "N/A"}\nProduct Type: ${details.productType || "N/A"}\nWeight: ${details.productWeight ?? "N/A"} kg`,
       attendees: baseAttendees,
       reminders: { useDefault: true },
     };
@@ -259,14 +290,18 @@ const createEventForBooking = async (booking, connection, businessType) => {
   } else {
     const details = booking.orderDetails || {};
     const targetDate = details.deliveryDate || booking.calenderDate;
+    const targetTime = booking.calenderTime;
+
     if (!targetDate) {
       console.log("No delivery date for order. Skipping calendar event creation.");
       return;
     }
 
+    const timeBlock = buildEventTimeBlock(targetDate, targetTime);
+
     eventResource = {
-      ...buildAllDayEvent(targetDate),
-      summary: `Order: ${booking.customerName}`,
+      ...timeBlock,
+      summary: `Order: ${booking.customerName} (${booking.productName || details.productType || "Order"})`,
       location: details.deliveryAddress || "Not Specified",
       description: `${baseNote}\nDelivery Address: ${details.deliveryAddress || "N/A"}\nProduct Type: ${details.productType || "N/A"}`,
       attendees: baseAttendees,
