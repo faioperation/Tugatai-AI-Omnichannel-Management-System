@@ -150,11 +150,9 @@ export const createBooking = async (req, res, next) => {
       conversationId: result.conversationId || null,
     }).catch(err => console.error("Error sending Public API booking notification:", err));
 
-    if (businessType === "APPOINTMENT_BOOKING") {
-      GoogleCalendarService.syncBookingToCalendar(result).catch(err => {
-        console.error("Error auto-syncing booking to Google Calendar in public API controller:", err);
-      });
-    }
+    GoogleCalendarService.syncBookingToCalendar(result).catch(err => {
+      console.error("Error auto-syncing booking to Google Calendar in public API controller:", err);
+    });
 
     sendResponse(res, { success: true, statusCode: StatusCodes.CREATED, message: "Booking created successfully.", data: result });
   } catch (error) {

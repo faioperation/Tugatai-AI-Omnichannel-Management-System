@@ -3,6 +3,7 @@ import DevBuildError from "../../../lib/DevBuildError.js";
 import { StatusCodes } from "http-status-codes";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
 import { parseDateAndTimeFromPayload } from "../../../utils/bookingHelpers.js";
+import { GoogleCalendarService } from "../../googleCalendar/googleCalendar.service.js";
 
 const buildMainPayload = (businessId, payload) => {
     const extracted = {};
@@ -65,6 +66,10 @@ const createParcelDeliveryService = async (payload) => {
             where: { id: parcel.id },
             include: { parcelDetails: true }
         });
+    });
+
+    GoogleCalendarService.syncBookingToCalendar(result).catch(err => {
+        console.error("Error auto-syncing parcel delivery to Google Calendar:", err);
     });
 
     return result;
