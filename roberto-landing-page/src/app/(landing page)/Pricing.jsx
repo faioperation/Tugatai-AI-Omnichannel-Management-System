@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import Header from "../component/Header";
 import Container from "../component/Container";
+import ToggleButton from "../component/ToogleButton";
 import { FiCheck } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -81,6 +82,7 @@ const FullMoonIcon = () => (
 
 const Pricing = () => {
   const [processingPlanId, setProcessingPlanId] = useState(null);
+  const [isAnnual, setIsAnnual] = useState(false);
 
   const {
     data: plans,
@@ -157,6 +159,10 @@ const Pricing = () => {
           subtitleText={`Choose the plan that fits your business. Upgrade or downgrade anytime`}
         />
 
+        <div className="mt-10">
+          <ToggleButton isAnnual={isAnnual} setIsAnnual={setIsAnnual} />
+        </div>
+
         {isLoading ? (
           <div className="flex justify-center items-center h-64 mt-10">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9810FA]"></div>
@@ -188,10 +194,10 @@ const Pricing = () => {
                   </p>
                   <div className="mt-6 flex items-baseline justify-center gap-1">
                     <span className="text-white text-5xl font-bold font-inter">
-                      ${plan.monthlyPrice}
+                      ${isAnnual ? plan.yearlyPrice : plan.monthlyPrice}
                     </span>
                     <span className="text-[#9CA3AF] text-sm font-inter">
-                      /month
+                      /{isAnnual ? "year" : "month"}
                     </span>
                   </div>
                 </div>
@@ -214,7 +220,7 @@ const Pricing = () => {
                     setProcessingPlanId(plan.id);
                     checkoutMutation.mutate({
                       planId: plan.id,
-                      billingCycle: "monthly",
+                      billingCycle: isAnnual ? "yearly" : "monthly",
                     });
                   }}
                   disabled={
