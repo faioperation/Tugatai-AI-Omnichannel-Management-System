@@ -196,15 +196,18 @@ const createEventForBooking = async (booking, connection, businessType) => {
 
   // ── APPOINTMENT BOOKING ────────────────────────────────────────────────────
   if (businessType === "APPOINTMENT_BOOKING" || booking.appointmentDetails) {
-    const details = booking.appointmentDetails;
-    if (!details || (!details.appointmentTime && !details.appointmentDate)) {
+    const details = booking.appointmentDetails || {};
+    const apptTime = details.appointmentTime || (booking.calenderTime && booking.calenderDate ? `${booking.calenderDate}T${booking.calenderTime}` : null);
+    const apptDate = details.appointmentDate || booking.calenderDate;
+
+    if (!apptTime && !apptDate) {
       console.log("No appointment time or date found. Skipping calendar event creation.");
       return;
     }
 
     let timePart;
-    if (details.appointmentTime) {
-      const startTime = new Date(details.appointmentTime);
+    if (apptTime) {
+      const startTime = new Date(apptTime);
 
       // Parse duration string e.g. "30 mins", "1 hour". Default 60 mins.
       let durationMinutes = 60;
@@ -222,7 +225,7 @@ const createEventForBooking = async (booking, connection, businessType) => {
         end: { dateTime: endTime.toISOString(), timeZone: "UTC" },
       };
     } else {
-      timePart = buildAllDayEvent(details.appointmentDate);
+      timePart = buildAllDayEvent(apptDate);
     }
 
     eventResource = {
@@ -236,14 +239,15 @@ const createEventForBooking = async (booking, connection, businessType) => {
 
   // ── PARCEL DELIVERY ────────────────────────────────────────────────────────
   } else if (businessType === "PARCEL_DELIVERY" || booking.parcelDetails) {
-    const details = booking.parcelDetails;
-    if (!details?.deliveryDate) {
+    const details = booking.parcelDetails || {};
+    const targetDate = details.deliveryDate || booking.calenderDate;
+    if (!targetDate) {
       console.log("No delivery date for parcel. Skipping calendar event creation.");
       return;
     }
 
     eventResource = {
-      ...buildAllDayEvent(details.deliveryDate),
+      ...buildAllDayEvent(targetDate),
       summary: `Parcel Delivery: ${booking.customerName}`,
       location: details.deliveryAddress || "Not Specified",
       description: `${baseNote}\nPickup: ${details.pickupAddress || "N/A"}\nDelivery Address: ${details.deliveryAddress || "N/A"}\nProduct Type: ${details.productType || "N/A"}\nWeight: ${details.productWeight ?? "N/A"}`,
@@ -253,14 +257,15 @@ const createEventForBooking = async (booking, connection, businessType) => {
 
   // ── ORDER BOOKING (default) ────────────────────────────────────────────────
   } else {
-    const details = booking.orderDetails;
-    if (!details?.deliveryDate) {
+    const details = booking.orderDetails || {};
+    const targetDate = details.deliveryDate || booking.calenderDate;
+    if (!targetDate) {
       console.log("No delivery date for order. Skipping calendar event creation.");
       return;
     }
 
     eventResource = {
-      ...buildAllDayEvent(details.deliveryDate),
+      ...buildAllDayEvent(targetDate),
       summary: `Order: ${booking.customerName}`,
       location: details.deliveryAddress || "Not Specified",
       description: `${baseNote}\nDelivery Address: ${details.deliveryAddress || "N/A"}\nProduct Type: ${details.productType || "N/A"}`,
