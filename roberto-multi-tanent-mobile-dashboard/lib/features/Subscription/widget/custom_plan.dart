@@ -9,6 +9,7 @@ class CustomPlan extends StatelessWidget {
   final String iconPath;
   final String? buttonText;
   final VoidCallback? onButtonPressed;
+  final String billingPeriod;
 
   const CustomPlan({
     super.key,
@@ -19,6 +20,7 @@ class CustomPlan extends StatelessWidget {
     required this.iconPath,
     this.buttonText,
     this.onButtonPressed,
+    this.billingPeriod = '/month',
   });
 
   @override
@@ -77,7 +79,7 @@ class CustomPlan extends StatelessWidget {
                       ),
                     ),
                     TextSpan(
-                      text: '/month',
+                      text: billingPeriod,
                       style: TextStyle(
                         fontSize: 14,
                         color: Theme.of(context).textTheme.bodySmall?.color,
