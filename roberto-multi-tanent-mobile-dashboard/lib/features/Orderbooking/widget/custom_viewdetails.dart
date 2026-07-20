@@ -260,24 +260,6 @@ class CustomViewdetails extends StatelessWidget {
                     ),
                   ] else if (order.bookingType == 'Order Booking') ...[
                     _buildDetailRow(
-                      'Company',
-                      order.companyName ?? 'N/A',
-                      theme,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildDetailRow(
-                      'Pickup Date',
-                      order.pickupDate ?? 'N/A',
-                      theme,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildDetailRow(
-                      'Pickup Time',
-                      order.pickupTime ?? 'N/A',
-                      theme,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildDetailRow(
                       'Delivery Date',
                       order.deliveryDate ?? 'N/A',
                       theme,
@@ -383,28 +365,9 @@ class CustomViewdetails extends StatelessWidget {
   }
 
   Widget _buildOrderIdSection(BuildContext context, ThemeData theme) {
-    final isAppointment = order.bookingType == 'Appointment Booking';
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isAppointment ? 'Appointment ID' : 'Order ID',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              displayId ?? order.orderId,
-              style: TextStyle(fontSize: 14, color: theme.hintColor),
-            ),
-          ],
-        ),
         _buildStatusBadge(context, order.status),
       ],
     );

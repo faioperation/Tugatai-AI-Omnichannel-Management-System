@@ -163,6 +163,12 @@ class OrderMod {
       detailsMap.addAll(appointmentDetails);
     }
 
+    // Also include orderDetails if available
+    final orderDetails = json['orderDetails'] as Map<String, dynamic>?;
+    if (orderDetails != null) {
+      detailsMap.addAll(orderDetails);
+    }
+
     return OrderMod(
       orderId: json['id'] ?? '',
       customerName: json['customerName'] ?? 'Unknown',
@@ -195,9 +201,17 @@ class OrderMod {
       duration: detailsMap['duration'],
 
       bookingType: detailsMap['bookingType'] ??
-          ((json['appointmentDetails'] != null || json['calenderDate'] != null || detailsMap['appointmentDate'] != null)
-              ? 'Appointment Booking'
-              : (detailsMap['pickupAddress'] != null ? 'Parcel Delivery' : 'Order Booking')),
+          (json['parcelDetails'] != null
+              ? 'Parcel Delivery'
+              : (json['appointmentDetails'] != null
+                  ? 'Appointment Booking'
+                  : (json['orderDetails'] != null
+                      ? 'Order Booking'
+                      : (detailsMap['appointmentDate'] != null
+                          ? 'Appointment Booking'
+                          : (detailsMap['pickupAddress'] != null
+                              ? 'Parcel Delivery'
+                              : 'Order Booking'))))),
       pickupAddress: detailsMap['pickupAddress'],
       pickupDate: detailsMap['pickupDate'],
       pickupTime: detailsMap['pickupTime'],
