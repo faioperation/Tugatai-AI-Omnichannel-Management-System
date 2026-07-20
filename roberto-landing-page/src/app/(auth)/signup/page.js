@@ -46,7 +46,7 @@ const Signup = () => {
 
   const mutation = useMutation({
     mutationFn: async (data) => {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
       const res = await fetch(`${baseUrl}/global/business/create`, {
         method: 'POST',
         headers: {
@@ -132,7 +132,7 @@ const Signup = () => {
                   options={[
                     { label: "Order Booking", value: "ORDER_BOOKING" },
                     { label: "Appointment Booking", value: "APPOINTMENT_BOOKING" },
-                    { label: "Parcel Delivery", value: "PARCEL_DELIVERY" },
+                    { label: "Cargo", value: "PARCEL_DELIVERY" },
                   ]}
                   value={formData.businessType}
                   onSelect={(val) => handleInputChange("businessType", val)}
