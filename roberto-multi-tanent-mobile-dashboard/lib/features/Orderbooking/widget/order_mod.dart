@@ -48,6 +48,7 @@ class OrderMod {
   final String? deliveryDate;
   final String? deliveryTime;
   final String? deliveryAddress;
+  final String? address;
   final String? productType;
   final String? productHeight;
   final String? productWeight;
@@ -97,6 +98,7 @@ class OrderMod {
     this.deliveryDate,
     this.deliveryTime,
     this.deliveryAddress,
+    this.address,
     this.productType,
     this.productHeight,
     this.productWeight,
@@ -218,6 +220,7 @@ class OrderMod {
       deliveryDate: detailsMap['deliveryDate'],
       deliveryTime: detailsMap['deliveryTime'],
       deliveryAddress: detailsMap['deliveryAddress'],
+      address: detailsMap['address'],
       productType: detailsMap['productType'] ?? json['productType'],
       productHeight: detailsMap['productHeight']?.toString(),
       productWeight: detailsMap['productWeight']?.toString(),

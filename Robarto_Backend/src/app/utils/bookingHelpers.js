@@ -120,6 +120,7 @@ export const buildDetailsPayload = (businessType, payload, bookingId, businessId
         deliveryDate: getFlexibleValue(payload, "deliveryDate", ["delivery_date"]) ?? null,
         deliveryAddress: getFlexibleValue(payload, "deliveryAddress", ["delivery_address", "destination"]) ?? null,
         productType: getFlexibleValue(payload, "productType", ["product_type", "packageType", "package_type"]) ?? null,
+        address: getFlexibleValue(payload, "address", ["address_name", "location", "street_address"]) ?? null,
     };
 };
 
@@ -185,6 +186,9 @@ export const buildDetailsUpdatePayload = (businessType, payload) => {
 
         const productType = getFlexibleValue(payload, "productType", ["product_type", "packageType", "package_type"]);
         if (productType !== undefined) data.productType = productType;
+
+        const address = getFlexibleValue(payload, "address", ["address_name", "location", "street_address"]);
+        if (address !== undefined) data.address = address;
     }
     return data;
 };
@@ -224,7 +228,8 @@ export const saveAdditionalDetails = async (tx, businessId, branchId, bookingId,
         "userId",
         "status",
         "conversationId",
-        "productName"
+        "productName",
+        "address"
     ]);
 
     const additionalDetailsData = [];
@@ -283,7 +288,8 @@ export const updateAdditionalDetails = async (tx, businessId, branchId, bookingI
         "userId",
         "status",
         "conversationId",
-        "productName"
+        "productName",
+        "address"
     ]);
 
     for (const key of Object.keys(payload)) {

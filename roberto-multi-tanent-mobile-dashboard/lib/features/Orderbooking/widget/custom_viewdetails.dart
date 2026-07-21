@@ -267,7 +267,7 @@ class CustomViewdetails extends StatelessWidget {
                     const SizedBox(height: 8),
                     _buildDetailRow(
                       'Delivery To',
-                      order.deliveryAddress ?? 'N/A',
+                      order.deliveryAddress ?? order.address ?? 'N/A',
                       theme,
                     ),
                     const SizedBox(height: 8),

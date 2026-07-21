@@ -302,8 +302,8 @@ const createEventForBooking = async (booking, connection, businessType) => {
     eventResource = {
       ...timeBlock,
       summary: `Order: ${booking.customerName} (${booking.productName || details.productType || "Order"})`,
-      location: details.deliveryAddress || "Not Specified",
-      description: `${baseNote}\nDelivery Address: ${details.deliveryAddress || "N/A"}\nProduct Type: ${details.productType || "N/A"}`,
+      location: details.address || details.deliveryAddress || "Not Specified",
+      description: `${baseNote}\nAddress: ${details.address || "N/A"}\nDelivery Address: ${details.deliveryAddress || "N/A"}\nProduct Type: ${details.productType || "N/A"}`,
       attendees: baseAttendees,
       reminders: { useDefault: true },
     };

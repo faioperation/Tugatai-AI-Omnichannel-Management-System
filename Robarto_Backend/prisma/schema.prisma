@@ -484,6 +484,7 @@ model OrderDetails {
   deliveryDate    String?      @map("delivery_date")
   deliveryAddress String?      @map("delivery_address")
   productType     String?      @map("product_type")
+  address         String?
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
   deletedAt       DateTime?    @map("deleted_at")

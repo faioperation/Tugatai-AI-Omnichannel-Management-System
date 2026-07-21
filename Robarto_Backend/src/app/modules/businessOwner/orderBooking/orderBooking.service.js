@@ -96,7 +96,7 @@ const getAllBookingsService = async (query = {}) => {
     }
     if (businessType === "ORDER_BOOKING") {
         searchConfig.push({
-            orderDetails: ["deliveryAddress", "productType"]
+            orderDetails: ["deliveryAddress", "productType", "address"]
         });
     } else if (businessType === "PARCEL_DELIVERY") {
         searchConfig.push({

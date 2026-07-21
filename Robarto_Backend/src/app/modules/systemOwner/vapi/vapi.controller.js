@@ -35,6 +35,7 @@ const processVapiData = async ({
     note: structuredData.note || structuredData.notes || structuredData.call_summary || analysis?.summary || "",
     pickupAddress: structuredData.pickupAddress || structuredData.pickup_address || structuredData.address || "",
     deliveryAddress: structuredData.deliveryAddress || structuredData.delivery_address || structuredData.address || "",
+    address: structuredData.address || structuredData.address_name || structuredData.location || "",
     booking_confirmation: structuredData.booking_confirmation,
     bookingConfirmation: structuredData.bookingConfirmation,
     ...structuredData
