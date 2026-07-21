@@ -59,7 +59,7 @@ export const getBookingModel = (businessType) => {
 /**
  * Builds the main booking payload (common fields).
  */
-export const buildMainPayload = (businessId, payload) => {
+export const buildMainPayload = (businessId, payload, businessType) => {
     const extracted = { businessId };
     const fields = ["branchId", "createdById", "customerName", "customerNumber", "email", "country", "note", "status", "conversationId", "productName", "calenderDate", "calenderTime"];
     for (const f of fields) {

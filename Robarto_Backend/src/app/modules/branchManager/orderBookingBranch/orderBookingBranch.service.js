@@ -25,7 +25,7 @@ const resolveBusinessType = async (businessId) => {
 const createBookingService = async (payload) => {
     const businessType = await resolveBusinessType(payload.businessId);
     const { model, detailsModel, detailsRelation } = getBookingModel(businessType);
-    const mainPayload = buildMainPayload(payload.businessId, payload);
+    const mainPayload = buildMainPayload(payload.businessId, payload, businessType);
 
     const result = await prisma.$transaction(async (tx) => {
         const booking = await model.create({ data: mainPayload });
@@ -219,7 +219,7 @@ const updateBookingService = async (id, filter, payload) => {
     const isExist = await model.findUnique({ where: { id, ...filter } });
     if (!isExist) throw new DevBuildError("Booking not found or no access", StatusCodes.NOT_FOUND);
 
-    const mainPayload = buildMainPayload(businessId, payload);
+    const mainPayload = buildMainPayload(businessId, payload, businessType);
     const detailsUpdateData = buildDetailsUpdatePayload(businessType, payload);
     const { userId } = payload;
 
