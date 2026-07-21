@@ -16,6 +16,7 @@ const createBookingSchema = z.object({
         deliveryDate: z.string().optional(),
         deliveryAddress: z.string().optional(),
         productType: z.string().optional(),
+        address: z.string().optional(),
 
         // APPOINTMENT_BOOKING details
         appointmentDate: z.string().optional(),
@@ -53,6 +54,7 @@ const updateBookingSchema = z.object({
         deliveryDate: z.string().optional(),
         deliveryAddress: z.string().optional(),
         productType: z.string().optional(),
+        address: z.string().optional(),
 
         // APPOINTMENT_BOOKING details
         appointmentDate: z.string().optional(),
