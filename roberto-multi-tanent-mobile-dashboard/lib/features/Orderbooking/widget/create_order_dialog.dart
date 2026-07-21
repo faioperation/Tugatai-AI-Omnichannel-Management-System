@@ -262,8 +262,6 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
         }
         payload['receiverPhone'] = _receiverPhoneCtrl.text.trim();
       } else if (_bookingType == 'Order Booking') {
-        payload['pickupDate'] = _pickupDateCtrl.text.trim();
-        payload['pickupTime'] = _pickupTimeCtrl.text.trim();
         payload['deliveryDate'] = _deliveryDateCtrl.text.trim();
         payload['deliveryAddress'] = _deliveryAddressCtrl.text.trim();
         payload['productType'] = _productTypeCtrl.text.trim();
@@ -576,27 +574,6 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                             Text('Company Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                             const SizedBox(height: 8),
                             CustomTextfield(validator: (v) => null, controller: _companyNameCtrl, hintText: 'Enter Company Name'),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(child: _buildDatePickerField(
-                              context: context,
-                              controller: _pickupDateCtrl,
-                              label: 'Pickup Date',
-                              hintText: 'YYYY-MM-DD',
-                              theme: theme,
-                            )),
-                            const SizedBox(width: 16),
-                            Expanded(child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Pickup Time', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
-                                const SizedBox(height: 8),
-                                CustomTextfield(validator: (v) => null, controller: _pickupTimeCtrl, hintText: 'e.g. 10:00 AM'),
-                              ],
-                            )),
                           ],
                         ),
                         const SizedBox(height: 16),
