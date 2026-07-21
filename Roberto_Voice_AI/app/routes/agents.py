@@ -181,7 +181,8 @@ async def create_agent(
         "call_summary": {"type": "string", "description": "A brief 1-2 sentence summary of what the customer wanted and the outcome."},
         "customer_name": {"type": "string", "description": "The full name of the customer."},
         "customer_phone": {"type": "string", "description": "The phone number of the customer."},
-        "booking_confirmation": {"type": "boolean", "description": "True if a booking, order, or service was successfully confirmed during the call, otherwise False."}
+        "booking_confirmation": {"type": "boolean", "description": "True if a booking, order, or service was successfully confirmed during the call, otherwise False."},
+        "total_price": {"type": "string", "description": "The total price or cost quoted/confirmed during the call. For orders: sum of all product prices. For parcel delivery: total shipping charge. For appointments: consultation/booking cost. Include currency symbol."}
     }
     
     # Conditionally add package details for cargo/delivery agents

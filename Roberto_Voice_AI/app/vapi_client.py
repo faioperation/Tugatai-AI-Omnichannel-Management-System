@@ -205,6 +205,7 @@ def _tool_params(tool_name: str) -> tuple[str, dict]:
                     "parcel_description":        {"type": "string", "description": "Detailed description of the parcel content."},
                     "sender_phone_number":       {"type": "string", "description": "The contact number of the sender."},
                     "booking_confirmation":      {"type": "boolean", "description": "True if the booking is confirmed, otherwise False."},
+                    "total_price":               {"type": "string", "description": "The total calculated price or cost for this booking/order/delivery. Include currency (e.g. '$150.00', '250 QAR'). For orders: total of all items. For parcel delivery: total shipping charge. For appointments: consultation/booking cost."},
                     "preferred_pickup_date":     {"type": "string", "description": "Preferred pickup date or schedule details."},
                     "pickup_time":               {"type": "string", "description": "Preferred pickup time. MUST be in a time format (e.g. '02:30 PM' or '14:30'). This is mandatory for parcel delivery businesses."},
                     "receiver_phone_number":     {"type": "string", "description": "The contact number of the receiver."},
