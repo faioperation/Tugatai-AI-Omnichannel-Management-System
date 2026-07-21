@@ -100,11 +100,9 @@ const processVapiData = async ({
       }
     }
 
-    if (businessType !== "APPOINTMENT_BOOKING") {
-      bookingData.productName = normalizedData.productName || normalizedData.product_name ||
-        normalizedData.packageName || normalizedData.package_name ||
-        normalizedData["PACKAGE NAME"] || normalizedData["PRODUCT NAME"] || null;
-    }
+    bookingData.productName = normalizedData.productName || normalizedData.product_name ||
+      normalizedData.packageName || normalizedData.package_name ||
+      normalizedData["PACKAGE NAME"] || normalizedData["PRODUCT NAME"] || null;
 
     if (existingBooking) {
       // UPDATE existing booking

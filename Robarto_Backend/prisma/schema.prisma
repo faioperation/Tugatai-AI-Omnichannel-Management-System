@@ -506,6 +506,7 @@ model AppointmentBooking {
   customerNumber     String              @map("customer_number")
   email              String?
   country            String?
+  productName        String?             @map("product_name")
   price              String
   note               String?             @db.Text
   status             BookingStatus       @default(PENDING)
