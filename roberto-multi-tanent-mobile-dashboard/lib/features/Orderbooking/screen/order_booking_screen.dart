@@ -943,7 +943,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                   Expanded(
                       flex: 2,
                       child: CustomHeadder(label: priceLabel, textAlign: TextAlign.center)),
-                  if (bType?.toUpperCase().replaceAll(' ', '_') != 'APPOINTMENT_BOOKING')
+                  if (bType?.toUpperCase().replaceAll(' ', '_') != 'APPOINTMENT_BOOKING' && bType?.toUpperCase().replaceAll(' ', '_') != 'ORDER_BOOKING')
                     const Expanded(
                         flex: 2, child: CustomHeadder(label: 'Pickup Time', textAlign: TextAlign.center)),
                   Expanded(
@@ -1049,7 +1049,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
             ),
           ),
           // Pickup Time
-          if (bType?.toUpperCase().replaceAll(' ', '_') != 'APPOINTMENT_BOOKING')
+          if (bType?.toUpperCase().replaceAll(' ', '_') != 'APPOINTMENT_BOOKING' && bType?.toUpperCase().replaceAll(' ', '_') != 'ORDER_BOOKING')
             Expanded(
               flex: 2,
               child: Center(
