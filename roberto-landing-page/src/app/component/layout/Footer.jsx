@@ -75,7 +75,7 @@ const Footer = () => {
           <div className="flex flex-col gap-4">
             <h4 className="text-white font-inter font-semibold mb-2">Legal</h4>
             <Link href="/privacy" className="text-sm font-inter text-[#CDCDCD] hover:text-[#AD46FF] transition-colors">Privacy Policy</Link>
-            <Link href="/termscondition" className="text-sm font-inter text-[#CDCDCD] hover:text-[#AD46FF] transition-colors">Terms of Service</Link>
+            <Link href="/termscondition" className="text-sm font-inter text-[#CDCDCD] hover:text-[#AD46FF] transition-colors">Terms & Conditions</Link>
           </div>
         </motion.div>
 
@@ -87,7 +87,7 @@ const Footer = () => {
           className="py-8 border-t border-white/10"
         >
           <p className="text-sm font-inter text-[#99A1AF]">
-            © {new Date().getFullYear()} Omnirra. All rights reserved.
+            © {new Date().getFullYear()} Omnirra AI. All rights reserved.
           </p>
         </motion.div>
       </Container>
