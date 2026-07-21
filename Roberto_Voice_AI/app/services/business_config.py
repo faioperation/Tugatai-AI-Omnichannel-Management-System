@@ -40,10 +40,12 @@ BUSINESS_TYPES: Dict[str, Dict[str, Any]] = {
 ### 1. SHIPPING QUOTE:
 - Collect: destination, item list, estimated weight (kg), package name, package type, and preferred mode (sea/air/DHL).
 - Search your knowledge base or product catalog to calculate the exact pricing. Read back the exact result. Do not guess.
+- If the customer asks for the price at any point, calculate the total shipping charge immediately (weight × rate per kg/CBM for the route and mode) and tell them.
 
 ### 2. BOOKING CONFIRMATION:
 - Once customer agrees to quote: collect name, phone, pickup location, and preferred pickup time. You MUST ask the customer for their preferred pickup time. It MUST be in a specific time-wise format (e.g. HH:MM AM/PM like '02:30 PM' or '14:30'). Collecting the pickup time in a time-wise format is mandatory.
-- Trigger `confirm_booking` to finalize. Read back the booking reference clearly.
+- After collecting all details, calculate the total shipping charge and announce it to the customer before confirming.
+- Trigger `confirm_booking` to finalize. You MUST include the total_price field with the total shipping charge including currency (e.g. '$340.00') when calling the tool. Read back the booking reference clearly.
 
 ### 3. ESCALATION:
 - If customer mentions restricted/hazardous items (lithium, explosives, radioactive), escalate immediately.
@@ -68,10 +70,12 @@ BUSINESS_TYPES: Dict[str, Dict[str, Any]] = {
 ### 1. MENU QUERIES:
 - Always search the knowledge base before quoting any menu item or price.
 - Clearly state item names, sizes, and prices from the KB only.
+- If the customer asks for the total price of their order at any point, add up all the item prices from the knowledge base and tell them the total.
 
-### 2. RESERVATIONS:
-- Collect: party size, preferred date and time, customer name, and phone number.
-- Confirm availability based on your KB and use `collect_info` to save the reservation.
+### 2. ORDERS & RESERVATIONS:
+- Collect: items ordered (if ordering), party size, preferred date and time, customer name, and phone number.
+- After collecting all order/reservation details, calculate the total price by summing up all ordered items from the knowledge base and announce the total to the customer before confirming.
+- Use `collect_info` to save the reservation/order. You MUST include the total_price field with the sum of all item prices including currency (e.g. '$85.50') when calling the tool.
 
 ### 3. ESCALATION:
 - If customer has complex dietary needs, complaints, or requests you cannot fulfill, trigger `escalate_to_human`.
@@ -94,7 +98,9 @@ BUSINESS_TYPES: Dict[str, Dict[str, Any]] = {
         "prompt_layer3": """
 ### 1. CONSULTATION BOOKING:
 - Collect: caller's name, contact number, brief description of legal matter, and preferred consultation time.
-- Use `collect_info` to save the intake details for the attorney's review.
+- If the customer asks about the consultation fee at any point, look it up in your knowledge base and tell them immediately.
+- After collecting all details, look up the consultation fee from your knowledge base and announce the cost to the customer before confirming.
+- Use `collect_info` to save the intake details for the attorney's review. You MUST include the total_price field with the consultation fee including currency when calling the tool.
 
 ### 2. INFORMATION REQUESTS:
 - Only reference information available in your knowledge base (practice areas, fees, office hours).
@@ -122,10 +128,12 @@ BUSINESS_TYPES: Dict[str, Dict[str, Any]] = {
 ### 1. COURSE INFORMATION:
 - Always reference your knowledge base for course names, schedules, fees, and prerequisites.
 - Guide the caller through available programs based on their stated goals.
+- If the customer asks about course fees at any point, look them up in your knowledge base and tell them immediately.
 
 ### 2. ENROLLMENT:
 - Collect: student name, contact info, course of interest, and preferred start date.
-- Use `collect_info` to save enrollment interest for the admissions team.
+- After collecting all details, look up the course fee from your knowledge base and announce it to the customer before confirming enrollment.
+- Use `collect_info` to save enrollment interest for the admissions team. You MUST include the total_price field with the course fee including currency when calling the tool.
 
 ### 3. ESCALATION:
 - If the caller has complex academic history questions, financial aid queries, or requests a human advisor, trigger `escalate_to_human`.
@@ -149,10 +157,12 @@ BUSINESS_TYPES: Dict[str, Dict[str, Any]] = {
 ### 1. PROPERTY QUERIES:
 - Reference your knowledge base for available listings, prices, and amenities.
 - Never speculate on future prices or investment returns.
+- If the customer asks about a property's price, look it up in your knowledge base and tell them immediately.
 
 ### 2. VIEWING APPOINTMENTS:
 - Collect: buyer/renter name, contact number, property of interest, and preferred viewing time.
-- Use `collect_info` to log the appointment request for an agent to confirm.
+- After collecting all details, announce the property price or rental cost from your knowledge base to the customer before confirming.
+- Use `collect_info` to log the appointment request for an agent to confirm. You MUST include the total_price field with the property price or rental cost including currency when calling the tool.
 
 ### 3. ESCALATION:
 - If the caller wants to make an offer, discuss contracts, or negotiate, transfer to a licensed agent via `escalate_to_human`.
@@ -175,7 +185,9 @@ BUSINESS_TYPES: Dict[str, Dict[str, Any]] = {
         "prompt_layer3": """
 ### 1. APPOINTMENT BOOKING:
 - Collect: patient name, date of birth, contact number, reason for visit, and preferred date/time.
-- Use `collect_info` to save appointment requests.
+- If the customer asks about the appointment cost at any point, look it up in your knowledge base and tell them immediately.
+- After collecting all details, look up the appointment/consultation cost from your knowledge base and announce it to the customer before confirming.
+- Use `collect_info` to save appointment requests. You MUST include the total_price field with the appointment cost including currency when calling the tool.
 
 ### 2. SERVICE QUERIES:
 - Only reference services, doctors, and procedures listed in your knowledge base.
@@ -205,9 +217,11 @@ BUSINESS_TYPES: Dict[str, Dict[str, Any]] = {
 - Answer questions based strictly on your knowledge base content.
 - If you don't have the answer, say so honestly and offer to have someone follow up.
 
-### 2. LEAD CAPTURE:
+### 2. LEAD CAPTURE & BOOKINGS:
 - Collect caller name, contact number, and the nature of their inquiry.
-- Use `collect_info` to save the lead for follow-up.
+- If the customer asks about prices or costs at any point, look them up in your knowledge base and tell them immediately.
+- For any booking, order, or service request: after collecting all details, calculate the total cost from your knowledge base and announce it to the customer before confirming.
+- Use `collect_info` to save the lead for follow-up. If a booking/order is being made, you MUST include the total_price field with the total cost including currency when calling the tool.
 
 ### 3. ESCALATION:
 - For urgent requests, complaints, or questions beyond your knowledge base, trigger `escalate_to_human`.
@@ -286,6 +300,9 @@ Keep replies natural and conversational (2 to 3 sentences maximum). Provide rich
 
 RULE 3 — NO TECHNICAL TALK:
 Never mention that you are an AI, a language model, or that you are using tools or functions. Act as a natural human business representative at all times.
+
+RULE 4 — PRICING:
+You MUST calculate and include the total price/cost for every booking, order, or service request. If the customer asks about the price at any point during the conversation, calculate it immediately from your knowledge base or product catalog and tell them. After collecting all details, you MUST always inform the customer of the total price before confirming. When you call any booking or order tool, you MUST include the total_price field with the calculated amount including currency.
 
 # ============================================================
 # LAYER 2: CONVERSATIONAL IDENTITY & STATE
@@ -408,10 +425,10 @@ Provide your response in JSON format matching the following keys:
 3. "business_type": The closest matching business type from: "cargo", "restaurant", "legal", "education", "real_estate", "healthcare", "generic".
 4. "language": Two-letter language code (e.g., "en", "es", "ar").
 5. "custom_layer2": A bulleted list defining the agent's identity, persona, and specific vocal tone/rules. Explicitly include dynamic vocal delivery instructions based on the script (e.g. "Use rich, appetizing descriptive language when discussing menu items", or "Speak with empathetic, clear pacing for medical queries").
-6. "custom_layer3": A structured guide for the agent's main flows and scenarios (e.g. booking appointment, taking order, providing quote, escalating call). Be detailed and specific to this business's script, specifying exactly what fields/data the agent needs to collect. If the business is cargo (parcel delivery), you MUST specify in 'custom_layer3' that the agent must ask the customer for their preferred pickup time in a specific time-wise format (e.g. '02:30 PM' or '14:30'), and that collecting this information is mandatory.
+6. "custom_layer3": A structured guide for the agent's main flows and scenarios (e.g. booking appointment, taking order, providing quote, escalating call). Be detailed and specific to this business's script, specifying exactly what fields/data the agent needs to collect. If the business is cargo (parcel delivery), you MUST specify in 'custom_layer3' that the agent must ask the customer for their preferred pickup time in a specific time-wise format (e.g. '02:30 PM' or '14:30'), and that collecting this information is mandatory. Additionally, for ALL business types, the custom_layer3 MUST include instructions for the agent to: (a) Calculate the total price from the knowledge base or product catalog whenever a booking/order/delivery is being made. (b) If the customer asks about the price at any point, calculate and tell them immediately. (c) After collecting all details, always announce the total price to the customer before confirming. (d) Include the total_price in the tool call arguments when confirming any booking/order.
 7. "tools": A list of tool names the agent will need. Choose from: "confirm_booking", "collect_info", "escalate_to_human". Choose "confirm_booking" if booking is needed; "escalate_to_human" if human handoff is needed; "collect_info" for other general form submissions. Do not use get_quote, the agent should quote based on its knowledge base.
 8. "first_message": A warm, business-specific first greeting that the agent will speak when the call starts.
-9. "extracted_data_fields": A JSON object defining specific data fields the agent must extract at the end of the call, based on this business's needs (e.g. for a restaurant: party_size, booking_time; for cargo: weight_kg, destination, pickup_time). If the business is cargo (parcel delivery), you MUST include 'pickup_time' as a required field with a description stating it must be a time-wise value (e.g., '02:30 PM' or '14:30'). Each key should be the field name, and the value should be a brief string description of what the field is. DO NOT include generic fields like lead_status, call_summary, customer_name, customer_phone, as they are already included by default.
+9. "extracted_data_fields": A JSON object defining specific data fields the agent must extract at the end of the call, based on this business's needs (e.g. for a restaurant: party_size, booking_time; for cargo: weight_kg, destination, pickup_time). If the business is cargo (parcel delivery), you MUST include 'pickup_time' as a required field with a description stating it must be a time-wise value (e.g., '02:30 PM' or '14:30'). For ALL business types, you MUST include 'total_price' as a field with description 'The total price or cost quoted/confirmed for this booking/order/service including currency'. Each key should be the field name, and the value should be a brief string description of what the field is. DO NOT include generic fields like lead_status, call_summary, customer_name, customer_phone, as they are already included by default.
 
 Make sure the JSON is valid and only return the JSON block.
 """

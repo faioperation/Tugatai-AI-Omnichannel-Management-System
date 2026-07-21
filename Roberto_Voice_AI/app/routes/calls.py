@@ -134,13 +134,15 @@ async def handle_vapi_webhook(request: Request):
                     result_data = {
                         "status": "booked",
                         "lead_status": "booked",
-                        "message": "Booking confirmed and registered."
+                        "message": "Booking confirmed and registered.",
+                        "total_price": arguments.get("total_price", "")
                     }
                 elif is_order:
                     result_data = {
                         "status": "ordered",
                         "lead_status": "ordered",
-                        "message": "Order successfully processed and created."
+                        "message": "Order successfully processed and created.",
+                        "total_price": arguments.get("total_price", "")
                     }
                 elif any(w in tl for w in ["quote", "price", "estimate"]):
                     result_data = {
@@ -158,7 +160,8 @@ async def handle_vapi_webhook(request: Request):
                     result_data = {
                         "status": "scheduled",
                         "lead_status": "booked",
-                        "message": "Appointment successfully scheduled."
+                        "message": "Appointment successfully scheduled.",
+                        "total_price": arguments.get("total_price", "")
                     }
                 elif any(w in tl for w in ["info", "menu", "listing", "details"]):
                     result_data = {
@@ -287,6 +290,7 @@ async def handle_vapi_webhook(request: Request):
                 "assistant_id": assistant_id,
                 "business_name": assistant_name,
                 "lead_status": final_status,
+                "total_price": collected.get("total_price", ""),
                 "duration_seconds": int(duration) if duration else 0,
                 "collected_fields": collected_fields,
                 "collected_data": {k: v for k, v in collected.items() if not k.startswith("_tool_")},
