@@ -26,7 +26,7 @@ const page = () => {
           </span>
           <span className="flex items-center gap-1 text-[#DBDBDB]">
             <MdOutlinePhone className="w-4 h-4" />
-            <span className="">+97477969600</span>
+            <span className="">+974 7796 9600</span>
           </span>
         </div>
       </div>
@@ -75,6 +75,37 @@ const page = () => {
         <hr className="border-[#DBDBDB]/30 my-8" />
 
         <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#E9D4FF] mb-4">
+          3. Subscription & Billing
+        </h2>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Omnirra AI is offered through subscription-based plans. Subscription fees are billed according to the selected monthly or yearly plan.
+        </p>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Payments are securely processed through our authorized payment providers, including Stripe.
+        </p>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Subscription pricing may be updated from time to time. Existing customers will be notified of any applicable pricing changes before renewal where required by law.
+        </p>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Customers are responsible for providing accurate billing information and ensuring timely payment of subscription fees.
+        </p>
+
+        <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#E9D4FF] mb-3 mt-6">
+          Cancellation & Refund Policy
+        </h3>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Customers may cancel their subscription at any time through their account settings or by contacting Omnirra AI support.
+        </p>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Unless otherwise required by applicable law or agreed in writing, subscription fees already paid are non-refundable.
+        </p>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Cancellation prevents future renewals but does not automatically entitle the customer to a refund for the current billing period.
+        </p>
+
+        <hr className="border-[#DBDBDB]/30 my-8" />
+
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#E9D4FF] mb-4">
           3. User Responsibilities
         </h2>
         <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
@@ -91,7 +122,7 @@ const page = () => {
         <hr className="border-[#DBDBDB]/30 my-8" />
 
         <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#E9D4FF] mb-4">
-          4. Prohibited Activities
+          8. Prohibited Activities
         </h2>
         <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
           Users must not:
@@ -111,22 +142,34 @@ const page = () => {
           5. Third-Party Services
         </h2>
         <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
-          Omnirra AI integrates with services provided by:
+          Omnirra AI integrates with third-party platforms including Google, Meta (Facebook and Instagram), WhatsApp Business Platform, OpenAI, Stripe, and other supported services.
         </p>
-        <ul className="list-disc list-inside text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4 space-y-2 ml-2 sm:ml-4">
-          <li>Google</li>
-          <li>Meta</li>
-          <li>WhatsApp</li>
-          <li>OpenAI</li>
-        </ul>
         <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
-          Your use of those services is also subject to their respective terms and policies.
+          The availability and functionality of these integrations depend on the respective third-party providers.
+        </p>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Omnirra AI is not responsible for interruptions, service outages, API changes, or policy changes introduced by third-party platforms.
+        </p>
+        
+        <hr className="border-[#DBDBDB]/30 my-8" />
+
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#E9D4FF] mb-4">
+          AI Services Disclaimer
+        </h2>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Omnirra AI provides AI-generated content, recommendations, and automated responses using artificial intelligence technologies.
+        </p>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          While we strive to provide accurate and reliable AI-generated outputs, such content may not always be complete, accurate, or suitable for every situation.
+        </p>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Customers remain responsible for reviewing AI-generated content before relying on or using it for business decisions or customer communications.
         </p>
 
         <hr className="border-[#DBDBDB]/30 my-8" />
 
         <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#E9D4FF] mb-4">
-          6. Intellectual Property
+          9. Intellectual Property
         </h2>
         <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
           All software, branding, content, logos, and technology remain the property of Omnirra AI and Matrix Trading & Services W.L.L.
@@ -137,7 +180,7 @@ const page = () => {
         <hr className="border-[#DBDBDB]/30 my-8" />
 
         <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#E9D4FF] mb-4">
-          7. Availability
+          10. Availability
         </h2>
         <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
           We strive to maintain high service availability. However, uninterrupted service cannot be guaranteed. Maintenance, upgrades, or third-party outages may temporarily affect availability.
@@ -146,7 +189,7 @@ const page = () => {
         <hr className="border-[#DBDBDB]/30 my-8" />
 
         <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#E9D4FF] mb-4">
-          8. Limitation of Liability
+          11. Limitation of Liability
         </h2>
         <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
           To the maximum extent permitted by law, Omnirra AI shall not be liable for:
@@ -162,7 +205,7 @@ const page = () => {
         <hr className="border-[#DBDBDB]/30 my-8" />
 
         <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#E9D4FF] mb-4">
-          9. Termination
+          12. Termination
         </h2>
         <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
           We may suspend or terminate accounts that:
@@ -180,13 +223,16 @@ const page = () => {
           10. Governing Law
         </h2>
         <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
-          These Terms shall be governed by the laws applicable to Matrix Trading & Services W.L.L.
+          These Terms and Conditions shall be governed by and construed in accordance with the laws of the State of Qatar.
+        </p>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Any disputes arising from or relating to these Terms or the use of Omnirra AI shall be subject to the exclusive jurisdiction of the competent courts of the State of Qatar.
         </p>
 
         <hr className="border-[#DBDBDB]/30 my-8" />
 
         <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#E9D4FF] mb-4">
-          11. Changes to These Terms
+          14. Changes to These Terms
         </h2>
         <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
           We may update these Terms from time to time. Continued use of the platform constitutes acceptance of the updated Terms.
@@ -195,7 +241,7 @@ const page = () => {
         <hr className="border-[#DBDBDB]/30 my-8" />
 
         <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#E9D4FF] mb-4">
-          12. Contact Us
+          15. Contact Us
         </h2>
         <div className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4 space-y-4">
           <p>
@@ -213,6 +259,11 @@ const page = () => {
             <strong className="text-white mr-2">Company:</strong> 
             <span>Matrix Trading & Services W.L.L.</span>
           </p>
+        </div>
+
+        <div className="mt-12 text-[#99A1AF] text-base sm:text-lg">
+          <p>Effective Date: July 2026</p>
+          <p>Last Updated: July 2026</p>
         </div>
       </div>
     </div>
