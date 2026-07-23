@@ -26,7 +26,7 @@ const Privacy = () => {
           </span>
           <span className="flex items-center gap-1 text-[#DBDBDB]">
             <MdOutlinePhone className="w-4 h-4" />
-            <span className="">+97477969600</span>
+            <span className="">+974 7796 9600</span>
           </span>
         </div>
       </div>
@@ -99,6 +99,28 @@ const Privacy = () => {
         <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
           We do not read or use your calendar for advertising. We do not sell Google user data. We do not transfer Google user data to third parties except when required to provide the requested functionality or when legally required.
         </p>
+        <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#E9D4FF] mb-3 mt-6">
+          Google API Services Compliance
+        </h3>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          <strong>Google API Services User Data Policy</strong><br />
+          Omnirra AI's use and transfer of information received from Google APIs will comply with the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors underline">Google API Services User Data Policy</a>, including the Limited Use requirements.
+        </p>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Google Calendar data is accessed only for the purpose of providing the functionality requested by the user, including creating, updating, displaying, and deleting calendar events. Omnirra AI does not use Google user data for advertising, marketing, or profiling purposes.
+        </p>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          We do not sell Google user data. We do not share Google user data with third parties except when necessary to provide the requested functionality, comply with applicable law, or protect our legal rights.
+        </p>
+        <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#E9D4FF] mb-3 mt-6">
+          Revoking Google Access
+        </h3>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Users may revoke Omnirra AI's access to their Google Account at any time by visiting their Google Account Security settings under Third-party apps with account access.
+        </p>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Once access is revoked, Omnirra AI will no longer be able to access or modify the user's Google Calendar until authorization is granted again.
+        </p>
 
         <hr className="border-[#DBDBDB]/30 my-8" />
 
@@ -167,6 +189,15 @@ const Privacy = () => {
           <li>Resolve disputes</li>
           <li>Enforce agreements</li>
         </ul>
+        <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#E9D4FF] mb-3 mt-6">
+          Google Calendar Data Retention
+        </h3>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Google Calendar information is retained only for as long as necessary to provide the requested scheduling functionality and maintain synchronization between Omnirra AI and the user's Google Calendar.
+        </p>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Omnirra AI stores only the minimum information required for platform functionality. Google Calendar data is never used for advertising or unrelated purposes.
+        </p>
 
         <hr className="border-[#DBDBDB]/30 my-8" />
 
@@ -198,6 +229,15 @@ const Privacy = () => {
           <li>Export your data</li>
           <li>Withdraw consent</li>
         </ul>
+        <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#E9D4FF] mb-3 mt-6">
+          Data Deletion Requests
+        </h3>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Users may request deletion of their personal information and Google-related data by contacting <a href="mailto:info@omnirraai.com" className="hover:text-white transition-colors underline">info@omnirraai.com</a>.
+        </p>
+        <p className="text-[#DBDBDB] text-lg sm:text-xl lg:text-2xl leading-relaxed mb-4">
+          Upon verification of the request, Omnirra AI will delete the applicable data from its systems unless retention is required by applicable law or necessary for legitimate business purposes.
+        </p>
 
         <hr className="border-[#DBDBDB]/30 my-8" />
 
@@ -238,6 +278,11 @@ const Privacy = () => {
             <strong className="text-white mr-2">Company:</strong> 
             <span>Matrix Trading & Services W.L.L.</span>
           </p>
+        </div>
+
+        <div className="mt-12 text-[#99A1AF] text-base sm:text-lg">
+          <p>Effective Date: July 2026</p>
+          <p>Last Updated: July 2026</p>
         </div>
       </div>
     </div>
