@@ -28,13 +28,25 @@ class TenantResponse {
 class TenantBranch {
   final String id;
   final String name;
+  final String? email;
+  final String? phone;
+  final String? address;
 
-  TenantBranch({required this.id, required this.name});
+  TenantBranch({
+    required this.id,
+    required this.name,
+    this.email,
+    this.phone,
+    this.address,
+  });
 
   factory TenantBranch.fromJson(Map<String, dynamic> json) {
     return TenantBranch(
       id: json['id'] ?? '',
       name: json['name'] ?? 'Default Branch',
+      email: json['email'],
+      phone: json['phone'],
+      address: json['address'],
     );
   }
 }
@@ -84,7 +96,7 @@ class TenantBusiness {
       industry: json['industry'],
       status: json['status'],
       planCycle: json['planCycle'],
-      planId: json['planId'],
+      planId: json['planId'] ?? json['plan']?['id'],
       credits: json['credits'],
       businessType: json['businessType'],
       description: json['description'],
