@@ -205,12 +205,14 @@ class PerformanceBarChart extends StatelessWidget {
   final List<BarChartGroupData> barGroups;
   final String title;
   final List<String> labels;
+  final bool isPercentage;
 
   const PerformanceBarChart({
     super.key,
     required this.barGroups,
     required this.title,
     required this.labels,
+    this.isPercentage = false,
   });
 
   @override
@@ -238,10 +240,20 @@ class PerformanceBarChart extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           Expanded(
-            child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                maxY: 2000,
+            child: Builder(
+              builder: (context) {
+                double maxBarY = 0;
+                for (var group in barGroups) {
+                  for (var rod in group.barRods) {
+                    if (rod.toY > maxBarY) maxBarY = rod.toY;
+                  }
+                }
+                double calculatedMaxY = isPercentage ? 100 : (maxBarY > 0 ? maxBarY * 1.2 : 100);
+
+                return BarChart(
+                  BarChartData(
+                    alignment: BarChartAlignment.spaceAround,
+                    maxY: calculatedMaxY,
                 barTouchData: BarTouchData(enabled: false),
                 titlesData: FlTitlesData(
                   show: true,
@@ -265,8 +277,20 @@ class PerformanceBarChart extends StatelessWidget {
                       showTitles: true,
                       reservedSize: 40,
                       getTitlesWidget: (value, meta) {
+                        if (isPercentage) {
+                          return Text(
+                            '${value.toInt()}%',
+                            style: const TextStyle(color: Colors.grey, fontSize: 10),
+                          );
+                        }
+                        String text = '';
+                        if (value >= 1000) {
+                          text = '${(value / 1000).toStringAsFixed(1)}k';
+                        } else {
+                          text = value.toInt().toString();
+                        }
                         return Text(
-                          '${(value / 1000).toStringAsFixed(1)}k',
+                          text,
                           style: const TextStyle(color: Colors.grey, fontSize: 10),
                         );
                       },
@@ -279,7 +303,8 @@ class PerformanceBarChart extends StatelessWidget {
                 borderData: FlBorderData(show: false),
                 barGroups: barGroups,
               ),
-            ),
+            );
+          }),
           ),
         ],
       ),

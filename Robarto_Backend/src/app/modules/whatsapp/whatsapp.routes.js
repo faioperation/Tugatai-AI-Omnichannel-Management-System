@@ -10,6 +10,7 @@ export const WhatsappRoutes = Router();
 // Public Webhooks (No auth needed, Meta will call these directly)
 WhatsappRoutes.get("/webhooks/whatsapp", WhatsappController.verifyWebhook);
 WhatsappRoutes.post("/webhooks/whatsapp", WhatsappController.receiveWebhook);
+WhatsappRoutes.get("/auth/whatsapp/callback", WhatsappController.authWhatsAppCallback);
 
 // Protected API Routes
 // Uses the existing checkAuthMiddleware
@@ -21,7 +22,10 @@ WhatsappRoutes.post(
   WhatsappController.connectAccount
 );
 
+WhatsappRoutes.get("/whatsapp/auth", WhatsappController.authWhatsApp);
 WhatsappRoutes.get("/whatsapp/status", WhatsappController.checkConnectionStatus);
+
+WhatsappRoutes.get("/whatsapp/media/:mediaId", WhatsappController.getMedia);
 
 WhatsappRoutes.get("/whatsapp/conversations", WhatsappController.getConversations);
 WhatsappRoutes.get("/whatsapp/conversations/:id/messages", WhatsappController.getMessages);
@@ -37,4 +41,9 @@ WhatsappRoutes.post(
   whatsappUpload.single("file"),
   validateRequest(WhatsappValidation.sendMediaMessage),
   WhatsappController.sendMediaMessage
+);
+
+WhatsappRoutes.post(
+  "/whatsapp/disconnect",
+  WhatsappController.disconnectAccount
 );

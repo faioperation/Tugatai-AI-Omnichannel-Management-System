@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-multipart
+requests
+python-dotenv
+PyPDF2
+openpyxl
+httpx[http2]
+h2

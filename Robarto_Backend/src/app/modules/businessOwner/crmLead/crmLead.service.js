@@ -1,11 +1,14 @@
 import prisma from "../../../prisma/client.js";
+// Triggering nodemon restart with schema update
 import DevBuildError from "../../../lib/DevBuildError.js";
 import { StatusCodes } from "http-status-codes";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
+import { extractLeadPayload } from "../../../utils/workflowHelpers.js";
 
 const createCrmLeadService = async (payload) => {
+    const cleanPayload = await extractLeadPayload(payload.businessId, payload);
     const result = await prisma.crmLead.create({
-        data: payload,
+        data: cleanPayload,
     });
     return result;
 };
@@ -39,11 +42,22 @@ const getAllCrmLeadsService = async (query = {}) => {
         };
     }
 
-    const result = await prisma.crmLead.findMany(queryParams);
-    const total = await prisma.crmLead.count({ where: queryBuilder.where });
+    const [result, total, totalBooked, callLead] = await Promise.all([
+        prisma.crmLead.findMany(queryParams),
+        prisma.crmLead.count({ where: queryParams.where }),
+        prisma.crmLead.count({ where: { ...queryParams.where, status: "BOOKED" } }),
+        prisma.crmLead.count({ where: { ...queryParams.where, source: "COLD_CALL" } }),
+    ]);
+
+    const meta = queryBuilder.getMeta(total);
 
     return {
-        meta: queryBuilder.getMeta(total),
+        meta: {
+            ...meta,
+            totalCount: total,
+            totalBooked,
+            callLead,
+        },
         data: result,
     };
 };
@@ -95,9 +109,10 @@ const updateCrmLeadService = async (id, payload) => {
         throw new DevBuildError("CRM Lead not found", StatusCodes.NOT_FOUND);
     }
 
+    const cleanPayload = await extractLeadPayload(isExist.businessId, payload);
     const result = await prisma.crmLead.update({
         where: { id },
-        data: payload,
+        data: cleanPayload,
     });
     
     return result;
@@ -119,10 +134,29 @@ const deleteCrmLeadService = async (id) => {
     return result;
 };
 
+const getCrmLeadProductTypesService = async (businessId, branchId) => {
+    const where = {
+        businessId,
+        productType: { not: null },
+    };
+    if (branchId) where.branchId = branchId;
+
+    const result = await prisma.crmLead.findMany({
+        where,
+        select: { productType: true },
+        distinct: ["productType"],
+    });
+
+    return result
+        .map((r) => r.productType)
+        .filter((t) => t && t.trim() !== "");
+};
+
 export const CrmLeadService = {
     createCrmLeadService,
     getAllCrmLeadsService,
     getCrmLeadByIdService,
     updateCrmLeadService,
     deleteCrmLeadService,
+    getCrmLeadProductTypesService,
 };

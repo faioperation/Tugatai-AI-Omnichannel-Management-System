@@ -1,38 +1,60 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:roberto/app/app_routes.dart';
-import 'package:roberto/features/Auth/screen/reset_screen.dart';
 import '../../../app/app_color.dart';
 import '../../../common/custom_button.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../widget/custom_screen.dart';
-import '../widget/custom_textfield.dart';
-
+import '../bloc/forgot_password_bloc.dart';
+import '../bloc/forgot_password_event.dart';
+import '../bloc/forgot_password_state.dart';
 
 class VerifyScreen extends StatefulWidget {
-  const VerifyScreen({super.key});
+  final String email;
+  const VerifyScreen({super.key, required this.email});
 
   @override
   State<VerifyScreen> createState() => _VerifyScreenState();
 }
 
 class _VerifyScreenState extends State<VerifyScreen> {
-  bool _rememberMe = false;
+  final TextEditingController _otpController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
+  @override
+  void dispose() {
+    _otpController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: CustomScreen(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      body: BlocConsumer<ForgotPasswordBloc, ForgotPasswordState>(
+        listener: (context, state) {
+          if (state is ForgotPasswordOtpVerified) {
+            Navigator.pushNamed(context, Routes.resetPassword);
+          } else if (state is ForgotPasswordFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            );
+          }
+        },
+        builder: (context, state) {
+          return CustomScreen(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
             Center(
-              child: SvgPicture.asset(
-                'assets/logo.svg',
-                height: 80,
+              child: Image.asset(
+                Theme.of(context).brightness == Brightness.dark
+                    ? 'assets/Omnirra_AI_logo_white.png'
+                    : 'assets/Omnirra_AI_logo_black.png',
+                height: 120,
               ),
             ),
             const SizedBox(height: 20),
@@ -49,7 +71,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
             const SizedBox(height: 5),
             Center(
               child: Text(
-                "We sent a code to your email address",
+                "We sent a code to ${widget.email.isNotEmpty ? widget.email : 'your email address'}",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -74,16 +96,24 @@ class _VerifyScreenState extends State<VerifyScreen> {
                     selectedColor: AppColor.primary,
                     inactiveColor: Theme.of(context).dividerTheme.color),
                 animationDuration: const Duration(milliseconds: 300),
-                // controller: OTPController,
+                controller: _otpController,
                 appContext: context,
-                onSubmitted: (_) => _handleVerify(),
+                onCompleted: (_) => _handleVerify(),
+                validator: (v) {
+                  if (v == null || v.length < 6) {
+                    return "Please enter a 6-digit OTP";
+                  }
+                  return null;
+                },
             ),
 
             const SizedBox(height: 25),
-            CustomButton(
-              text: "Verify",
-              onTap: _handleVerify,
-            ),
+            state is ForgotPasswordLoading
+                ? const Center(child: CircularProgressIndicator())
+                : CustomButton(
+                    text: "Verify",
+                    onTap: _handleVerify,
+                  ),
             const SizedBox(height: 20),
             GestureDetector(
               onTap: () {},
@@ -110,10 +140,16 @@ class _VerifyScreenState extends State<VerifyScreen> {
           ],
         ),
       ),
+      );
+      },
+      ),
     );
   }
 
   void _handleVerify() {
-    Navigator.pushNamed(context, Routes.resetPassword);
+    if (_formKey.currentState!.validate()) {
+      final otp = _otpController.text.trim();
+      context.read<ForgotPasswordBloc>().add(VerifyOtpRequested(email: widget.email, otp: otp));
+    }
   }
 }

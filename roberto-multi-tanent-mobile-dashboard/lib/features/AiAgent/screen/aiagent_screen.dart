@@ -5,8 +5,16 @@ import 'package:roberto/features/AiAgent/widget/custom_agent.dart';
 import 'package:roberto/features/AiAgent/widget/system_prompt_view.dart';
 import 'package:roberto/features/AiAgent/widget/training_data_view.dart';
 
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_training_bloc.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_training_event.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_training_state.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_management_bloc.dart';
+import 'package:roberto/features/AiAgent/bloc/agent_management_event.dart';
+
 class AiagentScreen extends StatefulWidget {
-  const AiagentScreen({super.key});
+  final String? businessId;
+  const AiagentScreen({super.key, this.businessId});
 
   @override
   State<AiagentScreen> createState() => _AiagentScreenState();
@@ -16,7 +24,51 @@ class _AiagentScreenState extends State<AiagentScreen> {
   int _selectedTab = 0; // 0 = System Prompt, 1 = Training Data
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.businessId != null) {
+      context.read<AgentTrainingBloc>().add(
+        FetchAgentTrainingByBusinessRequested(businessId: widget.businessId!),
+      );
+    }
+    // Also fetch agent management data (contains rulesFile & productFile)
+    context.read<AgentManagementBloc>().add(const FetchAgentsRequested());
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (widget.businessId == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              size: 64,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Please select a tenant",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Go to Tenant Management and select a tenant to configure their AI Agent.",
+              style: TextStyle(
+                fontSize: 16,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -30,7 +82,9 @@ class _AiagentScreenState extends State<AiagentScreen> {
                   Text(
                     'AI Agent Management',
                     style: TextStyle(
-                      fontSize: MediaQuery.of(context).size.width < 600 ? 24 : 28,
+                      fontSize: MediaQuery.of(context).size.width < 600
+                          ? 24
+                          : 28,
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
@@ -38,7 +92,10 @@ class _AiagentScreenState extends State<AiagentScreen> {
                   const SizedBox(height: 6),
                   Text(
                     'Configure and train your AI assistant',
-                    style: TextStyle(fontSize: 15, color: Theme.of(context).textTheme.bodyMedium?.color),
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
                   ),
                 ],
               ),
@@ -58,13 +115,33 @@ class _AiagentScreenState extends State<AiagentScreen> {
         // Tab Content
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 250),
-          transitionBuilder: (child, animation) => FadeTransition(
-            opacity: animation,
-            child: child,
+          transitionBuilder: (child, animation) =>
+              FadeTransition(opacity: animation, child: child),
+          child: BlocBuilder<AgentTrainingBloc, AgentTrainingState>(
+            builder: (context, state) {
+              if (state is AgentTrainingLoading) {
+                return const Padding(
+                  padding: EdgeInsets.all(40),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              return _selectedTab == 0
+                  ? SystemPromptView(
+                      key: const ValueKey('system'),
+                      businessId: widget.businessId!,
+                      onNext: () {
+                        setState(() {
+                          _selectedTab = 1;
+                        });
+                      },
+                    )
+                  : TrainingDataView(
+                      key: const ValueKey('training'),
+                      businessId: widget.businessId!,
+                    );
+            },
           ),
-          child: _selectedTab == 0
-              ? const SystemPromptView(key: ValueKey('system'))
-              : const TrainingDataView(key: ValueKey('training')),
         ),
       ],
     );
@@ -121,7 +198,9 @@ class _AiagentScreenState extends State<AiagentScreen> {
               width: 16,
               height: 16,
               colorFilter: ColorFilter.mode(
-                isActive ? Colors.white : theme.textTheme.bodyMedium?.color ?? Colors.grey,
+                isActive
+                    ? Colors.white
+                    : theme.textTheme.bodyMedium?.color ?? Colors.grey,
                 BlendMode.srcIn,
               ),
             ),
@@ -131,7 +210,9 @@ class _AiagentScreenState extends State<AiagentScreen> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isActive ? Colors.white : theme.textTheme.bodyMedium?.color,
+                color: isActive
+                    ? Colors.white
+                    : theme.textTheme.bodyMedium?.color,
               ),
             ),
           ],

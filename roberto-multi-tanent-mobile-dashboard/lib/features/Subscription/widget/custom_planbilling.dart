@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:roberto/features/Subscription/widget/custom_plan.dart';
-import 'package:roberto/features/Subscription/widget/custom_Billing.dart';
+import 'package:roberto/features/Subscription/widget/custom_billing.dart';
+import 'package:roberto/features/Subscription/data/models/subscription_model.dart';
 
 import '../../../app/app_color.dart';
 
 class CustomPlanbilling extends StatefulWidget {
-  const CustomPlanbilling({super.key});
+  final SystemOwnerSubscriptionModel subscriptionData;
+
+  const CustomPlanbilling({super.key, required this.subscriptionData});
 
   @override
   State<CustomPlanbilling> createState() => _CustomPlanbillingState();
@@ -77,66 +80,24 @@ class _CustomPlanbillingState extends State<CustomPlanbilling> {
         bool isDesktop = constraints.maxWidth > 900;
         bool isTablet = constraints.maxWidth > 600;
 
-        final plans = [
-          CustomPlan(
-            title: "CONNECT",
-            subtitle: "Best for businesses getting started with AI automation",
-            price: "\$700",
-            iconPath: "assets/half.svg",
-            features: [
-              "2 channels",
-              "up to 1,000 chats/month",
-              "shared inbox",
-              "basic AI instant replies",
-              "basic lead capture",
-              "basic booking form",
-              "limited analytics",
-              "no advanced automation",
-              "no campaigns",
-              "no voice AI",
-            ],
-          ),
-          CustomPlan(
-            title: "CONVERT",
-            subtitle: "Best for growing businesses that need more leads, bookings, and automation",
-            price: "\$1250",
-            iconPath: "assets/full.svg",
-            features: [
-              "everything in CONNECT, plus:",
-              "multi-channel",
-              "up to 5,000 chats/month",   
-              "advanced AI assistant",
-              "CRM pipeline",
-              "full booking workflow",
-              "pricing engine",
-              "quote generation",
-              "workflow automation",
-              "chat summaries",
-              "WhatsApp campaigns (basic)",
-              "analytics dashboard",
-              "AI assist for agents",
-            ],
-          ),
-          CustomPlan(
-            title: "CONTROL",
-            subtitle: "Best for high-volume teams and serious businesses",
-            price: "\$2050",
-            iconPath: "assets/enter.svg",
-            features: [
-              "everything in CONVERT, plus:",
-              "unlimited or high-volume chats",
-              "multi-branch / multi-country",
-              "advanced workflow automation",
-              "advanced campaigns",
-              "API integrations",
-              "advanced analytics",
-              "dedicated onboarding",
-              "priority support",
-              "voice AI included or as premium add-on",
-            ],
-          ),
-        ];
+        final plans = widget.subscriptionData.plans.map((plan) {
+          // Provide an icon based on slug/name or fallback to a default
+          String iconPath = "assets/half.svg";
+          if (plan.slug == 'convert') iconPath = "assets/full.svg";
+          if (plan.slug == 'control') iconPath = "assets/enter.svg";
 
+          return CustomPlan(
+            title: plan.name,
+            subtitle: plan.description,
+            price: "\$${plan.monthlyPrice.toStringAsFixed(0)}",
+            iconPath: iconPath,
+            features: plan.features.map((f) => f.value).toList(),
+          );
+        }).toList();
+
+        if (plans.isEmpty) {
+          return const Center(child: Text("No plans available."));
+        }
 
         // 💻 Desktop
         if (isDesktop) {
@@ -144,7 +105,7 @@ class _CustomPlanbillingState extends State<CustomPlanbilling> {
             children: plans
                 .map((p) => Expanded(
               child: Padding(
-                padding: const EdgeInsets.only(right: 16),
+                padding: EdgeInsets.only(right: plans.last == p ? 0 : 16),
                 child: p,
               ),
             ))
@@ -156,15 +117,24 @@ class _CustomPlanbillingState extends State<CustomPlanbilling> {
         else if (isTablet) {
           return Column(
             children: [
-              Row(
-                children: [
-                  Expanded(child: plans[0]),
-                  const SizedBox(width: 16),
-                  Expanded(child: plans[1]),
-                ],
-              ),
-              const SizedBox(height: 16),
-              plans[2],
+              if (plans.length >= 2) ...[
+                Row(
+                  children: [
+                    Expanded(child: plans[0]),
+                    const SizedBox(width: 16),
+                    Expanded(child: plans[1]),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ] else if (plans.isNotEmpty) ...[
+                Row(
+                  children: [
+                    Expanded(child: plans[0]),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+              if (plans.length > 2) ...plans.sublist(2),
             ],
           );
         }
@@ -185,6 +155,6 @@ class _CustomPlanbillingState extends State<CustomPlanbilling> {
   }
 
   Widget _buildBillingContent() {
-    return const CustomBilling();
+    return CustomBilling(billingHistory: widget.subscriptionData.billingHistory);
   }
 }

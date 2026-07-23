@@ -1,8 +1,11 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:roberto/features/Subscription/bloc/subscription_bloc.dart';
+import 'package:roberto/features/Subscription/bloc/subscription_event.dart';
+import 'package:roberto/features/Subscription/bloc/subscription_state.dart';
+import 'package:roberto/features/Subscription/data/models/subscription_model.dart';
 import 'package:flutter/material.dart';
-import 'package:roberto/app/app_color.dart';
-import 'package:roberto/features/Tenant%20Management%20/widget/custom_stat_card.dart';
+import 'package:roberto/features/TenantManagement/widget/custom_stat_card.dart';
 import 'package:roberto/features/Subscription/widget/custom_planbilling.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -13,9 +16,13 @@ class SubscriptionScreen extends StatefulWidget {
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
   @override
-  Widget build(BuildContext context) {
-    bool isDesktop = MediaQuery.of(context).size.width > 900;
+  void initState() {
+    super.initState();
+    context.read<SubscriptionBloc>().add(FetchSubscriptionsRequested());
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -46,24 +53,48 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         ),
 
         const SizedBox(height: 28),
-        // ── Stat Cards ──────────────────────────────────────────────────────
+        // ── Stat Cards & Plan Billing ─────────────────────────────────────────
+        BlocBuilder<SubscriptionBloc, SubscriptionState>(
+          builder: (context, state) {
+            if (state is SubscriptionLoading) {
+              return const Center(child: Padding(
+                padding: EdgeInsets.all(32.0),
+                child: CircularProgressIndicator(),
+              ));
+            } else if (state is SubscriptionError) {
+              return Center(child: Text('Error: ${state.message}', style: const TextStyle(color: Colors.red)));
+            } else if (state is SubscriptionLoaded) {
+              final data = state.subscriptionData;
+              return _buildDashboardContent(context, data);
+            }
+            return const SizedBox.shrink(); // Initial state
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDashboardContent(BuildContext context, SystemOwnerSubscriptionModel data) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         LayoutBuilder(
           builder: (context, constraints) {
             final isWide = constraints.maxWidth > 600;
             final cards = [
               CustomStatCard(
                 label: 'MRR',
-                value: '\$8.9K',
+                value: '\$${data.mrr.toStringAsFixed(0)}',
                 iconPath: "assets/MRR.svg",
               ),
               CustomStatCard(
                 label: 'ARR',
-                value: '\$107K',
+                value: '\$${data.arr.toStringAsFixed(0)}',
                 iconPath: "assets/ARR.svg",
               ),
               CustomStatCard(
                 label: 'Active Subs',
-                value: '47',
+                value: '${data.activeSubs}',
                 iconPath: "assets/person.svg",
               ),
             ];
@@ -92,7 +123,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           },
         ),
         const SizedBox(height: 20),
-        CustomPlanbilling(),
+        CustomPlanbilling(subscriptionData: data),
       ],
     );
   }

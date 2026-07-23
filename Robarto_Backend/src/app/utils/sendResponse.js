@@ -1,9 +1,13 @@
 export const sendResponse = (res, data) => {
-  res.status(data.statusCode).json({
+  const responseObj = {
     message: data.message,
     success: data.success,
     statusCode: data.statusCode,
     meta: data.meta,
     data: data.data,
-  });
+  };
+  if (data.continueAiFalseCount !== undefined) {
+    responseObj.continueAiFalseCount = data.continueAiFalseCount;
+  }
+  res.status(data.statusCode).json(responseObj);
 };

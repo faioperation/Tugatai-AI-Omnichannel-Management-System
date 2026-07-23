@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/common/user_role.dart';
+import 'package:roberto/features/Overview/bloc/overview_bloc.dart';
+import 'package:roberto/features/Overview/bloc/overview_event.dart';
+import 'package:roberto/features/Overview/bloc/overview_state.dart';
+import 'package:roberto/features/Overview/data/models/system_overview_model.dart';
+import 'package:roberto/features/Overview/data/models/business_overview_model.dart';
 import 'package:roberto/features/Overview/widget/activity_list.dart';
 import 'package:roberto/features/Overview/widget/quick_stats.dart';
 import 'package:roberto/features/Overview/widget/stat_card.dart';
@@ -7,10 +13,12 @@ import 'package:roberto/features/Overview/widget/role_reports.dart';
 
 class OverviewScreen extends StatefulWidget {
   final UserRole role;
+  final String? branchId;
 
   const OverviewScreen({
     super.key,
     this.role = UserRole.businessOwner,
+    this.branchId,
   });
 
   @override
@@ -18,6 +26,30 @@ class OverviewScreen extends StatefulWidget {
 }
 
 class _OverviewScreenState extends State<OverviewScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  @override
+  void didUpdateWidget(covariant OverviewScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.branchId != widget.branchId) {
+      _fetchData();
+    }
+  }
+
+  void _fetchData() {
+    if (widget.role == UserRole.systemOwner) {
+      context.read<OverviewBloc>().add(FetchSystemOverviewRequested());
+    } else if (widget.role == UserRole.businessOwner) {
+      context.read<OverviewBloc>().add(FetchBusinessOverviewRequested(branchId: widget.branchId));
+    } else if (widget.role == UserRole.branchManager) {
+      context.read<OverviewBloc>().add(FetchBranchManagerOverviewRequested());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isDesktop = MediaQuery.of(context).size.width > 900;
@@ -47,143 +79,192 @@ class _OverviewScreenState extends State<OverviewScreen> {
           ),
           const SizedBox(height: 32),
   
-          // STAT CARDS
-          isDesktop 
-            ? Row(
-                children: _buildStatCards(context),
-              )
-            : Column(
-                children: _buildStatCards(context).map((card) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: card,
-                )).toList(),
-              ),
-              
-          const SizedBox(height: 32),
-  
-          // ANALYTICS & REPORTS
-          RoleReports(role: widget.role),
-  
-          const SizedBox(height: 32),
-  
-          // RECENT ACTIVITY & QUICK STATS
-          isDesktop 
-            ? const Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: ActivityList(),
-                  ),
-                  SizedBox(width: 24),
-                  Expanded(
-                    flex: 1,
-                    child: QuickStats(),
-                  ),
-                ],
-              )
-            : Column(
-                children: [
-                  const ActivityList(),
-                  const SizedBox(height: 24),
-                  const QuickStats(),
-                ],
-              ),
+          // STAT CARDS & ANALYTICS & QUICK STATS
+          BlocBuilder<OverviewBloc, OverviewState>(
+            builder: (context, state) {
+              if (state is OverviewLoading) {
+                return const Center(child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
+                ));
+              } else if (state is OverviewError) {
+                return Center(child: Text('Error: ${state.message}', style: const TextStyle(color: Colors.red)));
+              } else if (state is SystemOverviewLoaded) {
+                final data = state.overviewData;
+                return _buildDashboardContent(context, isDesktop, systemData: data);
+              } else if (state is BusinessOverviewLoaded) {
+                final data = state.businessData;
+                return _buildDashboardContent(context, isDesktop, businessData: data);
+              } else if (state is BranchManagerOverviewLoaded) {
+                final data = state.businessData;
+                return _buildDashboardContent(context, isDesktop, businessData: data, isBranchManager: true);
+              }
+              return _buildDashboardContent(context, isDesktop);
+            },
+          ),
         ],
       ),
     );
   }
 
-  List<Widget> _buildStatCards(BuildContext context) {
+  Widget _buildDashboardContent(BuildContext context, bool isDesktop, {SystemOverviewModel? systemData, BusinessOverviewModel? businessData, bool isBranchManager = false}) {
+    return Column(
+      children: [
+        isDesktop 
+          ? Row(
+              children: _buildStatCards(context, systemData: systemData, businessData: businessData, isBranchManager: isBranchManager),
+            )
+          : Column(
+              children: _buildStatCards(context, systemData: systemData, businessData: businessData, isBranchManager: isBranchManager).map((card) => Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: card,
+              )).toList(),
+            ),
+            
+        const SizedBox(height: 32),
+
+        // ANALYTICS & REPORTS
+        RoleReports(role: widget.role, overviewData: systemData, businessData: businessData),
+
+        const SizedBox(height: 32),
+
+        // RECENT ACTIVITY & QUICK STATS
+        isDesktop 
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: ActivityList(overviewData: systemData, businessData: businessData),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  flex: 1,
+                  child: QuickStats(overviewData: systemData, businessData: businessData),
+                ),
+              ],
+            )
+          : Column(
+              children: [
+                ActivityList(overviewData: systemData, businessData: businessData),
+                const SizedBox(height: 24),
+                QuickStats(overviewData: systemData, businessData: businessData),
+              ],
+            ),
+      ],
+    );
+  }
+
+  List<Widget> _buildStatCards(BuildContext context, {SystemOverviewModel? systemData, BusinessOverviewModel? businessData, bool isBranchManager = false}) {
     final isSystemOwner = widget.role == UserRole.systemOwner;
-    final isBranchManager = widget.role == UserRole.branchManager;
 
     if (isSystemOwner) {
       return [
-        const Expanded(
+        Expanded(
           child: StatCard(
             title: "Total Businesses",
-            value: "1,248",
-            trend: "+5.2%",
+            value: systemData != null ? "${systemData.totalBusinesses}" : "0",
+            trend: "",
             icon: Icons.business,
           ),
         ),
         const SizedBox(width: 24),
-        const Expanded(
+        Expanded(
           child: StatCard(
             title: "Active Subscriptions",
-            value: "1,120",
-            trend: "+3.8%",
+            value: systemData != null ? "${systemData.activeSubscriptions}" : "0",
+            trend: "",
             icon: Icons.subscriptions_outlined,
           ),
         ),
         const SizedBox(width: 24),
-        const Expanded(
+        Expanded(
           child: StatCard(
             title: "Monthly Revenue",
-            value: "\$124,560",
-            trend: "+12.1%",
+            value: systemData != null ? "\$${systemData.monthlyRevenue.toStringAsFixed(2)}" : "\$0.00",
+            trend: "",
             icon: Icons.payments_outlined,
           ),
         ),
       ];
     } else if (isBranchManager) {
+      // Branch Manager - uses real API data
       return [
-        const Expanded(
+        Expanded(
           child: StatCard(
             title: "Today's Orders",
-            value: "42",
-            trend: "+15%",
+            value: businessData != null ? "${businessData.todayOrders}" : "0",
+            trend: "",
             icon: Icons.shopping_bag_outlined,
           ),
         ),
         const SizedBox(width: 24),
-        const Expanded(
+        Expanded(
           child: StatCard(
             title: "Pending Deliveries",
-            value: "12",
+            value: businessData != null ? "${businessData.pendingDeliveries}" : "0",
             trend: "",
             icon: Icons.delivery_dining_outlined,
           ),
         ),
         const SizedBox(width: 24),
-        const Expanded(
+        Expanded(
           child: StatCard(
             title: "Today's Sales",
-            value: "\$5,420",
-            trend: "+8.5%",
+            value: businessData != null ? "\$${businessData.todaysSales.toStringAsFixed(2)}" : "\$0.00",
+            trend: "",
             icon: Icons.attach_money,
+          ),
+        ),
+        const SizedBox(width: 24),
+        Expanded(
+          child: StatCard(
+            title: "Total Sales",
+            value: businessData != null ? "\$${businessData.totalSales.toStringAsFixed(2)}" : "\$0.00",
+            trend: "",
+            icon: Icons.bar_chart_outlined,
+            iconColor: Colors.green,
           ),
         ),
       ];
     } else {
       // Business Owner
       return [
-        const Expanded(
+        Expanded(
           child: StatCard(
-            title: "Total Orders",
-            value: "856",
-            trend: "+8.2%",
+            title: "Today's Orders",
+            value: businessData != null ? "${businessData.todayOrders}" : "0",
+            trend: "",
             icon: Icons.shopping_cart_outlined,
           ),
         ),
         const SizedBox(width: 24),
         Expanded(
           child: StatCard(
-            title: "Total Messages",
-            value: "1,234",
-            trend: "+12.5%",
-            icon: Icons.chat_bubble_outline,
+            title: "Pending Deliveries",
+            value: businessData != null ? "${businessData.pendingDeliveries}" : "0",
+            trend: "",
+            icon: Icons.delivery_dining_outlined,
             iconColor: Theme.of(context).colorScheme.primary,
           ),
         ),
         const SizedBox(width: 24),
-        const Expanded(
+        Expanded(
           child: StatCard(
-            title: "Total Revenue",
-            value: "\$45,678",
-            trend: "+18.7%",
+            title: "Today's Sales",
+            value: businessData != null ? "\$${businessData.todaysSales.toStringAsFixed(2)}" : "\$0.00",
+            trend: "",
             icon: Icons.attach_money,
+          ),
+        ),
+        const SizedBox(width: 24),
+        Expanded(
+          child: StatCard(
+            title: "Total Sales",
+            value: businessData != null ? "\$${businessData.totalSales.toStringAsFixed(2)}" : "\$0.00",
+            trend: "",
+            icon: Icons.bar_chart_outlined,
+            iconColor: Colors.green,
           ),
         ),
       ];

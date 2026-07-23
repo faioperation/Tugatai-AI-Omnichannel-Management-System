@@ -3,13 +3,13 @@ import { WhatsappService } from "../../whatsapp/whatsapp.service.js";
 
 export const sendWhatsappMessage = async (req, res, next) => {
   try {
-    const { businessId, conversationId, message } = req.body;
+    const { businessId, conversationId, message, continueAi } = req.body;
 
     if (!businessId || !conversationId || !message) {
       throw new AppError(400, "businessId, conversationId, and message are required.");
     }
 
-    const result = await WhatsappService.sendTextMessage(businessId, conversationId, message);
+    const result = await WhatsappService.sendTextMessage(businessId, conversationId, message, continueAi);
 
     res.status(200).json({
       success: true,

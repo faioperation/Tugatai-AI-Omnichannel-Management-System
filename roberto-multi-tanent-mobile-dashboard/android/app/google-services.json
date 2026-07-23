@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "423817374578",
+    "project_id": "tugatai-ai-platform",
+    "storage_bucket": "tugatai-ai-platform.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:423817374578:android:abc9d439a6bd746d448beb",
+        "android_client_info": {
+          "package_name": "com.example.roberto"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "423817374578-p7k2hamaer9hps0pkrph3q3l7al5jidu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAlKPZSGFH7vEXr2ri5HE9AgAxJwswkZ9M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "423817374578-p7k2hamaer9hps0pkrph3q3l7al5jidu.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -42,6 +42,36 @@ const getUserInfo = async (req, res, next) => {
       throw new DevBuildError("User not found", 404);
     }
 
+    // Append businessId and businessType if BUSINESS_OWNER or BRANCH_MANAGER
+    const userRoleNames = user.roles?.map(r => r.role.name) || [];
+    if (userRoleNames.includes("BUSINESS_OWNER")) {
+      const business = await prisma.business.findFirst({
+        where: { ownerId: user.id }
+      });
+      if (business) {
+        user.businessId = business.id;
+        user.businessType = business.businessType;
+      }
+    } else if (userRoleNames.includes("BRANCH_MANAGER")) {
+      const manager = await prisma.branchManager.findUnique({
+        where: { email: user.email },
+        include: { branches: true }
+      });
+      if (manager) {
+        user.businessId = manager.businessId;
+        user.branchId = manager.branches?.[0]?.id || null;
+        user.branch = manager.branches?.[0] || null;
+        user.branches = manager.branches || [];
+        const business = await prisma.business.findUnique({
+          where: { id: manager.businessId },
+          select: { businessType: true }
+        });
+        if (business) {
+          user.businessType = business.businessType;
+        }
+      }
+    }
+
     res.json({
       success: true,
       data: user,
@@ -65,6 +95,29 @@ const userDetails = async (req, res, next) => {
         success: false,
         message: "User not found",
       });
+    }
+
+    // Append businessId and businessType if it exists (for BUSINESS_OWNER or BRANCH_MANAGER)
+    const business = await prisma.business.findFirst({
+      where: { ownerId: user.id }
+    });
+    if (business) {
+      user.businessId = business.id;
+      user.businessType = business.businessType;
+    } else {
+      const manager = await prisma.branchManager.findUnique({
+        where: { email: user.email }
+      });
+      if (manager) {
+        user.businessId = manager.businessId;
+        const managerBusiness = await prisma.business.findUnique({
+          where: { id: manager.businessId },
+          select: { businessType: true }
+        });
+        if (managerBusiness) {
+          user.businessType = managerBusiness.businessType;
+        }
+      }
     }
 
     res.status(200).json({

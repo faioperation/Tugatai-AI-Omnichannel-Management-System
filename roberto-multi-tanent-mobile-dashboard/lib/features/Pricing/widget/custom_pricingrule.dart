@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/common/custom_pagination.dart';
 import 'package:roberto/features/Pricing/widget/custom_widgetrule.dart';
-import 'package:roberto/features/Tenant%20Management%20/widget/custom_headder.dart';
+import 'package:roberto/features/TenantManagement/widget/custom_headder.dart';
 
 import 'package:roberto/features/Pricing/widget/pricing_rule_mod.dart';
 import 'package:roberto/features/Pricing/widget/custom_addrule.dart';
@@ -87,9 +87,13 @@ class _CustomPricingruleState extends State<CustomPricingrule> {
                         horizontal: 20,
                         vertical: 14,
                       ),
-                      color: isDark
-                          ? theme.colorScheme.surfaceVariant.withOpacity(0.5)
-                          : AppColor.secondary,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? theme.colorScheme.surfaceVariant.withOpacity(0.5)
+                            : AppColor.secondary,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
+                      ),
                       child: const Row(
                         children: [
                           Expanded(
@@ -127,6 +131,7 @@ class _CustomPricingruleState extends State<CustomPricingrule> {
                           title: rule.name,
                           badgeText: rule.type,
                           description: rule.value,
+                          rawConfiguration: rule.rawConfiguration,
                           onEdit: () => widget.onEdit(rule),
                           onDelete: () => widget.onDelete(rule.id),
                         )),
@@ -153,6 +158,7 @@ class _CustomPricingruleState extends State<CustomPricingrule> {
                       title: rule.name,
                       badgeText: rule.type,
                       description: rule.value,
+                      rawConfiguration: rule.rawConfiguration,
                       onEdit: () => widget.onEdit(rule),
                       onDelete: () => widget.onDelete(rule.id),
                     )),

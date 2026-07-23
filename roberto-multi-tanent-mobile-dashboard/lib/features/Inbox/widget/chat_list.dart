@@ -1,68 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:roberto/app/app_color.dart';
+import 'package:roberto/features/Inbox/data/models/inbox_models.dart';
 
-class ChatList extends StatefulWidget {
-  final void Function(int index)? onChatSelected;
+class ChatList extends StatelessWidget {
+  final List<ConversationMod> conversations;
+  final ConversationMod? selectedConversation;
+  final String selectedPlatform;
+  final bool isLoading;
+  final ValueChanged<String> onPlatformChanged;
+  final ValueChanged<ConversationMod> onConversationSelected;
+  final bool? filterContinueAi;
+  final ValueChanged<bool?> onFilterContinueAiChanged;
+  final int continueAiFalseCount;
 
-  const ChatList({super.key, this.onChatSelected});
+  const ChatList({
+    super.key,
+    required this.conversations,
+    this.selectedConversation,
+    required this.selectedPlatform,
+    required this.isLoading,
+    required this.onPlatformChanged,
+    required this.onConversationSelected,
+    required this.filterContinueAi,
+    required this.onFilterContinueAiChanged,
+    required this.continueAiFalseCount,
+  });
 
-  @override
-  State<ChatList> createState() => _ChatListState();
-}
-
-class _ChatListState extends State<ChatList> {
-  int _activeChatIndex = 0;
-  int _activeFilterIndex = -1;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Theme.of(context).cardTheme.color,
-      child: Column(
-        children: [
-          const SizedBox(height: 16),
-          // Filter section
-          _buildFilterItem(-1, null, "All", "45"),
-          
-          // Social Filters
-          _buildFilterItem(0, "assets/facebook.svg", "Facebook", "15"),
-          _buildFilterItem(1, "assets/instagram.svg", "Instagram", "20"),
-          _buildFilterItem(2, "assets/whatsapp.svg", "WhatsApp", "10"),
-          
-          const Divider(height: 16),
-          
-          // Chat list
-          Expanded(
-            child: ListView(
-              children: [
-                _buildChatListItem(0, "R", "Roberto", "2m ago", "Hi, I'd like to know more about...", "assets/facebook.svg"),
-                _buildChatListItem(1, "MC", "Michael Cher", "15m ago", "Thank you for the quick response!", "assets/whatsapp.svg"),
-                _buildChatListItem(2, "EW", "Emma Wilso", "1h ago", "Can I schedule a booking for", "assets/instagram.svg"),
-                _buildChatListItem(3, "DB", "David Brow", "2h ago", "What are your business hours?", "assets/facebook.svg"),
-                _buildChatListItem(4, "LA", "Lisa Andersor", "3h ago", "I received my order, it's perfect!", "assets/whatsapp.svg"),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterItem(int index, String? iconPath, String title, String count) {
-    bool isActive = _activeFilterIndex == index;
+  Widget _buildFilterItem(String platform, String? iconPath, String title, String count, BuildContext context) {
+    bool isActive = selectedPlatform == platform;
     return InkWell(
-      onTap: () {
-        setState(() {
-          _activeFilterIndex = index;
-        });
-      },
+      onTap: () => onPlatformChanged(platform),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: Container(
           decoration: isActive
               ? BoxDecoration(
-                  color: AppColor.primary, // AppColor.primary
+                  color: AppColor.primary,
                   borderRadius: BorderRadius.circular(24),
                 )
               : null,
@@ -118,20 +92,56 @@ class _ChatListState extends State<ChatList> {
     );
   }
 
-  Widget _buildChatListItem(int index, String initials, String name, String time, String preview, String socialIconPath) {
-    bool isActive = _activeChatIndex == index;
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _activeChatIndex = index;
-        });
-        if (widget.onChatSelected != null) {
-          widget.onChatSelected!(index);
+  Widget _buildChatListItem(ConversationMod conv, bool isActive, BuildContext context) {
+    final initials = conv.customerName.isNotEmpty 
+        ? conv.customerName.split(' ').map((e) => e.isNotEmpty ? e[0] : '').join().toUpperCase()
+        : 'S';
+    final name = conv.customerName;
+    
+    String timeStr = 'Now';
+    try {
+      final parsed = DateTime.tryParse(conv.lastMessageAt);
+      if (parsed != null) {
+        final diff = DateTime.now().difference(parsed);
+        if (diff.inMinutes < 60) {
+          timeStr = '${diff.inMinutes}m ago';
+        } else if (diff.inHours < 24) {
+          timeStr = '${diff.inHours}h ago';
+        } else {
+          timeStr = '${parsed.year}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}';
         }
-      },
+      }
+    } catch (_) {}
+    
+    final bool isOutgoing = conv.lastMessageDirection == 'OUTGOING';
+
+    // Build display preview from lastMessage
+    String rawPreview = conv.lastMessage.trim();
+
+    // If still empty, show a fallback placeholder
+    if (rawPreview.isEmpty) {
+      rawPreview = '💬 Message';
+    }
+
+    // Add "You: " prefix if it was an outgoing message
+    final String preview = isOutgoing ? 'You: $rawPreview' : rawPreview;
+
+    String socialIconPath = 'assets/facebook.svg';
+    if (conv.platform == 'instagram') {
+      socialIconPath = 'assets/instagram.svg';
+    } else if (conv.platform == 'whatsapp') {
+      socialIconPath = 'assets/whatsapp.svg';
+    }
+
+    return InkWell(
+      onTap: () => onConversationSelected(conv),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        color: isActive ? (Theme.of(context).brightness == Brightness.light ? const Color(0xffFEE2E2) : Theme.of(context).colorScheme.primary.withOpacity(0.2)) : Colors.transparent,
+        color: isActive 
+            ? (Theme.of(context).brightness == Brightness.light 
+                ? const Color(0xffFEE2E2) 
+                : Theme.of(context).colorScheme.primary.withOpacity(0.2)) 
+            : Colors.transparent,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -146,7 +156,7 @@ class _ChatListState extends State<ChatList> {
                   ),
                   child: Center(
                     child: Text(
-                      initials,
+                      initials.length > 2 ? initials.substring(0, 2) : initials,
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -180,16 +190,20 @@ class _ChatListState extends State<ChatList> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        name,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurface,
+                      Expanded(
+                        child: Text(
+                          name,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Text(
-                        time,
+                        timeStr,
                         style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context).textTheme.bodySmall?.color,
@@ -202,7 +216,10 @@ class _ChatListState extends State<ChatList> {
                     preview,
                     style: TextStyle(
                       fontSize: 13,
-                      color: Theme.of(context).textTheme.bodySmall?.color,
+                      fontWeight: conv.seen ? FontWeight.normal : FontWeight.w700,
+                      color: conv.seen 
+                          ? Theme.of(context).textTheme.bodySmall?.color
+                          : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -210,8 +227,163 @@ class _ChatListState extends State<ChatList> {
                 ],
               ),
             ),
+            if (!conv.continueAi) ...[
+              const SizedBox(width: 8),
+              const Tooltip(
+                message: 'AI reply paused - needs human attention',
+                child: Icon(
+                  Icons.error,
+                  color: Color(0xFFB71C1C),
+                  size: 25,
+                ),
+              ),
+            ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildContinueAiFilter(BuildContext context) {
+    final String helpMeLabel = continueAiFalseCount > 0 
+        ? "Help me ($continueAiFalseCount)" 
+        : "Help me";
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildFilterChip("All Chats", filterContinueAi == null, () => onFilterContinueAiChanged(null), context),
+          const SizedBox(width: 8),
+          _buildFilterChip(
+            helpMeLabel, 
+            filterContinueAi == false, 
+            () => onFilterContinueAiChanged(false), 
+            context,
+            isHelpMe: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(
+    String label, 
+    bool isSelected, 
+    VoidCallback onTap, 
+    BuildContext context, {
+    bool isHelpMe = false,
+  }) {
+    final theme = Theme.of(context);
+    final Color borderColor = isHelpMe 
+        ? const Color(0xffEF4444) 
+        : (isSelected ? AppColor.primary : Colors.grey.withOpacity(0.3));
+
+    final Color bgColor = isSelected
+        ? (isHelpMe ? const Color(0xffEF4444) : AppColor.primary)
+        : (theme.brightness == Brightness.light ? const Color(0xffF3F4F6) : theme.colorScheme.surface);
+
+    final Color textColor = isSelected 
+        ? Colors.white 
+        : (isHelpMe ? const Color(0xffEF4444) : theme.colorScheme.onSurface);
+
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: borderColor,
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isHelpMe) ...[
+                Icon(
+                  Icons.error_outline,
+                  size: 14,
+                  color: textColor,
+                ),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: textColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    // Count platform-specific counts if we are in 'all' view
+    final allCount = conversations.length.toString();
+    
+    int mCount = 0;
+    int iCount = 0;
+    int wCount = 0;
+    
+    for (var c in conversations) {
+      final plat = c.platform.toLowerCase();
+      if (plat == 'messenger') mCount++;
+      if (plat == 'instagram') iCount++;
+      if (plat == 'whatsapp') wCount++;
+    }
+    
+    final messengerCount = mCount.toString();
+    final instagramCount = iCount.toString();
+    final whatsappCount = wCount.toString();
+
+    final filteredConversations = selectedPlatform == 'all'
+        ? conversations
+        : conversations.where((c) => c.platform.toLowerCase() == selectedPlatform.toLowerCase()).toList();
+
+    return Container(
+      color: theme.cardTheme.color,
+      child: Column(
+        children: [
+          const SizedBox(height: 16),
+          _buildContinueAiFilter(context),
+          const Divider(height: 16),
+          _buildFilterItem('all', null, "All", allCount, context),
+          _buildFilterItem('messenger', "assets/facebook.svg", "Facebook", messengerCount, context),
+          _buildFilterItem('instagram', "assets/instagram.svg", "Instagram", instagramCount, context),
+          _buildFilterItem('whatsapp', "assets/whatsapp.svg", "WhatsApp", whatsappCount, context),
+          const Divider(height: 16),
+          
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppColor.primary))
+                : filteredConversations.isEmpty
+                    ? Center(child: Text("No conversations", style: TextStyle(color: theme.hintColor)))
+                    : ListView.builder(
+                        itemCount: filteredConversations.length,
+                        itemBuilder: (context, index) {
+                          final conv = filteredConversations[index];
+                          final isActive = selectedConversation?.id == conv.id;
+                          return _buildChatListItem(conv, isActive, context);
+                        },
+                      ),
+          ),
+        ],
       ),
     );
   }

@@ -1,0 +1,375 @@
+import re
+import time
+import httpx
+from langchain_openai import ChatOpenAI
+from langgraph.prebuilt import create_react_agent
+from agent.memory import get_history, save_message, save_conversation_id, fetch_conversation_history
+from agent.prompt_builder import build_prompt
+from agent.tools import get_all_tools
+from agent.tools.http_fallback import build_candidates, get_with_fallback
+from agent.message_parser import parse_incoming_message
+from rag.retriever import retrieve
+from channels.router import send_response
+from core.config import (
+    OPENAI_API_KEY,
+    ROBERTO_API_BASE,
+    ROBERTO_API_BASE_PUBLIC,
+    ROBERTO_API_TOKEN,
+)
+
+# Initialize LLM
+llm = ChatOpenAI(
+    model="gpt-4o",
+    api_key=OPENAI_API_KEY,
+    temperature=0.7
+)
+
+CACHE_TTL_SECONDS = 300  # 5 minutes
+
+_business_cache = {}
+_training_cache = {}
+
+
+def _strip_markdown(text: str) -> str:
+    """
+    Strips markdown formatting symbols from the response before it's sent to
+    the customer or saved to history.
+
+    WHY THIS EXISTS: the system prompt already instructs the model not to
+    use markdown (WhatsApp/Messenger/Instagram don't render it consistently
+    — see prompt_builder.py), but LLMs don't follow formatting instructions
+    with 100% reliability, especially in numbered/bulleted lists. This is a
+    code-level guarantee that catches whatever slips through, rather than
+    relying purely on the prompt.
+    """
+    if not text:
+        return text
+
+    # Bold: **text** -> text (must run before the single-asterisk pass)
+    text = re.sub(r"\*\*([^\n*]+?)\*\*", r"\1", text)
+    # Italics/emphasis: *text* -> text
+    text = re.sub(r"(?<!\*)\*([^\n*]+?)\*(?!\*)", r"\1", text)
+    # Markdown headers at line start: "# ", "## ", etc.
+    text = re.sub(r"(?m)^#{1,6}\s+", "", text)
+    # Inline code backticks: `text` -> text
+    text = re.sub(r"`([^`]+)`", r"\1", text)
+
+    return text
+
+
+def _cache_get(cache: dict, key: str):
+    entry = cache.get(key)
+    if not entry:
+        return None
+    ts, value = entry
+    if (time.time() - ts) > CACHE_TTL_SECONDS:
+        cache.pop(key, None)
+        return None
+    return value
+
+
+def _cache_set(cache: dict, key: str, value):
+    cache[key] = (time.time(), value)
+
+
+def _business_candidates(business_id: str):
+    return build_candidates(
+        bases=[ROBERTO_API_BASE, ROBERTO_API_BASE_PUBLIC],
+        suffixes=[
+            f"/business/{business_id}",
+            f"/public/business/{business_id}",
+            f"/v1/public/business/{business_id}",
+        ],
+    )
+
+
+def _training_candidates(business_id: str):
+    return build_candidates(
+        bases=[ROBERTO_API_BASE_PUBLIC, ROBERTO_API_BASE],
+        suffixes=[
+            f"/public/agent-training/{business_id}",
+            f"/v1/public/agent-training/{business_id}",
+            f"/agent-training/{business_id}",
+        ],
+    )
+
+
+def _campaign_candidates(branch_id: str):
+    return build_candidates(
+        bases=[ROBERTO_API_BASE_PUBLIC, ROBERTO_API_BASE],
+        suffixes=[
+            f"/public/campaigns/{branch_id}",
+            f"/v1/public/campaigns/{branch_id}",
+            f"/campaigns/{branch_id}",
+        ],
+    )
+
+
+async def fetch_business(business_id: str) -> dict:
+    cached = _cache_get(_business_cache, business_id)
+    if cached is not None:
+        return cached
+
+    try:
+        resp = await get_with_fallback(
+            candidates=_business_candidates(business_id),
+            headers={"x-api-token": ROBERTO_API_TOKEN},
+            log_tag="FETCH BUSINESS",
+        )
+        if resp is not None and resp.status_code == 200:
+            data = resp.json()
+            _cache_set(_business_cache, business_id, data)
+            return data
+    except Exception as e:
+        print(f"[FETCH BUSINESS ERROR] {e}")
+
+    return {}
+
+
+async def fetch_training_data(business_id: str) -> dict:
+    cached = _cache_get(_training_cache, business_id)
+    if cached is not None:
+        return cached
+
+    try:
+        resp = await get_with_fallback(
+            candidates=_training_candidates(business_id),
+            headers={
+                "x-api-token": ROBERTO_API_TOKEN,
+                "Content-Type": "application/json",
+            },
+            log_tag="FETCH TRAINING",
+        )
+
+        if resp is not None and resp.status_code == 200:
+            payload = resp.json()
+            data = payload.get("data", {})
+
+            training_config = {
+                "systemPrompt": data.get("systemPrompt", ""),
+                "businessInformation": data.get("businessInformation", ""),
+                "rowText": data.get("rowText", ""),
+                "productInformation": " ".join([
+                    item.get("rowText", "")
+                    for item in data.get("productInformation", [])
+                    if item.get("rowText")
+                ]),
+                "policiesGuidelines": " ".join([
+                    item.get("rowText", "")
+                    for item in data.get("policiesGuidelines", [])
+                    if item.get("rowText")
+                ]),
+                "faq": " ".join([
+                    item.get("rowText", "")
+                    for item in data.get("faq", [])
+                    if item.get("rowText")
+                ]),
+            }
+
+            print(f"[FETCH TRAINING] systemPrompt: {training_config['systemPrompt'][:50]}")
+            print(f"[FETCH TRAINING] rowText length: {len(training_config['rowText'])}")
+
+            _cache_set(_training_cache, business_id, training_config)
+            return training_config
+
+    except Exception as e:
+        print(f"[FETCH TRAINING ERROR] {e}")
+
+    return {}
+
+
+async def fetch_campaigns(branch_id: str) -> list:
+    if not branch_id:
+        return []
+
+    try:
+        resp = await get_with_fallback(
+            candidates=_campaign_candidates(branch_id),
+            headers={
+                "x-api-token": ROBERTO_API_TOKEN,
+                "Content-Type": "application/json",
+            },
+            log_tag="FETCH CAMPAIGN",
+        )
+
+        if resp is not None and resp.status_code == 200:
+            payload = resp.json()
+            all_campaigns = payload.get("data", [])
+
+            # Only keep active (non-expired) campaigns
+            active = [c for c in all_campaigns if c.get("isExpire") is False]
+
+            print(f"[FETCH CAMPAIGN] Total: {len(all_campaigns)} | Active: {len(active)}")
+            return active
+
+    except Exception as e:
+        print(f"[FETCH CAMPAIGN ERROR] {e}")
+
+    return []
+
+
+async def run_agent(
+    business_id: str,
+    training_data_id: str,
+    subject: str,
+    recipient_id: str,
+    conversation_id: str,
+    channel: str,
+    message,  # NOTE: now can be a plain string (legacy) OR a list of typed
+              # blocks: [{"type": "text"/"image"/"document", ...}, ...]
+    branch_id: str = None
+):
+    # ── Step 0: Parse the (possibly multimodal) incoming message ─────
+    # `llm_message_content` is what actually goes to the LLM this turn:
+    #   - a plain string, if there's no image/voice
+    #   - a LangChain multimodal content list, if an image is present
+    # `history_text` is the plain-text version used for long-term memory
+    # and the summary job (image bytes are never stored long-term — only a
+    # placeholder; voice notes ARE stored as their transcribed text, since
+    # the transcription IS the customer's message).
+    # This now also downloads + transcribes voice notes (Whisper) and
+    # downloads + base64-encodes images, so it must be awaited.
+    llm_message_content, history_text = await parse_incoming_message(message)
+
+    # ── Step 1: Fetch business profile ──────────────────────────────
+    business_data = await fetch_business(business_id)
+    business_profile = business_data.get("profile", None)
+
+    # ── Step 2: Fetch training config ────────────────────────────────
+    training_config = await fetch_training_data(business_id)
+
+    # ── Step 3: Fetch active campaigns (session memory) ──────────────
+    active_campaigns = await fetch_campaigns(branch_id)
+
+    # ── Step 4: Decide knowledge source ──────────────────────────────
+    # RAG retrieval needs a plain text query — use the text-only version
+    # even when the actual message to the LLM is multimodal.
+    context = None
+    if training_config:
+        print(f"[KNOWLEDGE SOURCE] Using business training config")
+    else:
+        context = await retrieve(history_text, subject)
+        print(f"[KNOWLEDGE SOURCE] Using Pinecone base-{subject}")
+
+    # ── Step 5: Build system prompt ───────────────────────────────────
+    system_prompt = build_prompt(
+        subject=subject,
+        business_profile=business_profile,
+        training_config=training_config if training_config else None,
+        context=context,
+        active_campaigns=active_campaigns
+    )
+
+    # Always inject actual business_id so agent never guesses it
+    system_prompt += f"\n\nCRITICAL: The business_id for this conversation is: {business_id}"
+    system_prompt += f"\nAlways use this exact business_id when calling collect_lead or create_booking tools."
+    system_prompt += f"\nNever use any other business_id or make one up."
+
+    # Inject branch_id if available
+    if branch_id:
+        system_prompt += f"\n\nCRITICAL: The branch_id for this conversation is: {branch_id}"
+        system_prompt += f"\nAlways pass this exact branch_id when calling collect_lead or create_booking tools."
+    else:
+        system_prompt += f"\n\nNote: No branch_id is available for this conversation. Do not pass a branch_id to collect_lead or create_booking tools."
+
+    # ── Step 6: Load conversation history ────────────────────────────
+    # Primary source: the backend's own message-history API — this persists
+    # across our own restarts, since it lives in the backend's database, not
+    # our RAM. Falls back to local in-memory history only if the backend
+    # call fails/returns nothing (e.g. a brand-new conversation with no
+    # conversation_id yet, or a transient backend hiccup).
+    history = await fetch_conversation_history(conversation_id)
+    if not history:
+        history = get_history(business_id, recipient_id)
+
+    # ── Step 7: Build messages with history ──────────────────────────
+    all_messages = []
+    for h in history:
+        all_messages.append(h)
+    # This turn's message may be plain text or multimodal (text + image)
+    all_messages.append({"role": "user", "content": llm_message_content})
+
+    # ── Step 8: Run LangGraph ReAct agent ────────────────────────────
+    # channel is passed so collect_lead can map it to the correct source
+
+    # Fresh per-request state — flipped to True inside handoff_human.py if
+    # the LLM calls that tool this turn. Checked after the agent finishes to
+    # decide whether to tell the backend "continueAi": false.
+    handoff_state = {"triggered": False, "reason": None}
+
+    tools = get_all_tools(
+        business_id=business_id,
+        branch_id=branch_id,
+        channel=channel,
+        conversation_id=conversation_id,
+        handoff_state=handoff_state,
+    )
+
+    agent = create_react_agent(
+        llm,
+        tools,
+        prompt=system_prompt
+    )
+    result = await agent.ainvoke({"messages": all_messages})
+
+    # ── Step 9: Extract final response ───────────────────────────────
+    ai_response = result["messages"][-1].content
+    # Strip any markdown the model used anyway, despite the prompt's
+    # instruction not to (see _strip_markdown docstring) — this runs before
+    # the response is logged, saved to history, or sent to the customer.
+    ai_response = _strip_markdown(ai_response)
+
+    # ── Step 10: Log for testing ──────────────────────────────────────
+    print(f"\n{'='*50}")
+    print(f"Business ID  : {business_id}")
+    print(f"Branch ID    : {branch_id}")
+    print(f"Subject      : {subject}")
+    print(f"Channel      : {channel}")
+    print(f"Recipient    : {recipient_id}")
+    print(f"Customer Msg : {history_text}")
+    print(f"AI Response  : {ai_response}")
+    print(f"{'='*50}\n")
+
+    # ── Step 11: Save to memory ───────────────────────────────────────
+    # IMPORTANT: store the plain-text version in history, not the raw
+    # multimodal content — image URLs expire and don't belong in long-term
+    # conversation memory or the summary job's input.
+    save_message(business_id, recipient_id, "user", history_text)
+    save_message(business_id, recipient_id, "assistant", ai_response)
+
+    # ── Step 12: Save conversation_id ────────────────────────────────
+    if conversation_id:
+        save_conversation_id(business_id, recipient_id, conversation_id)
+
+    # ── Step 13: Send response to correct channel ─────────────────────
+    # continue_ai is False whenever handoff_human was called this turn — the
+    # backend uses this to decide whether AI should keep replying, or a
+    # human should take over from here. This flag MUST travel with the
+    # actual outgoing send call (not just the /api/agent/message HTTP
+    # response below), because the send call is what creates the persisted
+    # outgoing message record on the backend — without it, the backend has
+    # no way to know THIS specific message was the handoff message.
+    continue_ai = not handoff_state["triggered"]
+
+    # Re-check pause state — it may have changed while the agent was processing
+    from webhooks.incoming import paused_conversations as _paused
+    _pause_key = f"{business_id}:{recipient_id}"
+    if _pause_key in _paused:
+        print(f"[HANDOFF] AI paused mid-processing for {_pause_key} — response suppressed")
+        return {"response": ai_response, "continue_ai": False}
+
+    await send_response(
+        channel=channel,
+        business_id=business_id,
+        recipient_id=recipient_id,
+        conversation_id=conversation_id,
+        message=ai_response,
+        branch_id=branch_id,
+        continue_ai=continue_ai
+    )
+
+    if handoff_state["triggered"]:
+        print(f"[HANDOFF] AI escalating to human — reason: {handoff_state['reason']}")
+
+    # ── Step 14: Return response ──────────────────────────────────────
+    return {"response": ai_response, "continue_ai": continue_ai}

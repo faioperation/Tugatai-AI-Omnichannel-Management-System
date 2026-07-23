@@ -20,6 +20,8 @@ enum BusinessStatus {
   PENDING
 }
 
+
+
 enum RoleName {
   SYSTEM_OWNER
   BUSINESS_OWNER
@@ -47,16 +49,20 @@ model User {
 
   roles                 UserRole[]
   businesses            Business[]         @relation("BusinessOwner")
-  systemBusinesses      SystemBusiness[]   @relation("SystemBusinessCreator")
-  ownedSystemBusinesses SystemBusiness[]   @relation("SystemBusinessOwner")
+  createdBusinesses     Business[]         @relation("BusinessCreator")
   activityLogs          ActivityLog[]      @relation("ActivityLogCreator")
   systemOwnerPlans      SystemOwnerPlan[]  @relation("SystemOwnerPlanCreator")
   subscriptionPlans     SubscriptionPlan[] @relation("SubscriptionPlanCreator")
   createdBranchManagers BranchManager[]    @relation("BranchManagerCreator")
   createdBranches       Branch[]           @relation("BranchCreator")
   createdOrderBookings  OrderBooking[]     @relation("OrderBookingCreator")
+  createdAppointmentBookings AppointmentBooking[] @relation("AppointmentBookingCreator")
+  createdParcelDeliveries    ParcelDelivery[]     @relation("ParcelDeliveryCreator")
   createdPricings       Pricing[]          @relation("PricingCreator")
   createdCrmLeads       CrmLead[]          @relation("CrmLeadCreator")
+  auditLogs             AuditLog[]         @relation("UserAuditLogs")
+  notifications         Notification[]     @relation("UserNotifications")
+  fcmTokens             FCMToken[]         @relation("UserFCMTokens")
 
   @@map("users")
 }
@@ -111,19 +117,20 @@ model RolePermission {
 }
 
 enum DemoBookingStatus {
-  CALLED
   PENDING
+  CALLED
+  FAILED
 }
 
 model DemoBooking {
-  id           String            @id @default(uuid())
-  email        String?           @unique
-  mobileNumber String?           @map("mobile_number")
-  date         DateTime?         @db.Date
-  status       DemoBookingStatus @default(PENDING)
-  credits      Int               @default(0)
-  createdAt    DateTime          @default(now()) @map("created_at")
-  updatedAt    DateTime          @updatedAt @map("updated_at")
+  id          String            @id @default(uuid())
+  name        String
+  email       String
+  subject     String
+  description String            @db.Text
+  status      DemoBookingStatus @default(PENDING)
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
 
   @@map("demo_booking")
 }
@@ -157,42 +164,9 @@ model SystemOwnerPlan {
   @@map("system_owner_plan")
 }
 
-enum BusinessType {
-  Retail
-  Service
-  Manufacturing
-  Tech
-  Other
-}
-
 enum BusinessPlanType {
   MONTHLY
   YEARLY
-}
-
-model SystemBusiness {
-  id              String           @id @default(uuid())
-  businessName    String           @map("business_name")
-  businessType    BusinessType     @default(Other) @map("business_type")
-  description     String?
-  ownerName       String?          @map("owner_name")
-  ownerEmail      String?          @map("owner_email")
-  ownerPassword   String?          @map("owner_password")
-  ownerPhone      String?          @map("owner_phone")
-  selectedBranch  String?          @map("selected_branch")
-  planId          String?          @map("plan_id")
-  planCycle       BusinessPlanType @default(MONTHLY) @map("plan_cycle")
-  status          BusinessStatus   @default(INACTIVE)
-  createdById     String?          @map("created_by_id")
-  businessOwnerId String?          @map("business_owner_id")
-  credits         Int              @default(0)
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @updatedAt @map("updated_at")
-
-  createdBy     User? @relation("SystemBusinessCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  businessOwner User? @relation("SystemBusinessOwner", fields: [businessOwnerId], references: [id], onDelete: SetNull)
-
-  @@map("system_business")
 }
 
 model ActivityLog {
@@ -225,6 +199,10 @@ model SubscriptionPlan {
 
   currency String @default("USD")
 
+  stripeProductId      String?
+  stripeMonthlyPriceId String?
+  stripeYearlyPriceId  String?
+
   isActive Boolean @default(true)
 
   sortOrder Int @default(0)
@@ -235,7 +213,8 @@ model SubscriptionPlan {
   createdById String?
   createdBy   User?   @relation("SubscriptionPlanCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
-  features SubscriptionFeature[]
+  features              SubscriptionFeature[]
+  businessSubscriptions BusinessSubscription[]
 }
 
 model SubscriptionFeature {
@@ -250,6 +229,63 @@ model SubscriptionFeature {
   createdAt DateTime @default(now())
 }
 
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  INACTIVE
+  UNPAID
+}
+
+enum SubscriptionBillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+model BusinessSubscription {
+  id           String                   @id @default(cuid())
+  businessId   String                   @map("business_id")
+  planId       String                   @map("plan_id")
+  status       SubscriptionStatus       @default(INACTIVE)
+  billingCycle SubscriptionBillingCycle @default(MONTHLY) @map("billing_cycle")
+
+  stripeCustomerId     String? @map("stripe_customer_id")
+  stripeSubscriptionId String? @unique @map("stripe_subscription_id")
+
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  business Business              @relation("BusinessSubscriptions", fields: [businessId], references: [id], onDelete: Cascade)
+  plan     SubscriptionPlan      @relation(fields: [planId], references: [id])
+  invoices SubscriptionInvoice[]
+
+  @@map("business_subscriptions")
+}
+
+model SubscriptionInvoice {
+  id              String                   @id @default(cuid())
+  businessId      String                   @map("business_id")
+  subscriptionId  String                   @map("subscription_id")
+  invoiceNo       String                   @unique @map("invoice_no")
+  amount          Float
+  status          String                   @default("paid")
+  billingCycle    SubscriptionBillingCycle @map("billing_cycle")
+  stripeInvoiceId String?                  @unique @map("stripe_invoice_id")
+  invoicePath     String?                  @map("invoice_path")
+  invoiceUrl      String?                  @map("invoice_url")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  business     Business             @relation("BusinessInvoices", fields: [businessId], references: [id], onDelete: Cascade)
+  subscription BusinessSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@map("subscription_invoices")
+}
+
 // System Owner ends---------------------------
 
 // Business Owner --------------------------
@@ -260,32 +296,52 @@ enum BranchManagerStatus {
 }
 
 model Business {
-  id        String         @id @default(uuid())
-  ownerId   String         @map("owner_id")
-  name      String
-  logo      String?
-  email     String?
-  phone     String?
-  country   String?
-  address   String?
-  status    BusinessStatus @default(ACTIVE)
-  createdAt DateTime       @default(now()) @map("created_at")
-  updatedAt DateTime       @updatedAt @map("updated_at")
-  deletedAt DateTime?      @map("deleted_at")
+  id           String           @id @default(uuid())
+  ownerId      String           @map("owner_id")
+  name         String
+  logo         String?
+  email        String?
+  phone        String?
+  country      String?
+  address      String?
+  industry     String?          @map("industry")
+  status       BusinessStatus   @default(INACTIVE)
+  description  String?
+  planId       String?          @map("plan_id")
+  planCycle    BusinessPlanType @default(MONTHLY) @map("plan_cycle")
+  createdById  String?          @map("created_by_id")
+  credits      Int              @default(0)
+  businessType BusinessType?    @map("business_type")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+  deletedAt    DateTime?        @map("deleted_at")
 
-  owner          User            @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  branches       Branch[]
-  branchManagers BranchManager[] @relation("BusinessBranchManagers")
-  orderBookings  OrderBooking[]  @relation("BusinessOrderBookings")
-  pricings       Pricing[]       @relation("BusinessPricings")
-  crmLeads       CrmLead[]       @relation("BusinessCrmLeads")
-  socialConnections SocialConnection[] @relation("BusinessSocialConnections")
-  conversations     Conversation[]     @relation("BusinessConversations")
+  owner               User                   @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdBy           User?                  @relation("BusinessCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  branches            Branch[]
+  branchManagers      BranchManager[]        @relation("BusinessBranchManagers")
+  orderBookings       OrderBooking[]         @relation("BusinessOrderBookings")
+  campaigns           Campaign[]             @relation("BusinessCampaigns")
+  appointmentBookings AppointmentBooking[]   @relation("BusinessAppointmentBookings")
+  parcelDeliveries    ParcelDelivery[]       @relation("BusinessParcelDeliveries")
+  pricings            Pricing[]              @relation("BusinessPricings")
+  crmLeads            CrmLead[]              @relation("BusinessCrmLeads")
+  socialConnections   SocialConnection[]     @relation("BusinessSocialConnections")
+  googleCalendarConnections GoogleCalendarConnection[] @relation("BusinessGoogleCalendar")
+  conversations       Conversation[]         @relation("BusinessConversations")
+  subscriptions       BusinessSubscription[] @relation("BusinessSubscriptions")
+  invoices            SubscriptionInvoice[]  @relation("BusinessInvoices")
 
   whatsappAccounts      WhatsappAccount[]      @relation("BusinessWhatsappAccounts")
   whatsappContacts      WhatsappContact[]      @relation("BusinessWhatsappContacts")
   whatsappConversations WhatsappConversation[] @relation("BusinessWhatsappConversations")
   whatsappMessages      WhatsappMessage[]      @relation("BusinessWhatsappMessages")
+  chatSummaries         ChatSummary[]
+  agentTrainings        AgentTraining[]
+  auditLogs             AuditLog[]             @relation("BusinessAuditLogs")
+  notifications         Notification[]         @relation("BusinessNotifications")
+  additionalDetails     AdditionalDetail[]     @relation("BusinessAdditionalDetails")
+  agents                Agent[]                @relation("BusinessAgents")
 
   @@map("businesses")
 }
@@ -303,14 +359,20 @@ model Branch {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
 
-  business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  manager       BranchManager? @relation(fields: [managerId], references: [id], onDelete: SetNull)
-  createdBy     User?          @relation("BranchCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  orderBookings OrderBooking[] @relation("BranchOrderBookings")
-  crmLeads      CrmLead[]      @relation("BranchCrmLeads")
-  pricings      Pricing[]      @relation("BranchPricings")
+  business          Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  manager           BranchManager?     @relation(fields: [managerId], references: [id], onDelete: SetNull)
+  createdBy         User?              @relation("BranchCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  orderBookings     OrderBooking[]     @relation("BranchOrderBookings")
+  appointmentBookings AppointmentBooking[]   @relation("BranchAppointmentBookings")
+  parcelDeliveries    ParcelDelivery[]       @relation("BranchParcelDeliveries")
+  crmLeads          CrmLead[]          @relation("BranchCrmLeads")
+  pricings          Pricing[]          @relation("BranchPricings")
   socialConnections SocialConnection[] @relation("BranchSocialConnections")
+  googleCalendarConnection GoogleCalendarConnection? @relation("BranchGoogleCalendar")
   conversations     Conversation[]     @relation("BranchConversations")
+  whatsappAccounts  WhatsappAccount[]  @relation("BranchWhatsappAccounts")
+  campaigns         Campaign[]         @relation("BranchCampaigns")
+  notifications     Notification[]     @relation("BranchNotifications")
 
   @@map("branches")
 }
@@ -334,12 +396,23 @@ model BranchManager {
   @@map("branch_managers")
 }
 
-enum OrderStatus {
-  PENDING
-  PROCESSING
-  SHIPPED
-  DELIVERED
-  CANCELLED
+enum BusinessType {
+  ORDER_BOOKING
+  APPOINTMENT_BOOKING
+  PARCEL_DELIVERY
+}
+
+enum FeatureName {
+  ORDER_BOOKING
+  APPOINTMENT_BOOKING
+  PARCEL_DELIVERY
+}
+
+enum LeadStatus {
+  COLD
+  WARM
+  BOOKED
+  HOT
 }
 
 enum PaymentStatus {
@@ -349,64 +422,244 @@ enum PaymentStatus {
   REFUNDED
 }
 
-enum PaymentMethod {
-  CASH_ON_DELIVERY
-  ONLINE_PAYMENT
-  BANK_TRANSFER
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  CHECKED_IN
+  PICKUP_PENDING
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  READY
+  IN_PROGRESS
+  COMPLETED
+  DELIVERED
+  RETURNED
+  RESCHEDULED
+  NO_SHOW
+  ON_HOLD
+  CANCELLED
+  REJECTED
+  REFUNDED
+  FAILED
 }
 
+// ------------------------------------
+// Order Booking & Details
+// ------------------------------------
 model OrderBooking {
-  id          String  @id @default(uuid())
-  businessId  String  @map("business_id")
-  branchId    String? @map("branch_id")
-  createdById String? @map("created_by")
+  id             String        @id @default(uuid())
+  businessId     String        @map("business_id")
+  branchId       String?       @map("branch_id")
+  createdById    String?       @map("created_by")
+  customerName   String        @map("customer_name")
+  customerNumber String        @map("customer_number")
+  email          String?
+  country        String?
+  productName    String?       @map("product_name")
+  price          String
+  note           String?       @db.Text
+  status         BookingStatus @default(PENDING)
+  conversationId String?       @map("conversation_id")
+  calenderDate   String?       @map("calender_date")
+  calenderTime   String?       @map("calender_time")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  deletedAt      DateTime?     @map("deleted_at")
 
-  customerName        String  @map("customer_name")
-  customerNumber      String  @map("customer_number")
-  email               String?
-  address             String
-  deliveryFromAddress String  @map("delivery_from_address")
-  productName         String  @map("product_name")
-  quantity            String
-  size                String
-  price               String
-
-  orderStatus    OrderStatus    @default(PENDING) @map("order_status")
-  paymentStatus  PaymentStatus  @default(PENDING) @map("payment_status")
-  shippingCharge String         @map("shipping_charge")
-  deliveryTime   DateTime       @map("delivery_time")
-  orderNote      String?        @map("order_note")
-  paymentMethod  PaymentMethod? @map("payment_method")
-
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-
-  business  Business @relation("BusinessOrderBookings", fields: [businessId], references: [id], onDelete: Cascade)
-  branch    Branch?  @relation("BranchOrderBookings", fields: [branchId], references: [id], onDelete: SetNull)
-  createdBy User?    @relation("OrderBookingCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  business       Business      @relation("BusinessOrderBookings", fields: [businessId], references: [id], onDelete: Cascade)
+  branch         Branch?       @relation("BranchOrderBookings", fields: [branchId], references: [id], onDelete: SetNull)
+  createdBy      User?         @relation("OrderBookingCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  orderDetails   OrderDetails?
 
   @@map("order_bookings")
 }
 
+model OrderDetails {
+  id              String       @id @default(uuid())
+  businessId      String       @map("business_id")
+  branchId        String?      @map("branch_id")
+  orderId         String       @unique @map("order_id")
+  deliveryDate    String?      @map("delivery_date")
+  deliveryAddress String?      @map("delivery_address")
+  productType     String?      @map("product_type")
+  address         String?
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  deletedAt       DateTime?    @map("deleted_at")
+
+  order           OrderBooking @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_details")
+}
+
+// ------------------------------------
+// Appointment Booking & Details
+// ------------------------------------
+model AppointmentBooking {
+  id                 String              @id @default(uuid())
+  businessId         String              @map("business_id")
+  branchId           String?             @map("branch_id")
+  createdById        String?             @map("created_by")
+  customerName       String              @map("customer_name")
+  customerNumber     String              @map("customer_number")
+  email              String?
+  country            String?
+  productName        String?             @map("product_name")
+  price              String
+  note               String?             @db.Text
+  status             BookingStatus       @default(PENDING)
+  conversationId     String?             @map("conversation_id")
+  calenderDate       String?             @map("calender_date")
+  calenderTime       String?             @map("calender_time")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  deletedAt          DateTime?           @map("deleted_at")
+
+  business           Business            @relation("BusinessAppointmentBookings", fields: [businessId], references: [id], onDelete: Cascade)
+  branch             Branch?             @relation("BranchAppointmentBookings", fields: [branchId], references: [id], onDelete: SetNull)
+  createdBy          User?               @relation("AppointmentBookingCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  appointmentDetails AppointmentDetails?
+
+  @@map("appointment_bookings")
+}
+
+model AppointmentDetails {
+  id              String             @id @default(uuid())
+  businessId      String             @map("business_id")
+  branchId        String?            @map("branch_id")
+  appointmentId   String             @unique @map("appointment_id")
+  appointmentDate String?            @map("appointment_date")
+  appointmentTime DateTime?          @map("appointment_time")
+  platform        String?
+  duration        String?
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  deletedAt       DateTime?          @map("deleted_at")
+
+  appointment     AppointmentBooking @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@map("appointment_details")
+}
+
+// ------------------------------------
+// Parcel Delivery & Details
+// ------------------------------------
+model ParcelDelivery {
+  id             String         @id @default(uuid())
+  businessId     String         @map("business_id")
+  branchId       String?        @map("branch_id")
+  createdById    String?        @map("created_by")
+  customerName   String         @map("customer_name")
+  customerNumber String         @map("customer_number")
+  email          String?
+  country        String?
+  productName    String?        @map("product_name")
+  price          String
+  note           String?        @db.Text
+  status         BookingStatus  @default(PENDING)
+  conversationId String?        @map("conversation_id")
+  calenderDate   String?        @map("calender_date")
+  calenderTime   String?        @map("calender_time")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  deletedAt      DateTime?      @map("deleted_at")
+
+  business       Business       @relation("BusinessParcelDeliveries", fields: [businessId], references: [id], onDelete: Cascade)
+  branch         Branch?        @relation("BranchParcelDeliveries", fields: [branchId], references: [id], onDelete: SetNull)
+  createdBy      User?          @relation("ParcelDeliveryCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  parcelDetails  ParcelDetails?
+
+  @@map("parcel_deliveries")
+}
+
+model ParcelDetails {
+  id               String         @id @default(uuid())
+  businessId       String         @map("business_id")
+  branchId         String?        @map("branch_id")
+  parcelDeliveryId String         @unique @map("parcel_delivery_id")
+  pickupAddress    String?        @map("pickup_address")
+  pickupDate       String?        @map("pickup_date")
+  pickupTime       String?        @map("pickup_time")
+  deliveryDate     String?        @map("delivery_date")
+  deliveryAddress  String?        @map("delivery_address")
+  productType      String?        @map("product_type")
+  productHeight    String?        @map("product_height")
+  productWeight    Int?           @map("product_weight")
+  receiverName     String?        @map("receiver_name")
+  receiverPhone    String?        @map("receiver_phone")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  deletedAt        DateTime?      @map("deleted_at")
+
+  parcelDelivery   ParcelDelivery @relation(fields: [parcelDeliveryId], references: [id], onDelete: Cascade)
+
+  @@map("parcel_details")
+}
+
+// ------------------------------------
+// Features, Additional Details & Payments
+// ------------------------------------
+model Feature {
+  id          String      @id @default(uuid())
+  featureName FeatureName @map("feature_name")
+
+  additionalDetails AdditionalDetail[]
+
+  @@map("features")
+}
+
+model AdditionalDetail {
+  id           String    @id @default(uuid())
+  businessId   String    @map("business_id")
+  branchId     String?   @map("branch_id")
+  featureId    String?   @map("feature_id")
+  referenceId  String    @map("reference_id") // orderBooking, appointmentBooking, parcelDelivery, or crmLead ID
+  key          String
+  value        String    @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  feature      Feature?  @relation(fields: [featureId], references: [id], onDelete: SetNull)
+  business     Business  @relation("BusinessAdditionalDetails", fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("additional_details")
+}
+
+model PaymentDetail {
+  id            String        @id @default(uuid())
+  referenceId   String        @map("reference_id")
+  createdById   String?       @map("created_by")
+  paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
+  paymentMethod String?       @map("payment_method")
+  transactionId String?       @map("transaction_id")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  deletedAt     DateTime?     @map("deleted_at")
+
+  @@map("payment_details")
+}
+
 model Pricing {
-  id          String  @id @default(uuid())
-  businessId  String  @map("business_id")
-  createdById String? @map("created_by")
-  branchId    String? @map("branch_id")
+  id            String  @id @default(uuid())
+  businessId    String  @map("business_id")
+  createdById   String? @map("created_by")
+  branchId      String? @map("branch_id")
 
   ruleName      String  @map("rule_name")
-  type          String?
-  configuration String?
+  type          String  // e.g., "FLAT", "WEIGHT", "DISTANCE", "HOURLY", "FORMULA"
+  configuration Json    // Structured pricing details and math formulas
   status        Boolean @default(true)
 
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
-  business  Business @relation("BusinessPricings", fields: [businessId], references: [id], onDelete: Cascade)
-  createdBy User?    @relation("PricingCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  branch    Branch?  @relation("BranchPricings", fields: [branchId], references: [id], onDelete: SetNull)
+  business      Business  @relation("BusinessPricings", fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy     User?     @relation("PricingCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  branch        Branch?   @relation("BranchPricings", fields: [branchId], references: [id], onDelete: SetNull)
 
   @@map("pricings")
 }
@@ -415,59 +668,75 @@ enum SourceEnum {
   WEBSITE
   SOCIAL_MEDIA
   REFERRAL
-  COLD_CALL
+  COLD_CALL   
   OTHER
-}
-
-enum CrmStatus {
-  NEW
-  CONTACTED
-  QUALIFIED
-  PROPOSAL
-  WON
-  LOST
+  WHATSAPP
+  MESSENGER
+  INSTAGRAM
 }
 
 model CrmLead {
-  id          String  @id @default(uuid())
-  businessId  String  @map("business_id")
-  createdById String? @map("created_by")
-  branchId    String? @map("branch_id")
+  id          String   @id @default(uuid())
+  businessId  String   @map("business_id")
+  createdById String?  @map("created_by")
+  branchId    String?  @map("branch_id")
 
-  name    String
-  email   String?
-  phone   String?
-  source  SourceEnum?
-  status  CrmStatus?
-  address String?
-  note    String?
+  name        String
+  email       String?
+  phone       String?
+  country     String?
+  source      SourceEnum?
+  address     String?
+  note        String?
+  status      LeadStatus @default(COLD)
+  conversationId String?   @map("conversation_id")
+  productType String?    @map("product_type")
 
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  metadata    Json?    // Specific lead collection fields
 
-  business  Business @relation("BusinessCrmLeads", fields: [businessId], references: [id], onDelete: Cascade)
-  createdBy User?    @relation("CrmLeadCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  branch    Branch?  @relation("BranchCrmLeads", fields: [branchId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  business    Business       @relation("BusinessCrmLeads", fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy   User?          @relation("CrmLeadCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  branch      Branch?        @relation("BranchCrmLeads", fields: [branchId], references: [id], onDelete: SetNull)
 
   @@map("crm_leads")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  businessId  String   @map("business_id")
+  userId      String?  @map("user_id")
+  action      String   // e.g. "STATUS_CHANGE", "ASSIGNMENT_CHANGE", "PRICING_RULE_UPDATE"
+  targetTable String   @map("target_table") // e.g. "OrderBooking", "CrmLead"
+  targetId    String   @map("target_id")
+  oldValues   Json?    @map("old_values")
+  newValues   Json?    @map("new_values")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  business    Business @relation("BusinessAuditLogs", fields: [businessId], references: [id], onDelete: Cascade)
+  user        User?    @relation("UserAuditLogs", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
 }
 
 // Facebook Messenger Integration ----------------
 
 model SocialConnection {
-  id            String    @id @default(uuid())
-  businessId    String    @map("business_id")
-  branchId      String?   @map("branch_id")
-  provider      String    // e.g. 'facebook'
-  pageId        String    @map("page_id")
-  pageName      String    @map("page_name")
-  accessToken   String    @map("access_token")
-  tokenExpiry   DateTime? @map("token_expiry")
-  isActive      Boolean   @default(true) @map("is_active")
-  aiReply       Boolean   @default(true) @map("ai_reply")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id          String    @id @default(uuid())
+  businessId  String    @map("business_id")
+  branchId    String?   @map("branch_id")
+  provider    String // e.g. 'facebook'
+  pageId      String    @map("page_id")
+  pageName    String    @map("page_name")
+  accessToken String    @map("access_token")
+  tokenExpiry DateTime? @map("token_expiry")
+  isActive    Boolean   @default(true) @map("is_active")
+  aiReply     Boolean   @default(true) @map("ai_reply")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   business Business @relation("BusinessSocialConnections", fields: [businessId], references: [id], onDelete: Cascade)
   branch   Branch?  @relation("BranchSocialConnections", fields: [branchId], references: [id], onDelete: SetNull)
@@ -479,12 +748,14 @@ model Conversation {
   id            String    @id @default(uuid())
   businessId    String    @map("business_id")
   branchId      String?   @map("branch_id")
-  platform      String    // e.g. 'messenger'
+  platform      String // e.g. 'messenger'
   customerId    String    @map("customer_id")
   customerName  String?   @map("customer_name")
   lastMessage   String?   @map("last_message")
   lastMessageAt DateTime? @map("last_message_at")
   aiReply       Boolean   @default(true) @map("ai_reply")
+  continueAi    Boolean   @default(true) @map("continue_ai")
+  seen          Boolean   @default(true) @map("seen")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
@@ -497,17 +768,19 @@ model Conversation {
 }
 
 model Message {
-  id               String   @id @default(uuid())
-  conversationId   String   @map("conversation_id")
-  senderType       String   // 'business' or 'customer'
-  senderId         String   @map("sender_id")
-  type             String?  @default("text") // 'text', 'image', 'video', 'audio', 'file'
-  messageText      String?  @map("message_text")
-  mediaUrl         String?  @map("media_url")
-  filePath         String?  @map("file_path")
-  platformMessageId String? @unique @map("platform_message_id")
-  rawPayload       Json?    @map("raw_payload")
-  createdAt        DateTime @default(now()) @map("created_at")
+  id                String   @id @default(uuid())
+  conversationId    String   @map("conversation_id")
+  senderType        String // 'business' or 'customer'
+  senderId          String   @map("sender_id")
+  type              String?  @default("text") // 'text', 'image', 'video', 'audio', 'file'
+  messageText       String?  @map("message_text")
+  mediaUrl          String?  @map("media_url")
+  filePath          String?  @map("file_path")
+  platformMessageId String?  @unique @map("platform_message_id")
+  rawPayload        Json?    @map("raw_payload")
+  aiReply           Boolean  @default(true) @map("ai_reply")
+  continueAi        Boolean  @default(true) @map("continue_ai")
+  createdAt         DateTime @default(now()) @map("created_at")
 
   conversation Conversation @relation("ConversationMessages", fields: [conversationId], references: [id], onDelete: Cascade)
 
@@ -525,38 +798,40 @@ enum WhatsappAccountStatus {
 }
 
 model WhatsappAccount {
-  id              String                @id @default(uuid())
-  businessId      String                @map("business_id")
-  wabaId          String                @map("waba_id")
-  phoneNumberId   String                @map("phone_number_id")
-  phoneNumber     String                @map("phone_number")
-  accessToken     String                @map("access_token")
-  status          WhatsappAccountStatus @default(ACTIVE)
-  aiReply         Boolean               @default(true) @map("ai_reply")
-  metadata        Json?
-  createdAt       DateTime              @default(now()) @map("created_at")
-  updatedAt       DateTime              @updatedAt @map("updated_at")
+  id            String                @id @default(uuid())
+  businessId    String                @map("business_id")
+  branchId      String?               @map("branch_id")
+  wabaId        String                @map("waba_id")
+  phoneNumberId String                @map("phone_number_id")
+  phoneNumber   String                @map("phone_number")
+  accessToken   String                @map("access_token")
+  status        WhatsappAccountStatus @default(ACTIVE)
+  aiReply       Boolean               @default(true) @map("ai_reply")
+  metadata      Json?
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
 
-  business        Business               @relation("BusinessWhatsappAccounts", fields: [businessId], references: [id], onDelete: Cascade)
-  contacts        WhatsappContact[]      @relation("AccountWhatsappContacts")
-  conversations   WhatsappConversation[] @relation("AccountWhatsappConversations")
-  messages        WhatsappMessage[]      @relation("AccountWhatsappMessages")
+  business      Business               @relation("BusinessWhatsappAccounts", fields: [businessId], references: [id], onDelete: Cascade)
+  branch        Branch?                @relation("BranchWhatsappAccounts", fields: [branchId], references: [id], onDelete: SetNull)
+  contacts      WhatsappContact[]      @relation("AccountWhatsappContacts")
+  conversations WhatsappConversation[] @relation("AccountWhatsappConversations")
+  messages      WhatsappMessage[]      @relation("AccountWhatsappMessages")
 
   @@unique([businessId, phoneNumberId])
   @@map("whatsapp_accounts")
 }
 
 model WhatsappContact {
-  id                String   @id @default(uuid())
-  businessId        String   @map("business_id")
-  whatsappAccountId String   @map("whatsapp_account_id")
-  waUserId          String   @map("wa_user_id")
+  id                String    @id @default(uuid())
+  businessId        String    @map("business_id")
+  whatsappAccountId String    @map("whatsapp_account_id")
+  waUserId          String    @map("wa_user_id")
   name              String?
-  phoneNumber       String   @map("phone_number")
-  profilePicture    String?  @map("profile_picture")
+  phoneNumber       String    @map("phone_number")
+  profilePicture    String?   @map("profile_picture")
   lastMessageAt     DateTime? @map("last_message_at")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   business        Business               @relation("BusinessWhatsappContacts", fields: [businessId], references: [id], onDelete: Cascade)
   whatsappAccount WhatsappAccount        @relation("AccountWhatsappContacts", fields: [whatsappAccountId], references: [id], onDelete: Cascade)
@@ -568,16 +843,18 @@ model WhatsappContact {
 }
 
 model WhatsappConversation {
-  id                String   @id @default(uuid())
-  businessId        String   @map("business_id")
-  whatsappAccountId String   @map("whatsapp_account_id")
-  contactId         String   @map("contact_id")
-  lastMessageId     String?  @map("last_message_id")
-  unreadCount       Int      @default(0) @map("unread_count")
+  id                String    @id @default(uuid())
+  businessId        String    @map("business_id")
+  whatsappAccountId String    @map("whatsapp_account_id")
+  contactId         String    @map("contact_id")
+  lastMessageId     String?   @map("last_message_id")
+  unreadCount       Int       @default(0) @map("unread_count")
   lastMessageAt     DateTime? @map("last_message_at")
   aiReply           Boolean   @default(true) @map("ai_reply")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  continueAi        Boolean   @default(true) @map("continue_ai")
+  seen              Boolean   @default(true) @map("seen")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   business        Business          @relation("BusinessWhatsappConversations", fields: [businessId], references: [id], onDelete: Cascade)
   whatsappAccount WhatsappAccount   @relation("AccountWhatsappConversations", fields: [whatsappAccountId], references: [id], onDelete: Cascade)
@@ -608,11 +885,13 @@ model WhatsappMessage {
   contactId         String                   @map("contact_id")
   metaMessageId     String?                  @unique @map("meta_message_id")
   direction         WhatsappMessageDirection
-  type              String                   // text, image, video, audio, document, sticker, template
+  type              String // text, image, video, audio, document, sticker, template
   text              String?
   mediaUrl          String?                  @map("media_url")
+  location          Json?
   status            WhatsappMessageStatus?
   rawPayload        Json?                    @map("raw_payload")
+  continueAi        Boolean                  @default(true) @map("continue_ai")
   createdAt         DateTime                 @default(now()) @map("created_at")
   updatedAt         DateTime                 @updatedAt @map("updated_at")
 
@@ -631,10 +910,133 @@ model AgentTraining {
   productInformation  Json?     @map("product_information")
   policiesGuidelines  Json?     @map("policies_guidelines")
   faq                 Json?
+  rowText             String?   @map("row_text")
   businessId          String    @map("business_id")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
   deletedAt           DateTime? @map("deleted_at")
 
+  business            Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
   @@map("agent_training")
+}
+
+model Agent {
+  id          String    @id @default(uuid())
+  businessId  String    @map("business_id")
+  branchId    String?   @map("branch_id")
+  rulesFile   String    @map("rules_file")
+  productFile String?   @map("product_file")
+  vapiId      String?   @map("vapi_id")
+  metadata    Json?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  business    Business  @relation("BusinessAgents", fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("agents")
+}
+
+model ChatSummary {
+  id             String @id @default(uuid())
+  conversationId String @unique @map("conversation_id")
+  businessId     String @map("business_id")
+
+  items          String?
+  pickupArea     String?  @map("pickup_area")
+  destination    String?
+  weight         String?
+  pickupDateTime String?  @map("pickup_date_time")
+  currentStatus  String?  @map("current_status")
+  recentSummary  String?  @map("recent_summary")
+  bookingInfo    Json?    @map("booking_info")
+  summary        String?
+  keyPoints      String[] @map("key_points")
+  intent         String?
+  confidence     String?
+  reason         String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("chat_summaries")
+}
+
+model Campaign {
+  id             String       @id @default(uuid())
+  businessId     String       @map("business_id")
+  branchId       String?      @map("branch_id")
+  title          String
+  selectedPeople LeadStatus[] @map("selected_people")
+  productTypes   String[]     @default([]) @map("product_types")
+  countries      String[]     @default([]) @map("countries")
+  scheduledTime  DateTime     @map("scheduled_time")
+  endDate        DateTime?    @map("end_date")
+  message        String       @db.Text
+  status         String       @default("PENDING")
+  isExpire       Boolean      @default(true) @map("is_expire")
+  country        String?
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  deletedAt      DateTime?    @map("deleted_at")
+
+  business Business @relation("BusinessCampaigns", fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch?  @relation("BranchCampaigns", fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@map("campaigns")
+}
+
+model Notification {
+  id             String    @id @default(uuid())
+  title          String
+  message        String
+  type           String    // e.g. "BRANCH_CREATE", "NEW_MESSAGE", "ORDER_BOOKING", "ORDER_DELIVERY", "PARCEL_DELIVERY", "APPOINTMENT_BOOKING", "VOICE_CALL"
+  role           RoleName?
+  businessId     String?   @map("business_id")
+  branchId       String?   @map("branch_id")
+  userId         String?   @map("user_id")
+  isRead         Boolean   @default(false) @map("is_read")
+  conversationId String?   @map("conversation_id")
+  bookingId      String?   @map("booking_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user         User?     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  business     Business? @relation("BusinessNotifications", fields: [businessId], references: [id], onDelete: Cascade)
+  branch       Branch?   @relation("BranchNotifications", fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@map("notifications")
+}
+
+model FCMToken {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  token      String   @unique
+  deviceType String   @default("WEB") @map("device_type")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user       User     @relation("UserFCMTokens", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("fcm_tokens")
+}
+
+model GoogleCalendarConnection {
+  id           String    @id @default(uuid())
+  businessId   String    @map("business_id")
+  branchId     String    @unique @map("branch_id")
+  email        String    @map("email")
+  accessToken  String    @map("access_token")
+  refreshToken String    @map("refresh_token")
+  tokenExpiry  DateTime? @map("token_expiry")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  business Business @relation("BusinessGoogleCalendar", fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch   @relation("BranchGoogleCalendar", fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@map("google_calendar_connections")
 }

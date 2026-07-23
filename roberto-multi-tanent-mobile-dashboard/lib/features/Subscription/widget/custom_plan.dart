@@ -7,6 +7,9 @@ class CustomPlan extends StatelessWidget {
   final String price;
   final List<String> features;
   final String iconPath;
+  final String? buttonText;
+  final VoidCallback? onButtonPressed;
+  final String billingPeriod;
 
   const CustomPlan({
     super.key,
@@ -15,6 +18,9 @@ class CustomPlan extends StatelessWidget {
     required this.price,
     required this.features,
     required this.iconPath,
+    this.buttonText,
+    this.onButtonPressed,
+    this.billingPeriod = '/month',
   });
 
   @override
@@ -73,7 +79,7 @@ class CustomPlan extends StatelessWidget {
                       ),
                     ),
                     TextSpan(
-                      text: '/month',
+                      text: billingPeriod,
                       style: TextStyle(
                         fontSize: 14,
                         color: Theme.of(context).textTheme.bodySmall?.color,
@@ -87,6 +93,29 @@ class CustomPlan extends StatelessWidget {
 
               // FEATURES
               ...features.map((f) => _FeatureItem(text: f)).toList(),
+
+              if (buttonText != null) ...[
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: onButtonPressed == null
+                          ? Colors.grey.shade400
+                          : Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    onPressed: onButtonPressed,
+                    child: Text(
+                      buttonText!,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -126,7 +155,6 @@ class CustomPlan extends StatelessWidget {
     );
   }
 }
-
 
 class _FeatureItem extends StatelessWidget {
   final String text;

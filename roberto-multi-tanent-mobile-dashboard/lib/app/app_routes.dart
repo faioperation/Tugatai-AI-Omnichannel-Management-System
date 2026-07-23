@@ -13,11 +13,11 @@ class Routes {
   static const String verifyOtp = '/verify-otp';
   static const String resetPassword = '/reset-password';
   static const String success = '/success';
-  
+
   // Dashboard Routes
   static const String overview = '/overview';
   static const String inbox = '/inbox';
-  static const String orderBooking = '/order-booking';
+  static const String orderBooking = '/booking';
   static const String aiAgent = '/ai-agent';
   static const String pricing = '/pricing';
   static const String campaigns = '/campaigns';
@@ -25,16 +25,20 @@ class Routes {
   static const String subscriptions = '/subscriptions';
   static const String management = '/management';
   static const String settings = '/settings';
+  static const String editProfile = '/edit-profile';
   static const String demoBookings = '/demo-bookings';
   static const String notifications = '/notifications';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     String routeName = settings.name ?? '';
-    
+    final uri = Uri.parse(routeName);
+    routeName = uri.path;
+    final queryParams = uri.queryParameters;
+
     // Parse role and actual route from name
     UserRole? routeRole;
     String actualRoute = routeName;
-    
+
     if (routeName.startsWith('/system-owner')) {
       routeRole = UserRole.systemOwner;
       actualRoute = routeName.replaceFirst('/system-owner', '');
@@ -49,9 +53,13 @@ class Routes {
     // Standard dashboard case
     if (isDashboardRoute(actualRoute)) {
       final args = settings.arguments as Map<String, dynamic>? ?? {};
-      final role = routeRole ?? args['role'] as UserRole? ?? UserRole.businessOwner;
+      final role =
+          routeRole ?? args['role'] as UserRole? ?? UserRole.businessOwner;
       final branch = args['assignedBranch'] as Map<String, String>?;
-      
+      final businessId = args['businessId'] as String?;
+      final conversationId =
+          queryParams['conversationId'] ?? args['conversationId'] as String?;
+
       return PageRouteBuilder(
         settings: settings,
         transitionDuration: Duration.zero,
@@ -60,6 +68,8 @@ class Routes {
           role: role,
           assignedBranch: branch,
           initialItem: getDashboardItem(actualRoute, role: role),
+          initialBusinessId: businessId,
+          initialConversationId: conversationId,
         ),
       );
     }
@@ -77,9 +87,10 @@ class Routes {
           builder: (_) => const ForgotScreen(),
         );
       case verifyOtp:
+        final email = settings.arguments as String? ?? '';
         return MaterialPageRoute(
           settings: settings,
-          builder: (_) => const VerifyScreen(),
+          builder: (_) => VerifyScreen(email: email),
         );
       case resetPassword:
         return MaterialPageRoute(
@@ -115,12 +126,16 @@ class Routes {
       subscriptions,
       management,
       settings,
+      editProfile,
       demoBookings,
-      notifications
+      notifications,
     ].contains(normalizedName);
   }
 
-  static String getDashboardItem(String route, {UserRole role = UserRole.businessOwner}) {
+  static String getDashboardItem(
+    String route, {
+    UserRole role = UserRole.businessOwner,
+  }) {
     String normalizedRoute = route.startsWith('/') ? route : '/$route';
     switch (normalizedRoute) {
       case overview:
@@ -140,9 +155,13 @@ class Routes {
       case subscriptions:
         return 'Subscriptions';
       case management:
-        return role == UserRole.systemOwner ? 'Tenant Management' : 'Management';
+        return role == UserRole.systemOwner
+            ? 'Tenant Management'
+            : 'Management';
       case settings:
         return 'Settings';
+      case editProfile:
+        return 'Edit Profile';
       case demoBookings:
         return 'Demo Bookings';
       case notifications:

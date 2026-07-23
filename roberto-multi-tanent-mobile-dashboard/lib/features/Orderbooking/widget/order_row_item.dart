@@ -85,11 +85,11 @@ class OrderRowItem extends StatelessWidget {
             ),
           ),
           
-          // Address
+          // Platform / Source
           Expanded(
             flex: 2,
             child: Text(
-              order.address,
+              order.platform ?? order.source ?? 'N/A',
               style: TextStyle(
                 color: Theme.of(context).textTheme.bodyMedium?.color,
               ),
@@ -102,11 +102,11 @@ class OrderRowItem extends StatelessWidget {
             child: _buildStatusBadge(context, order.status),
           ),
           
-          // Shipping Charge
+          // Price
           Expanded(
             flex: 2,
             child: Text(
-              '\$${order.shippingCharge.toStringAsFixed(2)}',
+              '\$${order.price}',
               style: TextStyle(
                 fontWeight: FontWeight.w500,
                 color: Theme.of(context).colorScheme.onSurface,
@@ -114,11 +114,11 @@ class OrderRowItem extends StatelessWidget {
             ),
           ),
           
-          // Delivery Time
+          // Appointment Time
           Expanded(
             flex: 2,
             child: Text(
-              order.deliveryTime,
+              '${order.appointmentDate ?? ''}',
               style: TextStyle(
                 color: Theme.of(context).textTheme.bodyMedium?.color,
               ),
@@ -171,10 +171,16 @@ class OrderRowItem extends StatelessWidget {
         textColor = isDark ? Colors.blue.shade400 : const Color(0xff2563EB);
         statusText = 'Confirmed';
         break;
+      case OrderStatus.completed:
       case OrderStatus.delivered:
         backgroundColor = isDark ? Colors.green.withOpacity(0.1) : const Color(0xffD1FAE5);
         textColor = isDark ? Colors.green.shade400 : const Color(0xff059669);
-        statusText = 'Delivered';
+        statusText = status == OrderStatus.completed ? 'Completed' : 'Delivered';
+        break;
+      case OrderStatus.cancelled:
+        backgroundColor = isDark ? Colors.red.withOpacity(0.1) : const Color(0xffFEE2E2);
+        textColor = isDark ? Colors.red.shade400 : const Color(0xffDC2626);
+        statusText = 'Cancelled';
         break;
     }
 

@@ -36,10 +36,13 @@ class _CustomAgentState extends State<CustomAgent> {
               const SizedBox(height: 7),
               Text(
                 "Your AI agent is ready to configure and train.",
-                style: TextStyle(fontSize: isSmall ? 12 : 14, color: Theme.of(context).textTheme.bodyMedium?.color),
+                style: TextStyle(
+                  fontSize: isSmall ? 12 : 14,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                ),
               ),
-              const SizedBox(height: 27),
-              _buildStatusSection(isSmall),
+              // const SizedBox(height: 27),
+              // _buildStatusSection(isSmall),
             ],
           ),
         );
@@ -50,12 +53,12 @@ class _CustomAgentState extends State<CustomAgent> {
   Widget _buildTopHeader(bool isSmall) {
     return Row(
       children: [
-          SvgPicture.asset(
-            'assets/agent.svg',
-            width: isSmall ? 20 : 23,
-            height: isSmall ? 20 : 23,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
+        SvgPicture.asset(
+          'assets/agent.svg',
+          width: isSmall ? 20 : 23,
+          height: isSmall ? 20 : 23,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
         const SizedBox(width: 8),
         Text(
           "AI Agent Status",
@@ -68,77 +71,77 @@ class _CustomAgentState extends State<CustomAgent> {
     );
   }
 
-  Widget _buildStatusSection(bool isSmall) {
-    final titleCol = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "AI Agent ",
-          style: TextStyle(
-            fontSize: isSmall ? 14 : 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 7),
-        Text(
-          "AI is handling conversations automatically",
-          style: TextStyle(
-            fontSize: isSmall ? 12 : 14,
-            color: Theme.of(context).textTheme.bodyMedium?.color,
-          ),
-        ),
-      ],
-    );
-
-    final switchBtn = Transform.scale(
-      scale: isSmall ? 0.6 : 0.70,
-      child: Switch(
-        value: isOn,
-        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        onChanged: (value) {
-          setState(() {
-            isOn = value;
-          });
-        },
-        activeColor: Theme.of(context).colorScheme.primary,
-      ),
-    );
-
-    if (isSmall) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "AI Agent ",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              switchBtn,
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            "AI is handling conversations automatically",
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(context).textTheme.bodyMedium?.color,
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        titleCol,
-        switchBtn,
-      ],
-    );
-  }
+  // Widget _buildStatusSection(bool isSmall) {
+  //   final titleCol = Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Text(
+  //         "AI Agent ",
+  //         style: TextStyle(
+  //           fontSize: isSmall ? 14 : 16,
+  //           fontWeight: FontWeight.w600,
+  //         ),
+  //       ),
+  //       const SizedBox(height: 7),
+  //       Text(
+  //         "AI is handling conversations automatically",
+  //         style: TextStyle(
+  //           fontSize: isSmall ? 12 : 14,
+  //           color: Theme.of(context).textTheme.bodyMedium?.color,
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  //
+  //   final switchBtn = Transform.scale(
+  //     scale: isSmall ? 0.6 : 0.70,
+  //     child: Switch(
+  //       value: isOn,
+  //       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  //       onChanged: (value) {
+  //         setState(() {
+  //           isOn = value;
+  //         });
+  //       },
+  //       activeColor: Theme.of(context).colorScheme.primary,
+  //     ),
+  //   );
+  //
+  //   if (isSmall) {
+  //     return Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         Row(
+  //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //           children: [
+  //             const Text(
+  //               "AI Agent ",
+  //               style: TextStyle(
+  //                 fontSize: 14,
+  //                 fontWeight: FontWeight.w600,
+  //               ),
+  //             ),
+  //             switchBtn,
+  //           ],
+  //         ),
+  //         const SizedBox(height: 4),
+  //         Text(
+  //           "AI is handling conversations automatically",
+  //           style: TextStyle(
+  //             fontSize: 12,
+  //             color: Theme.of(context).textTheme.bodyMedium?.color,
+  //           ),
+  //         ),
+  //       ],
+  //     );
+  //   }
+  //
+  //   return Row(
+  //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //     children: [
+  //       titleCol,
+  //       switchBtn,
+  //     ],
+  //   );
+  // }
 }

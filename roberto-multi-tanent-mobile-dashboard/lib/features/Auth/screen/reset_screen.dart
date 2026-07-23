@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:roberto/app/app_routes.dart';
-import 'package:roberto/features/Auth/screen/successful_screen.dart';
-import '../../../app/app_color.dart';
 import '../../../common/custom_button.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../widget/custom_screen.dart';
 import '../widget/custom_textfield.dart';
+import '../bloc/forgot_password_bloc.dart';
+import '../bloc/forgot_password_event.dart';
+import '../bloc/forgot_password_state.dart';
 
 
 class ResetScreen extends StatefulWidget {
@@ -16,22 +17,45 @@ class ResetScreen extends StatefulWidget {
 }
 
 class _ResetScreenState extends State<ResetScreen> {
-  bool _rememberMe = false;
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: CustomScreen(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      body: BlocConsumer<ForgotPasswordBloc, ForgotPasswordState>(
+        listener: (context, state) {
+          if (state is ForgotPasswordResetSuccess) {
+            Navigator.pushNamed(context, Routes.success);
+          } else if (state is ForgotPasswordFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            );
+          }
+        },
+        builder: (context, state) {
+          return CustomScreen(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
             Center(
-              child: SvgPicture.asset(
-                'assets/logo.svg',
-                height: 80,
+              child: Image.asset(
+                Theme.of(context).brightness == Brightness.dark
+                    ? 'assets/Omnirra_AI_logo_white.png'
+                    : 'assets/Omnirra_AI_logo_black.png',
+                height: 120,
               ),
             ),
             const SizedBox(height: 20),
@@ -71,6 +95,7 @@ class _ResetScreenState extends State<ResetScreen> {
             ),
             const SizedBox(height: 8),
             CustomTextfield(
+              controller: _passwordController,
               hintText: "*********",
               isPassword: true,
               textInputAction: TextInputAction.next,
@@ -91,27 +116,41 @@ class _ResetScreenState extends State<ResetScreen> {
             const SizedBox(height: 8),
 
             CustomTextfield(
+              controller: _confirmPasswordController,
               hintText: "*********",
               isPassword: true,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _handleReset(),
+              validator: (val) {
+                if (val == null || val.isEmpty) return 'This field is required';
+                if (val != _passwordController.text) return 'Passwords do not match';
+                return null;
+              },
             ),
 
             const SizedBox(height: 25),
-            CustomButton(
-              text: "Reset Password",
-              onTap: _handleReset,
-            ),
+            state is ForgotPasswordLoading
+                ? const Center(child: CircularProgressIndicator())
+                : CustomButton(
+                    text: "Reset Password",
+                    onTap: _handleReset,
+                  ),
 
             const SizedBox(height: 20),
 
           ],
         ),
       ),
+      );
+      },
+      ),
     );
   }
 
   void _handleReset() {
-    Navigator.pushNamed(context, Routes.success);
+    if (_formKey.currentState!.validate()) {
+      final pass = _passwordController.text;
+      context.read<ForgotPasswordBloc>().add(ResetPasswordRequested(newPassword: pass));
+    }
   }
 }
