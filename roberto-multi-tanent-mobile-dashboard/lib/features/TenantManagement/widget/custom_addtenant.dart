@@ -76,7 +76,11 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
       }
 
       if (t.branches.isNotEmpty) {
-        _branchNameCtrl.text = t.branches.first.name;
+        final b = t.branches.first;
+        _branchNameCtrl.text = b.name;
+        _branchEmailCtrl.text = b.email ?? '';
+        _branchPhoneCtrl.text = b.phone ?? '';
+        _branchAddressCtrl.text = b.address ?? '';
       }
     }
   }
