@@ -986,6 +986,29 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     );
   }
 
+  String _getDisplayAddress(OrderMod order, String? bType) {
+    final normalized = bType?.toUpperCase().replaceAll(' ', '_');
+    if (normalized == 'APPOINTMENT_BOOKING') {
+      return order.platform ?? order.source ?? "N/A";
+    }
+    
+    final isParcel = (normalized == 'PERCEL_BOOKING' || normalized == 'PARCEL_BOOKING' || normalized == 'PARCEL_DELIVERY');
+    if (isParcel) {
+      if (order.pickupAddress != null && order.pickupAddress!.trim().isNotEmpty) {
+        return order.pickupAddress!;
+      }
+      if (order.deliveryAddress != null && order.deliveryAddress!.trim().isNotEmpty) {
+        return order.deliveryAddress!;
+      }
+      return "N/A";
+    }
+    
+    if (order.deliveryAddress != null && order.deliveryAddress!.trim().isNotEmpty) {
+      return order.deliveryAddress!;
+    }
+    return order.platform ?? order.source ?? "N/A";
+  }
+
   Widget _buildDesktopRow(OrderMod order, int index, ThemeData theme, bool isDark, String? bType) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -1023,11 +1046,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(
-                      (bType != null && bType.toUpperCase().replaceAll(' ', '_') == 'APPOINTMENT_BOOKING')
-                          ? (order.platform ?? order.source ?? "N/A")
-                          : (bType != null && (bType.toUpperCase().replaceAll(' ', '_') == 'PERCEL_BOOKING' || bType.toUpperCase().replaceAll(' ', '_') == 'PARCEL_BOOKING'))
-                              ? (order.pickupAddress ?? order.deliveryAddress ?? "N/A")
-                              : (order.deliveryAddress ?? order.platform ?? order.source ?? "N/A"),
+                      _getDisplayAddress(order, bType),
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                           color: theme.textTheme.bodyMedium?.color, fontSize: 13)),
@@ -1202,11 +1221,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 child: _buildCardDetail(
                   icon: (bType != null && bType.toUpperCase().replaceAll(' ', '_') == 'APPOINTMENT_BOOKING') ? Icons.computer : Icons.location_on_outlined,
                   label: addressLabel,
-                  value: (bType != null && bType.toUpperCase().replaceAll(' ', '_') == 'APPOINTMENT_BOOKING')
-                          ? (order.platform ?? order.source ?? "N/A")
-                          : (bType != null && (bType.toUpperCase().replaceAll(' ', '_') == 'PERCEL_BOOKING' || bType.toUpperCase().replaceAll(' ', '_') == 'PARCEL_BOOKING'))
-                              ? (order.pickupAddress ?? order.deliveryAddress ?? "N/A")
-                              : (order.deliveryAddress ?? order.platform ?? order.source ?? "N/A"),
+                  value: _getDisplayAddress(order, bType),
                   theme: theme,
                 ),
               ),
