@@ -67,6 +67,8 @@ class TenantBusiness {
   final String? createdAt;
   final TenantOwner? owner;
   final List<TenantBranch> branches;
+  final double? monthlyPrice;
+  final double? yearlyPrice;
 
   TenantBusiness({
     required this.id,
@@ -84,6 +86,8 @@ class TenantBusiness {
     this.createdAt,
     this.owner,
     required this.branches,
+    this.monthlyPrice,
+    this.yearlyPrice,
   });
 
   factory TenantBusiness.fromJson(Map<String, dynamic> json) {
@@ -106,6 +110,8 @@ class TenantBusiness {
               ?.map((e) => TenantBranch.fromJson(e))
               .toList() ??
           [],
+      monthlyPrice: json['plan'] != null ? (json['plan']?['monthlyPrice'] as num?)?.toDouble() : null,
+      yearlyPrice: json['plan'] != null ? (json['plan']?['yearlyPrice'] as num?)?.toDouble() : null,
     );
   }
 }
