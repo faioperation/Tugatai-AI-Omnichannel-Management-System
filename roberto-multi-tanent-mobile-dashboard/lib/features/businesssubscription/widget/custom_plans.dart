@@ -135,6 +135,7 @@ class _CustomPlansState extends State<CustomPlans> {
           );
         } else if (state is BusinessSubscriptionLoaded) {
           String? activePlanSlug;
+          String? activeBillingCycle;
           bool isExpired = false;
           String expiredBillingCycle = "monthly";
           String expiredPlanId = "";
@@ -147,6 +148,7 @@ class _CustomPlansState extends State<CustomPlans> {
               expiredPlanId = sub.plan!.id;
               if (!isExpired) {
                 activePlanSlug = sub.plan!.slug.toLowerCase();
+                activeBillingCycle = sub.billingCycle.toLowerCase();
               }
             }
           }
@@ -216,7 +218,7 @@ class _CustomPlansState extends State<CustomPlans> {
                   ),
                 ),
               _buildBillingToggle(theme, isDark),
-              _buildStandardPlans(context, activePlanSlug: activePlanSlug),
+              _buildStandardPlans(context, activePlanSlug: activePlanSlug, activeBillingCycle: activeBillingCycle),
             ],
           );
         }
@@ -225,7 +227,7 @@ class _CustomPlansState extends State<CustomPlans> {
     );
   }
 
-  Widget _buildStandardPlans(BuildContext context, {String? activePlanSlug}) {
+  Widget _buildStandardPlans(BuildContext context, {String? activePlanSlug, String? activeBillingCycle}) {
     final width = MediaQuery.of(context).size.width;
     final bool isDesktop = width > 900;
     final bool isTablet = width > 600;
@@ -299,7 +301,10 @@ class _CustomPlansState extends State<CustomPlans> {
     final List<Widget> planWidgets = plansData.map((data) {
       final String planId = data["id"] as String;
       final String slug = data["slug"] as String;
-      final bool isActive = activePlanSlug != null && activePlanSlug == slug;
+      final bool isActive = activePlanSlug != null &&
+          activePlanSlug == slug &&
+          activeBillingCycle != null &&
+          activeBillingCycle == (_isYearly ? 'yearly' : 'monthly');
 
       return CustomPlan(
         title: data["title"] as String,
