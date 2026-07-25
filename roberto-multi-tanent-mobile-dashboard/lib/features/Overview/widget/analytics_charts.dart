@@ -5,17 +5,45 @@ import 'package:roberto/app/app_color.dart';
 class RevenueLineChart extends StatelessWidget {
   final List<FlSpot> spots;
   final String title;
+  final List<String>? xLabels;
 
   const RevenueLineChart({
     super.key,
     required this.spots,
     required this.title,
+    this.xLabels,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    // Calculate maximum Y to configure leftTitles and chart scale
+    double maxVal = 0;
+    for (var spot in spots) {
+      if (spot.y > maxVal) {
+        maxVal = spot.y;
+      }
+    }
+    double calculatedMaxY = maxVal > 0 ? (maxVal * 1.2) : 100;
+
+    // Determine dynamic interval
+    double interval = 5000;
+    if (maxVal > 0) {
+      if (maxVal <= 10) {
+        interval = 2;
+      } else if (maxVal <= 100) {
+        interval = 20;
+      } else if (maxVal <= 1000) {
+        interval = 200;
+      } else if (maxVal <= 10000) {
+        interval = 2000;
+      } else {
+        interval = (maxVal / 5).roundToDouble();
+        if (interval == 0) interval = 5000;
+      }
+    }
 
     return Container(
       height: 300,
@@ -40,6 +68,8 @@ class RevenueLineChart extends StatelessWidget {
           Expanded(
             child: LineChart(
               LineChartData(
+                maxY: calculatedMaxY,
+                minY: 0,
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
@@ -61,8 +91,18 @@ class RevenueLineChart extends StatelessWidget {
                       interval: 1,
                       getTitlesWidget: (value, meta) {
                         const style = TextStyle(color: Colors.grey, fontSize: 12);
+                        final int index = value.toInt();
+                        if (xLabels != null) {
+                          if (index >= 0 && index < xLabels!.length) {
+                            return SideTitleWidget(
+                              axisSide: meta.axisSide,
+                              child: Text(xLabels![index], style: style),
+                            );
+                          }
+                          return Container();
+                        }
                         String text;
-                        switch (value.toInt()) {
+                        switch (index) {
                           case 0: text = 'Jan'; break;
                           case 2: text = 'Mar'; break;
                           case 4: text = 'May'; break;
@@ -81,10 +121,16 @@ class RevenueLineChart extends StatelessWidget {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      interval: 5000,
+                      interval: interval,
                       getTitlesWidget: (value, meta) {
+                        String text;
+                        if (value >= 1000) {
+                          text = '${(value / 1000).toStringAsFixed(1)}k';
+                        } else {
+                          text = value.toInt().toString();
+                        }
                         return Text(
-                          '${(value / 1000).toInt()}k',
+                          text,
                           style: const TextStyle(color: Colors.grey, fontSize: 12),
                         );
                       },
