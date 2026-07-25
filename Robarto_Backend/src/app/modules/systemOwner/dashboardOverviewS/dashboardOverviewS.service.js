@@ -133,16 +133,41 @@ const getDashboardOverviewService = async (query = {}) => {
         };
     });
 
-    // 5. Platform Revenue (total paid invoices count)
-    const totalRevenueResult = await prisma.subscriptionInvoice.aggregate({
+    // 5. Platform Revenue (month-wise paid invoices for current year)
+    const currentYear = now.getFullYear();
+    const startOfYear = new Date(currentYear, 0, 1);
+    const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59, 999);
+
+    const invoices = await prisma.subscriptionInvoice.findMany({
         where: {
             status: "paid",
+            createdAt: {
+                gte: startOfYear,
+                lte: endOfYear,
+            },
         },
-        _sum: {
+        select: {
             amount: true,
+            createdAt: true,
         },
     });
-    const platformRevenue = Math.round((totalRevenueResult._sum.amount || 0) * 100) / 100;
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthlyRevenueMap = {};
+    monthNames.forEach((month) => {
+        monthlyRevenueMap[month] = 0;
+    });
+
+    invoices.forEach((inv) => {
+        const monthIndex = new Date(inv.createdAt).getMonth();
+        const monthName = monthNames[monthIndex];
+        monthlyRevenueMap[monthName] += inv.amount;
+    });
+
+    const platformRevenue = monthNames.map((month) => ({
+        month,
+        revenue: Math.round(monthlyRevenueMap[month] * 100) / 100,
+    }));
 
     // 6. Monthly Revenue (paid invoices in current month)
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
