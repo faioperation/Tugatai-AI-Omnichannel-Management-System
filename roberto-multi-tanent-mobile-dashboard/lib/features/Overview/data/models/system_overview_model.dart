@@ -3,7 +3,7 @@ class SystemOverviewModel {
   final List<OverviewActivityModel> recentActivity;
   final List<SectorPerformanceModel> topPerformingSectors;
   final List<BusinessDistributionModel> businessDistribution;
-  final double platformRevenue;
+  final List<MonthRevenueModel> platformRevenue;
   final double monthlyRevenue;
   final int activeSubscriptions;
   final int totalBusinesses;
@@ -34,7 +34,11 @@ class SystemOverviewModel {
               ?.map((e) => BusinessDistributionModel.fromJson(e))
               .toList() ??
           [],
-      platformRevenue: (json['platformRevenue'] ?? 0).toDouble(),
+      platformRevenue: (json['platformRevenue'] is List)
+          ? (json['platformRevenue'] as List)
+              .map((e) => MonthRevenueModel.fromJson(e))
+              .toList()
+          : [],
       monthlyRevenue: (json['monthlyRevenue'] ?? 0).toDouble(),
       activeSubscriptions: json['activeSubscriptions'] ?? 0,
       totalBusinesses: json['totalBusinesses'] ?? 0,
@@ -128,6 +132,23 @@ class BusinessDistributionModel {
       category: json['category'] ?? '',
       count: json['count'] ?? 0,
       percentage: (json['percentage'] ?? 0).toDouble(),
+    );
+  }
+}
+
+class MonthRevenueModel {
+  final String month;
+  final double revenue;
+
+  MonthRevenueModel({
+    required this.month,
+    required this.revenue,
+  });
+
+  factory MonthRevenueModel.fromJson(Map<String, dynamic> json) {
+    return MonthRevenueModel(
+      month: json['month'] ?? '',
+      revenue: (json['revenue'] ?? 0).toDouble(),
     );
   }
 }

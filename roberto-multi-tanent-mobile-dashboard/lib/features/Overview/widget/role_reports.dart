@@ -53,14 +53,22 @@ class RoleReports extends StatelessWidget {
       );
     }).toList() ?? [];
 
+    // Build dynamic spots for Platform Revenue Trends
+    final List<FlSpot> revenueSpots = [];
+    if (overviewData != null && overviewData!.platformRevenue.isNotEmpty) {
+      for (int i = 0; i < overviewData!.platformRevenue.length; i++) {
+        revenueSpots.add(FlSpot(i.toDouble(), overviewData!.platformRevenue[i].revenue));
+      }
+    } else {
+      revenueSpots.add(const FlSpot(0, 0));
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const RevenueLineChart(
+        RevenueLineChart(
           title: "Platform Revenue Trends",
-          spots: [
-            FlSpot(0, 0),
-          ],
+          spots: revenueSpots,
         ),
         const SizedBox(height: 24),
         if (isDesktop)
