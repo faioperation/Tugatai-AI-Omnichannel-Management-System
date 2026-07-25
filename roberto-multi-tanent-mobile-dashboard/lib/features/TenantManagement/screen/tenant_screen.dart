@@ -355,7 +355,7 @@ class _TenantScreenState extends State<TenantScreen> {
           Expanded(
             flex: 1,
             child: Text(
-              '\$0', // Dynamic pricing missing in API
+              '\$${((tenant.planCycle?.toUpperCase() == 'YEARLY') ? (tenant.yearlyPrice ?? 0) : (tenant.monthlyPrice ?? 0)).toInt()}',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -490,7 +490,7 @@ class _TenantScreenState extends State<TenantScreen> {
                     style: TextStyle(fontSize: 11, color: theme.textTheme.bodySmall?.color),
                   ),
                   Text(
-                    '\$0',
+                    '\$${((tenant.planCycle?.toUpperCase() == 'YEARLY') ? (tenant.yearlyPrice ?? 0) : (tenant.monthlyPrice ?? 0)).toInt()}',
                     style: TextStyle(
                         fontSize: 13, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
                   ),
