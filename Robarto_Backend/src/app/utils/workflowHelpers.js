@@ -177,3 +177,91 @@ export const getBusinessAndBranchForUser = async (user) => {
   }
   return { businessId: null, branchId: null, isOwner: false };
 };
+
+export const syncBookingToCrmLead = async (tx, booking, payload, businessType) => {
+  try {
+    const phone = booking.customerNumber || null;
+    const email = booking.email || null;
+    const conversationId = booking.conversationId || null;
+
+    let existingLead = null;
+
+    if (conversationId) {
+      existingLead = await tx.crmLead.findFirst({
+        where: { conversationId, businessId: booking.businessId }
+      });
+    }
+
+    if (!existingLead && phone) {
+      existingLead = await tx.crmLead.findFirst({
+        where: { phone, businessId: booking.businessId }
+      });
+    }
+
+    if (!existingLead && email) {
+      existingLead = await tx.crmLead.findFirst({
+        where: { email, businessId: booking.businessId }
+      });
+    }
+
+    // Extract productType
+    let productType = payload.productType ||
+      payload.product_type ||
+      payload.packageType ||
+      payload.package_type ||
+      payload.shipmentType ||
+      payload.shipment_type ||
+      booking.productName ||
+      (booking.orderDetails && booking.orderDetails.productType) ||
+      (booking.parcelDetails && booking.parcelDetails.productType) ||
+      null;
+
+    const leadData = {
+      businessId: booking.businessId,
+      branchId: booking.branchId || null,
+      name: booking.customerName,
+      email: booking.email || null,
+      phone: booking.customerNumber || null,
+      country: booking.country || null,
+      note: booking.note || null,
+      status: "BOOKED",
+      conversationId: booking.conversationId || null,
+      productType: productType || null,
+    };
+
+    if (existingLead) {
+      // Keep existing metadata, merge if needed
+      const mergedMetadata = {
+        ...(existingLead.metadata && typeof existingLead.metadata === "object" ? existingLead.metadata : {}),
+        bookingId: booking.id,
+        businessType
+      };
+
+      await tx.crmLead.update({
+        where: { id: existingLead.id },
+        data: {
+          ...leadData,
+          metadata: mergedMetadata
+        }
+      });
+      console.log(`👥 [CRM Lead Sync] Updated existing CrmLead: ${existingLead.id} for Customer: ${booking.customerName}`);
+    } else {
+      const metadata = {
+        bookingId: booking.id,
+        businessType
+      };
+
+      const newLead = await tx.crmLead.create({
+        data: {
+          ...leadData,
+          metadata
+        }
+      });
+      console.log(`👥 [CRM Lead Sync] Created new CrmLead: ${newLead.id} for Customer: ${booking.customerName}`);
+    }
+  } catch (error) {
+    console.error("Error in syncBookingToCrmLead:", error);
+    throw error;
+  }
+};
+
