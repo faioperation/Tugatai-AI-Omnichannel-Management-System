@@ -4,6 +4,7 @@ import { sendResponse } from "../../../utils/sendResponse.js";
 import { AppError } from "../../../errorHelper/appError.js";
 import { NotificationService } from "../../notification/notification.service.js";
 import { GoogleCalendarService } from "../../googleCalendar/googleCalendar.service.js";
+import { syncBookingToCrmLead } from "../../../utils/workflowHelpers.js";
 import {
     getBookingModel,
     buildDetailsPayload,
@@ -103,6 +104,8 @@ export const createBooking = async (req, res, next) => {
         where: { id: booking.id },
         include: { [detailsRelation]: true }
       });
+
+      await syncBookingToCrmLead(tx, createdBooking, req.body, businessType);
 
       return await attachDetails(tx, createdBooking);
     });

@@ -150,6 +150,17 @@ const processVapiData = async ({
     console.log(`ℹ️ [Vapi Booking Skipped] booking_confirmation is not true, skipping booking creation/update.`);
   }
 
+  const leadStatus = shouldConfirm ? "BOOKED" : (existingLead?.status || "COLD");
+  const productType = normalizedData.productType ||
+    normalizedData.product_type ||
+    normalizedData.packageType ||
+    normalizedData.package_type ||
+    normalizedData.shipmentType ||
+    normalizedData.shipment_type ||
+    normalizedData.productName ||
+    normalizedData.product_name ||
+    null;
+
   // Create or Update CRM Lead (always, for every call)
   const cleanLead = await extractLeadPayload(agent.businessId, {
     branchId: agent.branchId,
@@ -158,6 +169,8 @@ const processVapiData = async ({
     phone: customerNumber,
     note,
     conversationId: vapiCallId,
+    status: leadStatus,
+    productType,
     metadata: normalizedData,
   });
 

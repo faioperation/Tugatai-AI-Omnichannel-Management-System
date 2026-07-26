@@ -4,6 +4,7 @@ import { StatusCodes } from "http-status-codes";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
 import { NotificationService } from "../../notification/notification.service.js";
 import { GoogleCalendarService } from "../../googleCalendar/googleCalendar.service.js";
+import { syncBookingToCrmLead } from "../../../utils/workflowHelpers.js";
 import {
     getBookingModel,
     buildMainPayload,
@@ -56,6 +57,8 @@ const createBookingService = async (payload) => {
             where: { id: booking.id },
             include: { [detailsRelation]: true },
         });
+
+        await syncBookingToCrmLead(tx, createdBooking, payload, businessType);
 
         return await attachDetails(tx, createdBooking);
     });
@@ -283,6 +286,8 @@ const updateBookingService = async (id, filter, payload) => {
             include: { [detailsRelation]: true },
         });
 
+        await syncBookingToCrmLead(tx, updatedBooking, payload, businessType);
+
         return await attachDetails(tx, updatedBooking);
     });
 
@@ -326,10 +331,6 @@ const getBookingCountriesService = async (businessId, branchId) => {
 
     const bookingWhere = {
         businessId,
-        country: {
-            not: null,
-            notIn: [""],
-        },
     };
     if (branchId) {
         bookingWhere.branchId = branchId;
@@ -340,15 +341,10 @@ const getBookingCountriesService = async (businessId, branchId) => {
         select: {
             country: true,
         },
-        distinct: ["country"],
     });
 
     const leadWhere = {
         businessId,
-        country: {
-            not: null,
-            notIn: [""],
-        },
     };
     if (branchId) {
         leadWhere.branchId = branchId;
@@ -358,19 +354,53 @@ const getBookingCountriesService = async (businessId, branchId) => {
         where: leadWhere,
         select: {
             country: true,
+            metadata: true,
         },
-        distinct: ["country"],
+    });
+
+    const additionalResult = await prisma.additionalDetail.findMany({
+        where: {
+            businessId,
+            ...(branchId ? { branchId } : {}),
+            key: {
+                in: ["country", "Country", "destination", "Destination", "country_name", "destination_country"],
+            },
+        },
+        select: {
+            value: true,
+        },
     });
 
     const countriesSet = new Set();
     bookingResult.forEach((b) => {
-        if (b.country) countriesSet.add(b.country.trim());
-    });
-    leadResult.forEach((l) => {
-        if (l.country) countriesSet.add(l.country.trim());
+        if (b.country && b.country.trim() !== "") {
+            countriesSet.add(b.country.trim());
+        }
     });
 
-    return Array.from(countriesSet);
+    leadResult.forEach((l) => {
+        if (l.country && l.country.trim() !== "") {
+            countriesSet.add(l.country.trim());
+        }
+        if (l.metadata && typeof l.metadata === "object") {
+            const metaCountry = l.metadata.country || l.metadata.Country || l.metadata.country_name;
+            const metaDestination = l.metadata.destination || l.metadata.Destination || l.metadata.destination_country;
+            if (metaCountry && typeof metaCountry === "string" && metaCountry.trim() !== "") {
+                countriesSet.add(metaCountry.trim());
+            }
+            if (metaDestination && typeof metaDestination === "string" && metaDestination.trim() !== "") {
+                countriesSet.add(metaDestination.trim());
+            }
+        }
+    });
+
+    additionalResult.forEach((a) => {
+        if (a.value && a.value.trim() !== "") {
+            countriesSet.add(a.value.trim());
+        }
+    });
+
+    return Array.from(countriesSet).filter((c) => c && c.trim() !== "");
 };
 
 /**
