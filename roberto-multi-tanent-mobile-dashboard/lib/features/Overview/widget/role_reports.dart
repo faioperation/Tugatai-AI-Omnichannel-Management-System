@@ -53,14 +53,22 @@ class RoleReports extends StatelessWidget {
       );
     }).toList() ?? [];
 
+    // Build dynamic spots for Platform Revenue Trends
+    final List<FlSpot> revenueSpots = [];
+    if (overviewData != null && overviewData!.platformRevenue.isNotEmpty) {
+      for (int i = 0; i < overviewData!.platformRevenue.length; i++) {
+        revenueSpots.add(FlSpot(i.toDouble(), overviewData!.platformRevenue[i].revenue));
+      }
+    } else {
+      revenueSpots.add(const FlSpot(0, 0));
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const RevenueLineChart(
+        RevenueLineChart(
           title: "Platform Revenue Trends",
-          spots: [
-            FlSpot(0, 0),
-          ],
+          spots: revenueSpots,
         ),
         const SizedBox(height: 24),
         if (isDesktop)
@@ -108,13 +116,16 @@ class RoleReports extends StatelessWidget {
   Widget _buildBusinessOwnerReports(BuildContext context) {
     bool isDesktop = MediaQuery.of(context).size.width > 900;
     final List<FlSpot> weeklySpots = [];
+    final List<String> weeklyLabels = [];
     if (businessData != null && businessData!.weeklySales.isNotEmpty) {
       for (int i = 0; i < businessData!.weeklySales.length; i++) {
         weeklySpots.add(FlSpot(i.toDouble(), businessData!.weeklySales[i].sales));
+        weeklyLabels.add(businessData!.weeklySales[i].week);
       }
     } else {
       // Fallback empty spot if no data
       weeklySpots.add(const FlSpot(0, 0));
+      weeklyLabels.add("No Data");
     }
 
     // Dynamic Order Sources from activeUsers
@@ -163,6 +174,7 @@ class RoleReports extends StatelessWidget {
         RevenueLineChart(
           title: "Weekly Sales",
           spots: weeklySpots,
+          xLabels: weeklyLabels,
         ),
         const SizedBox(height: 24),
         if (isDesktop)
@@ -206,24 +218,26 @@ class RoleReports extends StatelessWidget {
   }
 
   Widget _buildBranchManagerReports(BuildContext context) {
+    final List<FlSpot> weeklySpots = [];
+    final List<String> weeklyLabels = [];
+    if (businessData != null && businessData!.weeklySales.isNotEmpty) {
+      for (int i = 0; i < businessData!.weeklySales.length; i++) {
+        weeklySpots.add(FlSpot(i.toDouble(), businessData!.weeklySales[i].sales));
+        weeklyLabels.add(businessData!.weeklySales[i].week);
+      }
+    } else {
+      weeklySpots.add(const FlSpot(0, 0));
+      weeklyLabels.add("No Data");
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        PerformanceBarChart(
+        RevenueLineChart(
           title: "Branch Sales (Weekly)",
-          labels: const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-          barGroups: [
-            BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 3, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 4, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 5, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
-            BarChartGroupData(x: 6, barRods: [BarChartRodData(toY: 0, color: AppColor.primary, width: 12)]),
-          ],
+          spots: weeklySpots,
+          xLabels: weeklyLabels,
         ),
-        // const SizedBox(height: 24),
-        // const AiPerformanceSection(),
       ],
     );
   }

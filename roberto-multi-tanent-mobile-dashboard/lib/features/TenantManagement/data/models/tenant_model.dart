@@ -28,13 +28,25 @@ class TenantResponse {
 class TenantBranch {
   final String id;
   final String name;
+  final String? email;
+  final String? phone;
+  final String? address;
 
-  TenantBranch({required this.id, required this.name});
+  TenantBranch({
+    required this.id,
+    required this.name,
+    this.email,
+    this.phone,
+    this.address,
+  });
 
   factory TenantBranch.fromJson(Map<String, dynamic> json) {
     return TenantBranch(
       id: json['id'] ?? '',
       name: json['name'] ?? 'Default Branch',
+      email: json['email'],
+      phone: json['phone'],
+      address: json['address'],
     );
   }
 }
@@ -55,6 +67,8 @@ class TenantBusiness {
   final String? createdAt;
   final TenantOwner? owner;
   final List<TenantBranch> branches;
+  final double? monthlyPrice;
+  final double? yearlyPrice;
 
   TenantBusiness({
     required this.id,
@@ -72,6 +86,8 @@ class TenantBusiness {
     this.createdAt,
     this.owner,
     required this.branches,
+    this.monthlyPrice,
+    this.yearlyPrice,
   });
 
   factory TenantBusiness.fromJson(Map<String, dynamic> json) {
@@ -84,7 +100,7 @@ class TenantBusiness {
       industry: json['industry'],
       status: json['status'],
       planCycle: json['planCycle'],
-      planId: json['planId'],
+      planId: json['planId'] ?? json['plan']?['id'],
       credits: json['credits'],
       businessType: json['businessType'],
       description: json['description'],
@@ -94,6 +110,8 @@ class TenantBusiness {
               ?.map((e) => TenantBranch.fromJson(e))
               .toList() ??
           [],
+      monthlyPrice: json['plan'] != null ? (json['plan']?['monthlyPrice'] as num?)?.toDouble() : null,
+      yearlyPrice: json['plan'] != null ? (json['plan']?['yearlyPrice'] as num?)?.toDouble() : null,
     );
   }
 }

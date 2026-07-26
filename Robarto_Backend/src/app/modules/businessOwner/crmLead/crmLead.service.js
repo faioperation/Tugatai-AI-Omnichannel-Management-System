@@ -147,9 +147,45 @@ const getCrmLeadProductTypesService = async (businessId, branchId) => {
         distinct: ["productType"],
     });
 
-    return result
+    const leadTypes = result
         .map((r) => r.productType)
         .filter((t) => t && t.trim() !== "");
+
+    // Fetch booking product types as well
+    const business = await prisma.business.findUnique({
+        where: { id: businessId },
+        select: { businessType: true },
+    });
+    const businessType = business?.businessType || "ORDER_BOOKING";
+
+    const detailsModelMap = {
+        ORDER_BOOKING: "orderDetails",
+        PARCEL_DELIVERY: "parcelDetails",
+    };
+
+    const detailsModelName = detailsModelMap[businessType];
+    let bookingTypes = [];
+
+    if (detailsModelName) {
+        const bookingWhere = {
+            businessId,
+            productType: { not: null },
+        };
+        if (branchId) bookingWhere.branchId = branchId;
+
+        const bookingResult = await prisma[detailsModelName].findMany({
+            where: bookingWhere,
+            select: { productType: true },
+            distinct: ["productType"],
+        });
+
+        bookingTypes = bookingResult
+            .map((r) => r.productType)
+            .filter((t) => t && t.trim() !== "");
+    }
+
+    const typesSet = new Set([...leadTypes, ...bookingTypes]);
+    return Array.from(typesSet);
 };
 
 export const CrmLeadService = {
