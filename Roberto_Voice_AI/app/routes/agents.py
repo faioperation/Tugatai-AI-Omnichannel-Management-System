@@ -7,7 +7,9 @@ from app.config import VAPI_BASE, BACKEND_URL
 from app.vapi_client import (
     upload_file_to_vapi, create_query_tool, attach_tool_to_assistant,
     vapi_headers, delete_file_from_vapi, create_tools_for_business_type,
-    get_assistant_from_vapi, patch_assistant_prompt
+    get_assistant_from_vapi, patch_assistant_prompt,
+    delete_assistant_from_vapi, delete_tool, delete_phone_number,
+    list_tools_from_vapi, list_phone_numbers_from_vapi
 )
 from app.file_utils import (
     extract_text_from_bytes, extract_product_file_text,
@@ -96,8 +98,10 @@ async def create_agent(
 
         # Upload product file to VAPI file store for RAG
         try:
-            product_vapi_file_id = await upload_file_to_vapi(product_content, product_file.filename)
-            logger.info(f"Uploaded product file '{product_file.filename}' to VAPI -> {product_vapi_file_id}")
+            # Upload the extracted text as a .txt file since VAPI rejects .xlsx
+            text_filename = product_file.filename.rsplit('.', 1)[0] + ".txt"
+            product_vapi_file_id = await upload_file_to_vapi(product_text.encode('utf-8'), text_filename)
+            logger.info(f"Uploaded product file '{text_filename}' to VAPI -> {product_vapi_file_id}")
         except Exception as exc:
             logger.error(f"Failed to upload product file to VAPI: {exc}")
 
@@ -231,11 +235,30 @@ async def create_agent(
         },
         "analysisPlan": {
             "structuredDataPlan": {
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are an expert data extractor. You will be given a transcript of a call. "
+                            "Extract structured data per the JSON Schema. DO NOT return anything except the structured data.\n\n"
+                            "Json Schema:\n{{schema}}\n\nOnly respond with the JSON."
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": (
+                            "Here is the transcript:\n\n{{transcript}}\n\n"
+                            ". Here is the ended reason of the call:\n\n{{endedReason}}\n\n"
+                        )
+                    }
+                ],
                 "schema": {
                     "type": "object",
                     "properties": schema_properties
                 }
-            }
+            },
+            "successEvaluationPlan": {"enabled": False},
+            "summaryPlan": {"enabled": False}
         }
     }
 
@@ -375,8 +398,10 @@ async def update_product_file(
     # ── Upload new product file to VAPI ──────────────────────────────────────
     product_vapi_file_id = None
     try:
-        product_vapi_file_id = await upload_file_to_vapi(product_content, product_file.filename)
-        logger.info(f"Uploaded new product file '{product_file.filename}' to VAPI -> {product_vapi_file_id}")
+        # Upload the extracted text as a .txt file since VAPI rejects .xlsx
+        text_filename = product_file.filename.rsplit('.', 1)[0] + ".txt"
+        product_vapi_file_id = await upload_file_to_vapi(product_text.encode('utf-8'), text_filename)
+        logger.info(f"Uploaded new product file '{text_filename}' to VAPI -> {product_vapi_file_id}")
     except Exception as exc:
         logger.error(f"Failed to upload product file to VAPI: {exc}")
 
@@ -415,3 +440,66 @@ async def update_product_file(
         "product_file_id": product_vapi_file_id,
         "message": "Product file updated successfully."
     }
+
+@router.delete("/api/assistant/{assistant_id}")
+async def delete_agent(assistant_id: str):
+    """
+    Deletes an AI Voice Agent and its associated resources:
+    1. Fetches the assistant details from VAPI to get attached tools.
+    2. Identifies and deletes any `transferCall` / `escalate_to_human` tools attached to this agent.
+    3. Identifies and deletes any phone numbers bound to this agent.
+    4. Deletes the assistant from VAPI.
+    """
+    # 1. Fetch assistant details
+    assistant = await get_assistant_from_vapi(assistant_id)
+    if not assistant:
+        logger.warning(f"Assistant {assistant_id} not found in VAPI during deletion request.")
+
+    deleted_tools = []
+    deleted_phones = []
+
+    # 2. Find and delete transfer tools bound to this assistant
+    if assistant:
+        current_model = assistant.get("model", {})
+        attached_tool_ids = current_model.get("toolIds", [])
+        if attached_tool_ids:
+            all_tools = await list_tools_from_vapi()
+            for tool in all_tools:
+                tid = tool.get("id")
+                if tid in attached_tool_ids:
+                    if tool.get("type") == "transferCall" or tool.get("function", {}).get("name") == "escalate_to_human":
+                        try:
+                            await delete_tool(tid)
+                            deleted_tools.append(tid)
+                        except Exception as e:
+                            logger.warning(f"Failed deleting transfer tool {tid}: {e}")
+
+    # 3. Find and delete phone numbers bound to this assistant
+    all_phones = await list_phone_numbers_from_vapi()
+    for phone in all_phones:
+        pid = phone.get("id")
+        if phone.get("assistantId") == assistant_id:
+            try:
+                await delete_phone_number(pid)
+                deleted_phones.append({
+                    "phone_number_id": pid,
+                    "number": phone.get("number")
+                })
+            except Exception as e:
+                logger.warning(f"Failed deleting phone number {pid}: {e}")
+
+    # 4. Delete the assistant itself
+    try:
+        await delete_assistant_from_vapi(assistant_id)
+    except Exception as exc:
+        logger.error(f"Failed to delete assistant {assistant_id}: {exc}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete assistant from Vapi: {exc}")
+
+    return {
+        "status": "success",
+        "message": f"Agent {assistant_id} and associated resources deleted successfully.",
+        "deleted_assistant_id": assistant_id,
+        "deleted_transfer_tools": deleted_tools,
+        "deleted_phone_numbers": deleted_phones
+    }
+
