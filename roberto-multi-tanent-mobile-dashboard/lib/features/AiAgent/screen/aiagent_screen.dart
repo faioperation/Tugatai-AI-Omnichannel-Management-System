@@ -181,41 +181,44 @@ class _AiagentScreenState extends State<AiagentScreen> {
   }) {
     final theme = Theme.of(context);
     final isActive = _selectedTab == index;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedTab = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        decoration: BoxDecoration(
-          color: isActive ? AppColor.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SvgPicture.asset(
-              iconPath,
-              width: 16,
-              height: 16,
-              colorFilter: ColorFilter.mode(
-                isActive
-                    ? Colors.white
-                    : theme.textTheme.bodyMedium?.color ?? Colors.grey,
-                BlendMode.srcIn,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedTab = index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          decoration: BoxDecoration(
+            color: isActive ? AppColor.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SvgPicture.asset(
+                iconPath,
+                width: 16,
+                height: 16,
+                colorFilter: ColorFilter.mode(
+                  isActive
+                      ? Colors.white
+                      : theme.textTheme.bodyMedium?.color ?? Colors.grey,
+                  BlendMode.srcIn,
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isActive
-                    ? Colors.white
-                    : theme.textTheme.bodyMedium?.color,
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                  color: isActive
+                      ? Colors.white
+                      : theme.textTheme.bodyMedium?.color,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

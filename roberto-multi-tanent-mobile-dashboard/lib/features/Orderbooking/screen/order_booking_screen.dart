@@ -1434,30 +1434,33 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   Widget _buildToggleTab(
       {required String label, required int index, required ThemeData theme, IconData? icon}) {
     final isSelected = selectedIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => selectedIndex = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColor.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon,
-                  size: 13,
-                  color: isSelected ? Colors.white : theme.colorScheme.onSurface),
-              const SizedBox(width: 5),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => setState(() => selectedIndex = index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColor.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon,
+                    size: 13,
+                    color: isSelected ? Colors.white : theme.colorScheme.onSurface),
+                const SizedBox(width: 5),
+              ],
+              Text(label,
+                  style: TextStyle(
+                      color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12)),
             ],
-            Text(label,
-                style: TextStyle(
-                    color: isSelected ? Colors.white : theme.colorScheme.onSurface,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 12)),
-          ],
+          ),
         ),
       ),
     );
@@ -1688,56 +1691,59 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     final hasEvent = eventCount > 0;
     final isSelectedActive = isSelected;
 
-    return Container(
-      margin: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: isSelectedActive
-            ? AppColor.primary
-            : hasEvent
-                ? AppColor.primary.withOpacity(0.15)
-                : isSelected
-                    ? theme.dividerColor.withOpacity(0.2)
-                    : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Stack(
-        children: [
-          Center(
-            child: Text(
-              '${day.day}',
-              style: TextStyle(
-                fontWeight: isSelected || hasEvent
-                    ? FontWeight.w600
-                    : FontWeight.w500,
-                color: isSelected
-                    ? Colors.white
-                    : hasEvent
-                        ? AppColor.primary
-                        : theme.colorScheme.onSurface,
-                fontSize: 14,
-              ),
-            ),
-          ),
-          if (hasEvent)
-            Positioned(
-              right: 6,
-              bottom: 6,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppColor.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  '$eventCount',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Container(
+        margin: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: isSelectedActive
+              ? AppColor.primary
+              : hasEvent
+                  ? AppColor.primary.withOpacity(0.15)
+                  : isSelected
+                      ? theme.dividerColor.withOpacity(0.2)
+                      : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Stack(
+          children: [
+            Center(
+              child: Text(
+                '${day.day}',
+                style: TextStyle(
+                  fontWeight: isSelected || hasEvent
+                      ? FontWeight.w600
+                      : FontWeight.w500,
+                  color: isSelected
+                      ? Colors.white
+                      : hasEvent
+                          ? AppColor.primary
+                          : theme.colorScheme.onSurface,
+                  fontSize: 14,
                 ),
               ),
             ),
-        ],
+            if (hasEvent)
+              Positioned(
+                right: 6,
+                bottom: 6,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppColor.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '$eventCount',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

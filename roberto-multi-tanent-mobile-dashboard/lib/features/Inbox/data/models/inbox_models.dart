@@ -243,9 +243,29 @@ class MessageMod {
     }
 
     String messageText = json['messageText'] ?? json['text'] ?? '';
+    String type = json['type'] ?? 'text';
+
+    if (type == 'location') {
+      var loc = json['location'];
+      if (loc == null && json['rawPayload'] != null) {
+        try {
+          var raw = json['rawPayload'];
+          while (raw is String) {
+            raw = jsonDecode(raw);
+          }
+          if (raw is Map) {
+            loc = raw['location'];
+          }
+        } catch (_) {}
+      }
+      if (loc != null && loc['latitude'] != null && loc['longitude'] != null) {
+        final lat = loc['latitude'];
+        final lng = loc['longitude'];
+        messageText = 'https://maps.google.com/?q=$lat,$lng';
+      }
+    }
 
     String? mediaUrl = json['mediaUrl'];
-    String type = json['type'] ?? 'text';
     
     if (json['rawPayload'] != null) {
       try {

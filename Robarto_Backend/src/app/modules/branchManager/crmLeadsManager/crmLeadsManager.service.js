@@ -24,6 +24,19 @@ const getAllCrmLeadsService = async (query = {}, filter = {}) => {
     const queryParams = queryBuilder.build();
     queryParams.where = { ...queryParams.where, ...filter };
 
+    if (query.country && query.country !== '') {
+        delete queryParams.where.country;
+        queryParams.where.AND = [
+            ...(queryParams.where.AND || []),
+            {
+                OR: [
+                    { country: { contains: query.country, mode: "insensitive" } },
+                    { address: { contains: query.country, mode: "insensitive" } }
+                ]
+            }
+        ];
+    }
+
     if (!queryParams.select) {
         queryParams.include = {
             createdBy: {

@@ -15,6 +15,7 @@ class AgentManagementBloc
     on<UpdateProductFileRequested>(_onUpdateProductFile);
     on<DeleteAgentRequested>(_onDeleteAgent);
     on<SetupTwilioRequested>(_onSetupTwilio);
+    on<TeardownTwilioRequested>(_onTeardownTwilio);
   }
 
   Future<void> _onFetchAgents(
@@ -127,6 +128,24 @@ class AgentManagementBloc
           "Twilio configuration updated successfully",
         ),
       );
+      add(const FetchAgentsRequested());
+    } catch (e) {
+      emit(AgentManagementError(e.toString()));
+    }
+  }
+
+  Future<void> _onTeardownTwilio(
+    TeardownTwilioRequested event,
+    Emitter<AgentManagementState> emit,
+  ) async {
+    emit(AgentManagementLoading());
+    try {
+      await repository.teardownTwilio(
+        phoneNumberId: event.phoneNumberId,
+        transferToolId: event.transferToolId,
+        assistantId: event.assistantId,
+      );
+      emit(const AgentManagementOperationSuccess("Twilio number deleted successfully"));
       add(const FetchAgentsRequested());
     } catch (e) {
       emit(AgentManagementError(e.toString()));

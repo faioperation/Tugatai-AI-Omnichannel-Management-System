@@ -16,6 +16,7 @@ class CustomPlanbilling extends StatefulWidget {
 
 class _CustomPlanbillingState extends State<CustomPlanbilling> {
   int _selectedIndex = 0;
+  bool _isYearly = false;
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +25,7 @@ class _CustomPlanbillingState extends State<CustomPlanbilling> {
       children: [
         _buildToggleBar(),
         const SizedBox(height: 45),
+        if (_selectedIndex == 0) _buildBillingToggle(Theme.of(context), Theme.of(context).brightness == Brightness.dark),
         _selectedIndex == 0 ? _buildPlansContent() : _buildBillingContent(),
       ],
     );
@@ -52,23 +54,105 @@ class _CustomPlanbillingState extends State<CustomPlanbilling> {
   Widget _tabButton(String label, int index) {
     final theme = Theme.of(context);
     final isActive = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedIndex = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? AppColor.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-            color: isActive ? Colors.white : theme.textTheme.bodyMedium?.color,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedIndex = index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          decoration: BoxDecoration(
+            color: isActive ? AppColor.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
           ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+              color: isActive ? Colors.white : theme.textTheme.bodyMedium?.color,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBillingToggle(ThemeData theme, bool isDark) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 32),
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: isDark ? theme.colorScheme.surfaceContainerHighest : theme.colorScheme.secondary.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: theme.dividerColor.withOpacity(0.5)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => setState(() => _isYearly = false),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: !_isYearly ? AppColor.primary : Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    "Monthly",
+                    style: TextStyle(
+                      color: !_isYearly ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => setState(() => _isYearly = true),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _isYearly ? AppColor.primary : Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        "Yearly",
+                        style: TextStyle(
+                          color: _isYearly ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade600,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text(
+                          "10% Off",
+                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -86,12 +170,16 @@ class _CustomPlanbillingState extends State<CustomPlanbilling> {
           if (plan.slug == 'convert') iconPath = "assets/full.svg";
           if (plan.slug == 'control') iconPath = "assets/enter.svg";
 
+          final price = _isYearly ? plan.yearlyPrice : plan.monthlyPrice;
+          final period = _isYearly ? "/year" : "/month";
+
           return CustomPlan(
             title: plan.name,
             subtitle: plan.description,
-            price: "\$${plan.monthlyPrice.toStringAsFixed(0)}",
+            price: "\$${price.toStringAsFixed(0)}",
             iconPath: iconPath,
             features: plan.features.map((f) => f.value).toList(),
+            billingPeriod: period,
           );
         }).toList();
 

@@ -125,3 +125,18 @@ class SetupTwilioRequested extends AgentManagementEvent {
     assistantId,
   ];
 }
+
+class TeardownTwilioRequested extends AgentManagementEvent {
+  final String phoneNumberId;
+  final String transferToolId;
+  final String assistantId;
+
+  const TeardownTwilioRequested({
+    required this.phoneNumberId,
+    required this.transferToolId,
+    required this.assistantId,
+  });
+
+  @override
+  List<Object> get props => [phoneNumberId, transferToolId, assistantId];
+}

@@ -32,6 +32,7 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _confirmPasswordCtrl = TextEditingController();
   final _industryCtrl = TextEditingController();
 
   // Branch controllers
@@ -44,6 +45,9 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
   String selectedBusinessType = "Order Booking";
   String selectedPlanId = "";
   String selectedBillingCycle = "MONTHLY";
+
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void initState() {
@@ -93,6 +97,7 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
     _passwordCtrl.dispose();
+    _confirmPasswordCtrl.dispose();
     _industryCtrl.dispose();
 
     _branchNameCtrl.dispose();
@@ -348,12 +353,11 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
 
         const SizedBox(height: 12),
 
-        _inputLabel("Industry"),
+        _inputLabel("Industry (optional)"),
         const SizedBox(height: 5),
         CustomMinitextfield(
           hint: "Enter industry", 
           controller: _industryCtrl,
-          validator: (val) => val == null || val.isEmpty ? "Industry is required" : null,
         ),
 
         const SizedBox(height: 12),
@@ -416,13 +420,48 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
         CustomMinitextfield(
           hint: widget.tenant != null ? "Enter new password" : "Create password", 
           controller: _passwordCtrl, 
-          obscureText: true,
+          obscureText: _obscurePassword,
+          suffixIcon: IconButton(
+            icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+            onPressed: () {
+              setState(() {
+                _obscurePassword = !_obscurePassword;
+              });
+            },
+          ),
           validator: (val) {
             if (widget.tenant == null && (val == null || val.isEmpty)) {
               return "Password is required";
             }
             if (val != null && val.isNotEmpty && val.length < 6) {
               return "Password must be at least 6 characters";
+            }
+            return null;
+          },
+        ),
+
+        const SizedBox(height: 12),
+
+        _inputLabel(widget.tenant != null ? "Confirm New Password" : "Confirm Password"),
+        const SizedBox(height: 5),
+        CustomMinitextfield(
+          hint: widget.tenant != null ? "Confirm new password" : "Confirm password", 
+          controller: _confirmPasswordCtrl, 
+          obscureText: _obscureConfirmPassword,
+          suffixIcon: IconButton(
+            icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+            onPressed: () {
+              setState(() {
+                _obscureConfirmPassword = !_obscureConfirmPassword;
+              });
+            },
+          ),
+          validator: (val) {
+            if (widget.tenant == null && (val == null || val.isEmpty)) {
+              return "Confirm password is required";
+            }
+            if (val != _passwordCtrl.text) {
+              return "Passwords do not match";
             }
             return null;
           },

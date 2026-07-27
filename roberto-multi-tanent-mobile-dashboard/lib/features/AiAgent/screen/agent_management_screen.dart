@@ -792,7 +792,7 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
                       color: Colors.red,
                       size: 20,
                     ),
-                    onPressed: () => _showDeleteConfirmation(context, agent.id),
+                    onPressed: () => _showDeleteConfirmation(context, agent),
                   ),
                 ],
               ),
@@ -889,23 +889,42 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
               ),
               const SizedBox(width: 10),
               // Add/Update Twilio Number button
-              ElevatedButton.icon(
-                onPressed: () => _showTwilioSetupDialog(context, agent),
-                icon: const Icon(Icons.phone_in_talk_outlined, size: 16),
-                label: const Text(
-                  'Add Twilio Number',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.indigo,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              if (agent.metadata?.twilioResponse != null)
+                ElevatedButton.icon(
+                  onPressed: () => _showTwilioDetailsDialog(context, agent),
+                  icon: const Icon(Icons.info_outline, size: 16),
+                  label: const Text(
+                    'View Details',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  elevation: 0,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue.shade700,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    elevation: 0,
+                  ),
+                )
+              else
+                ElevatedButton.icon(
+                  onPressed: () => _showTwilioSetupDialog(context, agent),
+                  icon: const Icon(Icons.phone_in_talk_outlined, size: 16),
+                  label: const Text(
+                    'Add Twilio Number',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.indigo,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    elevation: 0,
+                  ),
                 ),
-              ),
             ],
           ),
         ],
@@ -1065,7 +1084,33 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
   }
 
 
-  void _showDeleteConfirmation(BuildContext context, String id) {
+  void _showDeleteConfirmation(BuildContext context, AgentModel agent) {
+    if (agent.metadata?.twilioResponse != null) {
+      showDialog(
+        context: context,
+        builder: (context) {
+          final theme = Theme.of(context);
+          return AlertDialog(
+            backgroundColor: theme.cardTheme.color,
+            title: const Text('Cannot Delete Agent'),
+            content: const Text(
+              'This agent currently has a Twilio number configured. You must first view details and delete the Twilio number before deleting the agent.',
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColor.primary,
+                    foregroundColor: Colors.white),
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) {
@@ -1087,7 +1132,7 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
             ElevatedButton(
               onPressed: () {
                 context.read<AgentManagementBloc>().add(
-                  DeleteAgentRequested(id: id),
+                  DeleteAgentRequested(id: agent.id),
                 );
                 Navigator.pop(context);
               },
@@ -1118,6 +1163,120 @@ class _AgentManagementScreenState extends State<AgentManagementScreen> {
           selectedBusiness: _selectedBusiness!,
           selectedBranch: _selectedBranch!,
           blocContext: context,
+        );
+      },
+    );
+  }
+
+  void _showTwilioDetailsDialog(BuildContext context, AgentModel agent) {
+    final twilioResponse = agent.metadata?.twilioResponse ?? {};
+    final theme = Theme.of(context);
+    final phoneNumber = twilioResponse['phoneNumber'] as Map<String, dynamic>? ?? {};
+    final tool = twilioResponse['tool'] as Map<String, dynamic>? ?? {};
+    final destinations = tool['destinations'] as List<dynamic>? ?? [];
+    final transferNumber = destinations.isNotEmpty ? destinations.first['number']?.toString() ?? 'N/A' : 'N/A';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: theme.cardColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            width: 400,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Twilio Details',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          tooltip: 'Delete Twilio Configuration',
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (confirmContext) => AlertDialog(
+                                backgroundColor: theme.cardColor,
+                                title: const Text('Delete Twilio Configuration'),
+                                content: const Text('Are you sure you want to delete this Twilio configuration?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(confirmContext),
+                                    child: Text('Cancel', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
+                                  ),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                    onPressed: () {
+                                      final phoneNumberId = phoneNumber['id']?.toString() ?? '';
+                                      final transferToolId = tool['id']?.toString() ?? '';
+                                      final assistantId = agent.vapiId ?? '';
+                                      
+                                      context.read<AgentManagementBloc>().add(
+                                        TeardownTwilioRequested(
+                                          phoneNumberId: phoneNumberId,
+                                          transferToolId: transferToolId,
+                                          assistantId: assistantId,
+                                        ),
+                                      );
+                                      Navigator.pop(confirmContext);
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text('Delete', style: TextStyle(color: Colors.white)),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const Divider(height: 32),
+                _buildAgentProperty(theme, 'Twilio Name', phoneNumber['name']?.toString() ?? 'N/A'),
+                const SizedBox(height: 16),
+                _buildAgentProperty(theme, 'Twilio Number', phoneNumber['number']?.toString() ?? 'N/A'),
+                const SizedBox(height: 16),
+                _buildAgentProperty(theme, 'Status', phoneNumber['status']?.toString() ?? 'N/A'),
+                const SizedBox(height: 16),
+                _buildAgentProperty(theme, 'Account SID', phoneNumber['twilioAccountSid']?.toString() ?? 'N/A'),
+                const SizedBox(height: 16),
+                _buildAgentProperty(theme, 'Transfer Number', transferNumber),
+                const SizedBox(height: 24),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColor.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Close'),
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
