@@ -383,11 +383,35 @@ const deleteAgentService = async (id, payload = {}) => {
     }
 
     // Check if there is an active Twilio number connected to this agent in metadata
-    const metadata = typeof existingAgent.metadata === "object" && existingAgent.metadata !== null
-        ? existingAgent.metadata
-        : {};
+    let metadata = existingAgent.metadata;
+    if (typeof metadata === "string") {
+        try {
+            metadata = JSON.parse(metadata);
+        } catch (e) {
+            metadata = {};
+        }
+    }
+    if (!metadata || typeof metadata !== "object") {
+        metadata = {};
+    }
+
+    let twilioResponse = metadata.twilioResponse;
+    if (typeof twilioResponse === "string") {
+        try {
+            twilioResponse = JSON.parse(twilioResponse);
+        } catch (e) {
+            twilioResponse = null;
+        }
+    }
+
+    const hasActiveTwilio = 
+        (twilioResponse && (twilioResponse.phoneNumber || twilioResponse.phone_number)) ||
+        metadata.twilio_number ||
+        metadata.twilioNumber ||
+        metadata.phone_number ||
+        metadata.phoneNumber;
     
-    if (metadata.twilioResponse && metadata.twilioResponse.phoneNumber) {
+    if (hasActiveTwilio) {
         throw new DevBuildError(
             "An active Twilio phone number is connected to this agent. Please delete/teardown the phone number first before deleting the agent.",
             StatusCodes.BAD_REQUEST
