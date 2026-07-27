@@ -11,4 +11,10 @@ router.post(
   TwiloNumberCallController.setupTwilio
 );
 
+router.delete(
+  "/teardown",
+  validateRequest(TwiloNumberCallValidation.teardownTelephonySchema),
+  TwiloNumberCallController.teardownTelephony
+);
+
 export const TelephonyRoutes = router;

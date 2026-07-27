@@ -237,6 +237,87 @@ const setupTwilioService = async (payload) => {
   };
 };
 
+const teardownTelephonyService = async (payload) => {
+  const { phone_number_id, transfer_tool_id, assistant_id } = payload;
+
+  if (!phone_number_id && !transfer_tool_id) {
+    throw new DevBuildError(
+      "Either phone_number_id or transfer_tool_id must be provided",
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  const voiceAgentApi = envVars.VOICE_AGENT_API;
+  if (!voiceAgentApi) {
+    throw new DevBuildError(
+      "VOICE_AGENT_API is not defined in environment variables",
+      StatusCodes.INTERNAL_SERVER_ERROR
+    );
+  }
+
+  let apiResponse = null;
+  try {
+    console.log(`[Voice Agent API] Calling teardown telephony endpoint at: ${voiceAgentApi}/api/telephony/teardown`);
+    const response = await axios.request({
+      method: "delete",
+      url: `${voiceAgentApi}/api/telephony/teardown`,
+      data: {
+        phone_number_id,
+        transfer_tool_id,
+        assistant_id,
+      },
+    });
+    apiResponse = response.data;
+    console.log("[Voice Agent API] Teardown Telephony Response:", apiResponse);
+  } catch (error) {
+    console.error(
+      "[Voice Agent API] Error during teardown telephony:",
+      error.response?.data || error.message
+    );
+    throw new DevBuildError(
+      error.response?.data?.detail || error.response?.data?.message || "Failed to teardown telephony on external voice agent API",
+      error.response?.status || StatusCodes.BAD_REQUEST
+    );
+  }
+
+  // Update Agent's metadata in database to remove twilioResponse
+  const targetAssistantId = assistant_id;
+  if (targetAssistantId) {
+    try {
+      const existingAgent = await prisma.agent.findFirst({
+        where: { vapiId: targetAssistantId },
+      });
+
+      if (existingAgent) {
+        const existingMetadata = typeof existingAgent.metadata === "object" && existingAgent.metadata !== null
+          ? { ...existingAgent.metadata }
+          : {};
+
+        if (existingMetadata.twilioResponse) {
+          delete existingMetadata.twilioResponse;
+        }
+
+        await prisma.agent.update({
+          where: { id: existingAgent.id },
+          data: {
+            metadata: existingMetadata,
+          },
+        });
+        console.log(`[Database] Successfully cleared twilioResponse from Agent metadata for assistant: ${targetAssistantId}`);
+      }
+    } catch (dbError) {
+      console.error(`[Database] Error clearing Twilio response from Agent metadata:`, dbError);
+    }
+  }
+
+  return {
+    success: true,
+    message: "Telephony resources torn down successfully",
+    data: apiResponse,
+  };
+};
+
 export const TwiloNumberCallService = {
   setupTwilioService,
+  teardownTelephonyService,
 };

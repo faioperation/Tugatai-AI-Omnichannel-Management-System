@@ -107,7 +107,7 @@ const updateProductFile = async (req, res, next) => {
 const deleteAgent = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const result = await AgentService.deleteAgentService(id);
+        const result = await AgentService.deleteAgentService(id, req.body);
 
         sendResponse(res, {
             success: true,
