@@ -2,6 +2,7 @@ import axios from "axios";
 import { StatusCodes } from "http-status-codes";
 import { envVars } from "../../../config/env.js";
 import DevBuildError from "../../../lib/DevBuildError.js";
+import prisma from "../../../prisma/client.js";
 
 const setupTwilioService = async (payload) => {
   const {
@@ -193,6 +194,37 @@ const setupTwilioService = async (payload) => {
         error.response?.status || StatusCodes.BAD_REQUEST
       );
     }
+  }
+
+  // Save the full response in the agent's metadata in the database
+  try {
+    const existingAgent = await prisma.agent.findFirst({
+      where: { vapiId: targetAssistantId },
+    });
+
+    if (existingAgent) {
+      const existingMetadata = typeof existingAgent.metadata === "object" && existingAgent.metadata !== null
+        ? existingAgent.metadata
+        : {};
+
+      await prisma.agent.update({
+        where: { id: existingAgent.id },
+        data: {
+          metadata: {
+            ...existingMetadata,
+            twilioResponse: {
+              tool: createdTool,
+              phoneNumber: importedPhoneNumber,
+            },
+          },
+        },
+      });
+      console.log(`[Database] Successfully saved Twilio response inside Agent metadata for assistant: ${targetAssistantId}`);
+    } else {
+      console.warn(`[Database] Agent with vapiId ${targetAssistantId} not found in database. Skipping metadata save.`);
+    }
+  } catch (dbError) {
+    console.error(`[Database] Error updating Agent metadata with Twilio setup details:`, dbError);
   }
 
   return {
