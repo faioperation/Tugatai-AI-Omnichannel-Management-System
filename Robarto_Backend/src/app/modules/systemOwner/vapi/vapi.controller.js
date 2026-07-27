@@ -13,11 +13,37 @@ const processVapiData = async ({
   customerNameFromPayload,
   customerNumberFromPayload,
   analysis,
-  structuredData,
+  structuredData: rawStructuredData,
   isToolCall = false,
   toolCallId = null,
   isBookingConfirmed = false
 }) => {
+  // Resolve "today" to current date in structuredData
+  const structuredData = {};
+  if (rawStructuredData && typeof rawStructuredData === "object") {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    const currentDateStr = `${year}-${month}-${day}`;
+
+    for (const key of Object.keys(rawStructuredData)) {
+      const val = rawStructuredData[key];
+      if (typeof val === "string") {
+        const trimmed = val.trim();
+        if (trimmed.toLowerCase() === "today") {
+          structuredData[key] = currentDateStr;
+        } else if (trimmed.toLowerCase().includes("today")) {
+          structuredData[key] = trimmed.replace(/today/i, currentDateStr);
+        } else {
+          structuredData[key] = val;
+        }
+      } else {
+        structuredData[key] = val;
+      }
+    }
+  }
+
   // Check if CRM Lead already exists for this call to determine create vs update
   let existingLead = null;
   if (vapiCallId) {
