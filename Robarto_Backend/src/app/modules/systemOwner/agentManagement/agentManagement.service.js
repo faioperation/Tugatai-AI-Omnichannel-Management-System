@@ -90,6 +90,32 @@ const callExternalUpdateProductFile = async (assistantId, productFile) => {
 };
 
 /**
+ * Helper to call the external delete agent API
+ */
+const callExternalDeleteAgent = async (assistantId) => {
+    const apiBaseUrl = envVars.VOICE_AGENT_API;
+    if (!apiBaseUrl) {
+        throw new DevBuildError("VOICE_AGENT_API is not defined in environment variables", StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+
+    try {
+        console.log(`[Voice Agent API] Calling delete agent endpoint at: ${apiBaseUrl}/api/assistant/${assistantId}`);
+        const response = await axios.delete(`${apiBaseUrl}/api/assistant/${assistantId}`);
+        console.log("[Voice Agent API] Delete Agent Response:", response.data);
+        return response.data;
+    } catch (error) {
+        console.error(
+            "[Voice Agent API] Error during deleting agent:",
+            error.response?.data ? JSON.stringify(error.response.data, null, 2) : error.message
+        );
+        throw new DevBuildError(
+            error.response?.data?.message || error.response?.data?.detail || "Failed to delete agent on external voice agent API",
+            error.response?.status || StatusCodes.INTERNAL_SERVER_ERROR
+        );
+    }
+};
+
+/**
  * Helper to compile/merge multiple rules files into one
  */
 const mergeRulesFiles = async (files) => {
@@ -347,13 +373,36 @@ const updateProductFileService = async (id, productFile) => {
     return result;
 };
 
-const deleteAgentService = async (id) => {
+const deleteAgentService = async (id, payload = {}) => {
     const existingAgent = await prisma.agent.findUnique({
         where: { id },
     });
 
     if (!existingAgent) {
         throw new DevBuildError("Agent not found", StatusCodes.NOT_FOUND);
+    }
+
+    // Check if there is an active Twilio number connected to this agent in metadata
+    const metadata = typeof existingAgent.metadata === "object" && existingAgent.metadata !== null
+        ? existingAgent.metadata
+        : {};
+    
+    if (metadata.twilioResponse && metadata.twilioResponse.phoneNumber) {
+        throw new DevBuildError(
+            "An active Twilio phone number is connected to this agent. Please delete/teardown the phone number first before deleting the agent.",
+            StatusCodes.BAD_REQUEST
+        );
+    }
+
+    const assistantId = payload.assistant_id || payload.assistantId || existingAgent.vapiId;
+
+    if (assistantId) {
+        try {
+            await callExternalDeleteAgent(assistantId);
+        } catch (apiError) {
+            console.error(`[Service] Failed to delete external agent resources for assistantId ${assistantId}:`, apiError.message);
+            throw apiError;
+        }
     }
 
     // Delete local rules file

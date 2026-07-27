@@ -22,6 +22,18 @@ const setupTwilioSchema = z.object({
   }),
 });
 
+const teardownTelephonySchema = z.object({
+  body: z.object({
+    phone_number_id: z.string().optional().nullable(),
+    transfer_tool_id: z.string().optional().nullable(),
+    assistant_id: z.string().optional().nullable(),
+  }).refine(data => data.phone_number_id || data.transfer_tool_id, {
+    message: "Either phone_number_id or transfer_tool_id must be provided",
+    path: ["phone_number_id"],
+  }),
+});
+
 export const TwiloNumberCallValidation = {
   setupTwilioSchema,
+  teardownTelephonySchema,
 };

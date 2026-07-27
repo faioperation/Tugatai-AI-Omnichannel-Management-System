@@ -18,6 +18,23 @@ const setupTwilio = async (req, res, next) => {
   }
 };
 
+const teardownTelephony = async (req, res, next) => {
+  try {
+    const payload = req.body;
+    const result = await TwiloNumberCallService.teardownTelephonyService(payload);
+
+    sendResponse(res, {
+      success: true,
+      message: result.message,
+      statusCode: StatusCodes.OK,
+      data: result.data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const TwiloNumberCallController = {
   setupTwilio,
+  teardownTelephony,
 };
