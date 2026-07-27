@@ -512,7 +512,8 @@ class _ChatViewState extends State<ChatView> {
     }
 
     final showText = msg.messageText.isNotEmpty && 
-        !( (msg.messageText == '[Media: image]' || msg.messageText == '[Media: Image]') && (displayUrl != null && displayUrl.isNotEmpty) );
+        !( (msg.messageText == '[Media: image]' || msg.messageText == '[Media: Image]') && (displayUrl != null && displayUrl.isNotEmpty) ) &&
+        msg.type != 'location';
 
     Widget bubbleContent;
 
@@ -620,6 +621,47 @@ class _ChatViewState extends State<ChatView> {
                 ),
                 Text(
                   "Tap to open/download",
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isMe ? Colors.white70 : Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    } else if (msg.type == 'location') {
+      final mapUrl = _extractMapUrl(msg.messageText) ?? msg.messageText;
+      bubbleContent = InkWell(
+        onTap: () async {
+          final uri = Uri.tryParse(mapUrl);
+          if (uri != null) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        },
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.location_on,
+              color: isMe ? Colors.white : Colors.red,
+              size: 32,
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Location Shared",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isMe ? Colors.white : (isDark ? Colors.white : Colors.black),
+                  ),
+                ),
+                Text(
+                  "Tap to view on Maps",
                   style: TextStyle(
                     fontSize: 11,
                     color: isMe ? Colors.white70 : Colors.grey.shade600,

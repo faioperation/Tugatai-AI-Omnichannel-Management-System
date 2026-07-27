@@ -60,6 +60,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
 
   // Extra/Custom key-value fields
   List<MapEntry<TextEditingController, TextEditingController>> _customFields = [];
+  final List<String> _deletedCustomKeys = [];
 
   @override
   void initState() {
@@ -280,6 +281,11 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
 
       // Remove empty strings so we don't send empty fields
       payload.removeWhere((key, value) => value is String && value.isEmpty);
+
+      // Add null values for deleted custom fields
+      for (var k in _deletedCustomKeys) {
+        payload[k] = null;
+      }
 
       Navigator.pop(context, payload);
     }
@@ -734,7 +740,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                           IconButton(
                             onPressed: () {
                               setState(() {
-                                _customFields.add(MapEntry(TextEditingController(), TextEditingController()));
+                                _customFields.insert(0, MapEntry(TextEditingController(), TextEditingController()));
                               });
                             },
                             icon: const Icon(Icons.add_circle_outline, color: AppColor.primary),
@@ -758,6 +764,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                           itemBuilder: (context, index) {
                             final entry = _customFields[index];
                             return Padding(
+                              key: ObjectKey(entry),
                               padding: const EdgeInsets.only(bottom: 12),
                               child: Row(
                                 children: [
@@ -778,7 +785,13 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                                   IconButton(
                                     onPressed: () {
                                       setState(() {
-                                        _customFields.removeAt(index);
+                                        final removed = _customFields.removeAt(index);
+                                        final k = removed.key.text.trim();
+                                        if (k.isNotEmpty) {
+                                          _deletedCustomKeys.add(k);
+                                        }
+                                        removed.key.dispose();
+                                        removed.value.dispose();
                                       });
                                     },
                                     icon: const Icon(Icons.delete_outline, color: Colors.red),

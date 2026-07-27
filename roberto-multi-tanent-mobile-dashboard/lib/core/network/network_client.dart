@@ -140,11 +140,15 @@ class NetworkClient {
     }
   }
 
-  Future<NetworkResponse> deleteRequest(String url) async {
+  Future<NetworkResponse> deleteRequest(String url, {Map<String, dynamic>? body}) async {
     try {
       Uri uri = Uri.parse(url);
-      _logRequest(url, headers: commonHeaders());
-      final Response response = await delete(uri, headers: commonHeaders());
+      _logRequest(url, headers: commonHeaders(), body: body);
+      final Response response = await delete(
+        uri,
+        headers: commonHeaders(),
+        body: body != null ? jsonEncode(body) : null,
+      );
       _logResponse(response);
       return _handleResponse(response);
     } catch (e) {

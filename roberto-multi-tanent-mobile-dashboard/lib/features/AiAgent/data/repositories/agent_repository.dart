@@ -219,4 +219,31 @@ class AgentRepository {
       throw Exception(response.errorMassage ?? 'Network error occurred.');
     }
   }
+
+  Future<void> teardownTwilio({
+    required String phoneNumberId,
+    required String transferToolId,
+    required String assistantId,
+  }) async {
+    final response = await networkClient.deleteRequest(
+      '${ApiConstants.baseUrl}/system-owner/telephony/teardown',
+      body: {
+        'phone_number_id': phoneNumberId,
+        'transfer_tool_id': transferToolId,
+        'assistant_id': assistantId,
+      },
+    );
+
+    if (response.isSuccess && response.responseData != null) {
+      if (response.responseData['success'] == true) {
+        return;
+      } else {
+        throw Exception(
+          response.responseData['message'] ?? 'Failed to delete Twilio number.',
+        );
+      }
+    } else {
+      throw Exception(response.errorMassage ?? 'Network error occurred.');
+    }
+  }
 }

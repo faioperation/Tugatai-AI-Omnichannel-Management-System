@@ -71,14 +71,16 @@ class AgentMetadata {
   final String? agentName;
   final String? businessId;
   final String? assistantId;
+  final Map<String, dynamic>? twilioResponse;
 
-  AgentMetadata({this.agentName, this.businessId, this.assistantId});
+  AgentMetadata({this.agentName, this.businessId, this.assistantId, this.twilioResponse});
 
   factory AgentMetadata.fromJson(Map<String, dynamic> json) {
     return AgentMetadata(
       agentName: json['agentName'] ?? json['agent_name'],
       businessId: json['business_id'],
       assistantId: json['assistant_id'],
+      twilioResponse: json['twilioResponse'] as Map<String, dynamic>?,
     );
   }
 }

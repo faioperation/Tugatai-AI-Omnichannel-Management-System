@@ -7,6 +7,7 @@ class CustomMinitextfield extends StatelessWidget {
   final bool obscureText;
   final String? Function(String?)? validator;
   final TextInputType? keyboardType;
+  final Widget? suffixIcon;
 
   const CustomMinitextfield({
     super.key,
@@ -16,6 +17,7 @@ class CustomMinitextfield extends StatelessWidget {
     this.obscureText = false,
     this.validator,
     this.keyboardType,
+    this.suffixIcon,
   });
 
   @override
@@ -30,6 +32,7 @@ class CustomMinitextfield extends StatelessWidget {
         hintText: hint,
         filled: true,
         fillColor: Theme.of(context).scaffoldBackgroundColor,
+        suffixIcon: suffixIcon,
         contentPadding:
         const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         border: OutlineInputBorder(
