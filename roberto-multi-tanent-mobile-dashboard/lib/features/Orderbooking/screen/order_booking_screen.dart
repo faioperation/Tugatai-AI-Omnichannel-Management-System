@@ -1678,16 +1678,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       return orderDate != null && orderDate.year == day.year && orderDate.month == day.month && orderDate.day == day.day;
     }).toList();
     
-    final googleDayEvents = _googleEvents.where((e) {
-      final start = e['start']?['dateTime'];
-      if (start != null) {
-        final eventDate = DateTime.tryParse(start)?.toLocal();
-        return eventDate != null && eventDate.year == day.year && eventDate.month == day.month && eventDate.day == day.day;
-      }
-      return false;
-    }).toList();
-    
-    int eventCount = dayOrders.length + googleDayEvents.length;
+    int eventCount = dayOrders.length;
     final hasEvent = eventCount > 0;
     final isSelectedActive = isSelected;
 
@@ -1888,16 +1879,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       return aDt.compareTo(bDt);
     });
 
-    final googleFilteredEvents = _googleEvents.where((e) {
-      final start = e['start']?['dateTime'];
-      if (start != null) {
-        final eventDate = DateTime.tryParse(start)?.toLocal();
-        return eventDate != null && eventDate.year == selectedDay.year && eventDate.month == selectedDay.month && eventDate.day == selectedDay.day;
-      }
-      return false;
-    }).toList();
-
-    final totalEvents = filteredOrders.length + googleFilteredEvents.length;
+    final totalEvents = filteredOrders.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1936,12 +1918,6 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
           ...filteredOrders.map((order) => _buildSidebarOrderCard(
                 context: context,
                 order: order,
-                theme: theme,
-                isDark: isDark,
-              )),
-          ...googleFilteredEvents.map((event) => _buildSidebarGoogleEventCard(
-                context: context,
-                event: event,
                 theme: theme,
                 isDark: isDark,
               )),
