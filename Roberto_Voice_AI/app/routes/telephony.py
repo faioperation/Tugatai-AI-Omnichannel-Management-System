@@ -1,3 +1,4 @@
+import logging
 import httpx
 from fastapi import APIRouter, HTTPException, Form
 from pydantic import BaseModel
@@ -6,11 +7,18 @@ from app.config import VAPI_API_KEY, VAPI_BASE
 from app.vapi_client import vapi_headers
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class TelephonyLinkRequest(BaseModel):
     phone_number_id: str
     assistant_id: str
+
+
+class TelephonyTeardownRequest(BaseModel):
+    phone_number_id: str | None = None
+    transfer_tool_id: str | None = None
+    assistant_id: str | None = None
 
 
 @router.post("/api/telephony/link")
@@ -75,3 +83,50 @@ async def setup_twilio(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/api/telephony/teardown")
+async def teardown_telephony(data: TelephonyTeardownRequest):
+    """
+    Deletes a phone number and/or transfer tool from VAPI, and detaches the tool from the assistant.
+    Body JSON:
+      - phone_number_id: ID of the Vapi phone number to delete (optional)
+      - transfer_tool_id: ID of the transfer tool to delete (optional)
+      - assistant_id: ID of the assistant to detach the tool from (optional)
+    """
+    from app.vapi_client import delete_phone_number, delete_tool, detach_tool_from_assistant
+
+    if not data.phone_number_id and not data.transfer_tool_id:
+        raise HTTPException(status_code=400, detail="At least one of phone_number_id or transfer_tool_id must be provided.")
+
+    deleted_phone = False
+    deleted_tool = False
+
+    if data.transfer_tool_id:
+        if data.assistant_id:
+            try:
+                await detach_tool_from_assistant(data.assistant_id, data.transfer_tool_id)
+            except Exception as e:
+                logger.warning(f"Failed to detach tool from assistant: {e}")
+        try:
+            await delete_tool(data.transfer_tool_id)
+            deleted_tool = True
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to delete transfer tool {data.transfer_tool_id}: {e}")
+
+    if data.phone_number_id:
+        try:
+            await delete_phone_number(data.phone_number_id)
+            deleted_phone = True
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to delete phone number {data.phone_number_id}: {e}")
+
+    return {
+        "status": "success",
+        "message": "Telephony resources deleted successfully.",
+        "phone_number_deleted": deleted_phone,
+        "transfer_tool_deleted": deleted_tool,
+        "phone_number_id": data.phone_number_id,
+        "transfer_tool_id": data.transfer_tool_id
+    }
+

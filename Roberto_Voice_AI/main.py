@@ -68,7 +68,9 @@ def health_check():
             "delete_assistant": "DELETE /api/assistant/{id}",
             "webhook": "POST /api/webhook/calls",
             "chat": "POST /api/chat-with-agent",
-            "telephony": "GET/POST/DELETE /api/telephony/numbers"
+            "telephony_link": "POST /api/telephony/link",
+            "telephony_setup": "POST /api/telephony/setup-twilio",
+            "telephony_teardown": "DELETE /api/telephony/teardown"
         }
     }
 

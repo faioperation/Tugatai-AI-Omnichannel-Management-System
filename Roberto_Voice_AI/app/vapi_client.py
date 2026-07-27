@@ -514,3 +514,111 @@ async def attach_transfer_tool(assistant_id: str, transfer_number: str, twilio_n
             raise RuntimeError(f"Failed to update assistant tools ({patch_resp.status_code}): {patch_resp.text}")
 
     return tool_id
+
+
+# Resource Deletion & Maintenance Helpers
+
+async def delete_phone_number(phone_identifier: str) -> None:
+    """Delete a phone number from Vapi by UUID or raw phone number string (+123...)."""
+    
+    # 1. Determine actual Vapi UUID
+    actual_id = phone_identifier
+    if phone_identifier.startswith("+") or "-" not in phone_identifier:
+        # Looks like a raw phone number, look up the UUID
+        all_phones = await list_phone_numbers_from_vapi()
+        found_id = None
+        for p in all_phones:
+            if p.get("number") == phone_identifier or p.get("id") == phone_identifier:
+                found_id = p.get("id")
+                break
+        if not found_id:
+            raise RuntimeError(f"Phone number '{phone_identifier}' not found in VAPI.")
+        actual_id = found_id
+
+    # 2. Delete the actual UUID
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.delete(f"{VAPI_BASE}/phone-number/{actual_id}", headers=vapi_headers())
+
+    if resp.status_code not in (200, 204):
+        error_msg = f"[VAPI] Could not delete phone number {actual_id}: {resp.status_code} {resp.text}"
+        logger.warning(error_msg)
+        raise RuntimeError(error_msg)
+    else:
+        logger.info(f"[VAPI] Deleted phone number {actual_id} (original input: {phone_identifier})")
+
+
+async def delete_tool(tool_id: str) -> None:
+    """Delete a tool from Vapi by ID."""
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.delete(f"{VAPI_BASE}/tool/{tool_id}", headers=vapi_headers())
+
+    if resp.status_code not in (200, 204):
+        logger.warning(f"[VAPI] Could not delete tool {tool_id}: {resp.status_code} {resp.text}")
+    else:
+        logger.info(f"[VAPI] Deleted tool {tool_id}")
+
+
+async def delete_assistant_from_vapi(assistant_id: str) -> None:
+    """Delete an assistant from Vapi by ID."""
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.delete(f"{VAPI_BASE}/assistant/{assistant_id}", headers=vapi_headers())
+
+    if resp.status_code not in (200, 204):
+        raise RuntimeError(f"VAPI delete assistant failed ({resp.status_code}): {resp.text}")
+    
+    logger.info(f"[VAPI] Deleted assistant {assistant_id}")
+
+
+async def list_phone_numbers_from_vapi() -> list[dict]:
+    """List all phone numbers configured in Vapi."""
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.get(f"{VAPI_BASE}/phone-number", headers=vapi_headers())
+
+    if resp.status_code != 200:
+        logger.warning(f"[VAPI] List phone numbers failed ({resp.status_code}): {resp.text}")
+        return []
+
+    return resp.json()
+
+
+async def list_tools_from_vapi() -> list[dict]:
+    """List all tools configured in Vapi."""
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.get(f"{VAPI_BASE}/tool", headers=vapi_headers())
+
+    if resp.status_code != 200:
+        logger.warning(f"[VAPI] List tools failed ({resp.status_code}): {resp.text}")
+        return []
+
+    return resp.json()
+
+
+async def detach_tool_from_assistant(assistant_id: str, tool_id: str) -> None:
+    """Remove a tool ID from an assistant's model.toolIds list."""
+    assistant = await get_assistant_from_vapi(assistant_id)
+    if not assistant:
+        return
+
+    current_model = assistant.get("model", {})
+    existing_ids = current_model.get("toolIds", [])
+    if tool_id not in existing_ids:
+        return
+
+    updated_ids = [tid for tid in existing_ids if tid != tool_id]
+    patch = {
+        "model": {
+            **current_model,
+            "toolIds": updated_ids,
+        }
+    }
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.patch(
+            f"{VAPI_BASE}/assistant/{assistant_id}",
+            json=patch,
+            headers=vapi_headers()
+        )
+
+    if resp.status_code in (200, 201, 204):
+        logger.info(f"[VAPI] Detached tool {tool_id} from assistant {assistant_id}")
+
