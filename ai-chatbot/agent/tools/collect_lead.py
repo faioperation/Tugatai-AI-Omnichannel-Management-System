@@ -19,6 +19,7 @@ def _lead_candidates():
 CHANNEL_SOURCE_MAP = {
     "whatsapp": "WHATSAPP",
     "facebook": "MESSENGER",
+    "messenger": "MESSENGER",
     "instagram": "INSTAGRAM",
 }
 
