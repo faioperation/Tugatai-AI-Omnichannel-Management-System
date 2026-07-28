@@ -125,7 +125,10 @@ export const extractLeadPayload = async (businessId, payload) => {
   ];
 
   if (extracted.source) {
-    const sourceUpper = String(extracted.source).toUpperCase().replace(/[-\s]/g, "_");
+    let sourceUpper = String(extracted.source).toUpperCase().replace(/[-\s]/g, "_");
+    if (sourceUpper === "FACEBOOK") {
+      sourceUpper = "MESSENGER";
+    }
     if (validSources.includes(sourceUpper)) {
       extracted.source = sourceUpper;
     } else {
