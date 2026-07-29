@@ -656,7 +656,13 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                                     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.1))),
                                   ),
                                   items: ['PENDING', 'CONFIRMED', 'COMPLETED', 'DELIVERED', 'CANCELLED']
-                                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                                      .map((e) {
+                                        String displayLabel = e;
+                                        if (e == 'COMPLETED' && (_bookingType == 'Parcel Delivery' || _bookingType == 'Order Booking')) {
+                                          displayLabel = 'ON THE WAY';
+                                        }
+                                        return DropdownMenuItem(value: e, child: Text(displayLabel));
+                                      })
                                       .toList(),
                                   onChanged: (v) => setState(() => _orderStatus = v!),
                                 ),

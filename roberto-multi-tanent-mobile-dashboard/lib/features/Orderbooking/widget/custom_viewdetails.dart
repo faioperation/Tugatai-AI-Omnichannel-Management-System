@@ -601,6 +601,9 @@ class CustomViewdetails extends StatelessWidget {
         bg = isDark ? Colors.green.withOpacity(0.1) : const Color(0xffD1FAE5);
         fg = isDark ? Colors.green.shade400 : const Color(0xff059669);
         label = status == OrderStatus.completed ? 'Completed' : 'Delivered';
+        if (status == OrderStatus.completed && (order.bookingType == 'Parcel Delivery' || order.bookingType == 'Order Booking')) {
+          label = 'On the way';
+        }
         break;
       case OrderStatus.cancelled:
         bg = isDark ? Colors.red.withOpacity(0.1) : const Color(0xffFEE2E2);
@@ -787,7 +790,7 @@ class CustomViewdetails extends StatelessWidget {
                         ),
                         pw.SizedBox(height: 4),
                         pw.Text(
-                          order.status.name.toUpperCase(),
+                          (order.status == OrderStatus.completed && (order.bookingType == 'Parcel Delivery' || order.bookingType == 'Order Booking')) ? 'ON THE WAY' : order.status.name.toUpperCase(),
                           style: pw.TextStyle(
                             fontSize: 12,
                             fontWeight: pw.FontWeight.bold,

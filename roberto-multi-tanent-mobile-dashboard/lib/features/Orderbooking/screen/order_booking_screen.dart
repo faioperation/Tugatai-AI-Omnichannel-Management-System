@@ -491,7 +491,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                         SizedBox(height: isMobile ? 12 : 16),
                         isMobile ? _buildMobileCards(theme, isDark, columnAddressLabel, shortPriceLabel, shortTimeLabel, bType) : _buildDesktopTable(theme, isDark, columnAddressLabel, columnPriceLabel, columnTimeLabel, bType),
                       ] else
-                        _buildCalendarContent(isMobile, theme, isDark, titleLabel),
+                        _buildCalendarContent(isMobile, theme, isDark, titleLabel, bType),
                     ],
                   ),
                 );
@@ -1055,7 +1055,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
             ),
           ),
           // Status
-          Expanded(flex: 2, child: Center(child: _buildStatusBadge(order.status))),
+          Expanded(flex: 2, child: Center(child: _buildStatusBadge(order.status, bType))),
           // Shipping
           Expanded(
             flex: 2,
@@ -1172,7 +1172,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                     color: theme.colorScheme.onSurface,
                     fontSize: 14),
               ),
-              _buildStatusBadge(order.status),
+              _buildStatusBadge(order.status, bType),
             ],
           ),
 
@@ -1499,7 +1499,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     );
   }
 
-  Widget _buildStatusBadge(OrderStatus status) {
+  Widget _buildStatusBadge(OrderStatus status, String? bType) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     late Color bg, fg;
@@ -1523,6 +1523,12 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
         bg = isDark ? Colors.green.withOpacity(0.1) : const Color(0xffD1FAE5);
         fg = isDark ? Colors.green.shade400 : const Color(0xff059669);
         label = 'Completed';
+        if (bType != null) {
+          final normalized = bType.toUpperCase().replaceAll(' ', '_');
+          if (normalized == 'PERCEL_BOOKING' || normalized == 'PARCEL_BOOKING' || normalized == 'PARCEL_DELIVERY' || normalized == 'ORDER_BOOKING' || normalized == 'RETAIL' || normalized == 'MANUFACTURING') {
+            label = 'On the way';
+          }
+        }
         icon = Icons.check_circle;
         break;
       case OrderStatus.delivered:
@@ -1557,13 +1563,13 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   }
 
   // ─── CALENDAR VIEW ──────────────────────────────────────────────────
-  Widget _buildCalendarContent(bool isMobile, ThemeData theme, bool isDark, String title) {
+  Widget _buildCalendarContent(bool isMobile, ThemeData theme, bool isDark, String title, String? bType) {
     if (isMobile) {
       return Column(
         children: [
           _buildCalendarPane(theme, isDark, title),
           const SizedBox(height: 16),
-          _buildCalendarSidebar(theme, isDark),
+          _buildCalendarSidebar(theme, isDark, bType),
         ],
       );
     }
@@ -1573,7 +1579,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       children: [
         Expanded(flex: 7, child: _buildCalendarPane(theme, isDark, title)),
         const SizedBox(width: 24),
-        Expanded(flex: 3, child: _buildCalendarSidebar(theme, isDark)),
+        Expanded(flex: 3, child: _buildCalendarSidebar(theme, isDark, bType)),
       ],
     );
   }
@@ -1855,7 +1861,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     return DateTime(date.year, date.month, date.day).add(Duration(minutes: minutes));
   }
 
-  Widget _buildCalendarSidebar(ThemeData theme, bool isDark) {
+  Widget _buildCalendarSidebar(ThemeData theme, bool isDark, String? bType) {
     final selectedDay = _selectedDay ?? DateTime.now();
     final dayStr = '${_getMonthYear(selectedDay).split(' ')[0]} ${selectedDay.day}';
 
@@ -1920,6 +1926,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 order: order,
                 theme: theme,
                 isDark: isDark,
+                bType: bType,
               )),
         ],
       ],
@@ -1984,6 +1991,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     required OrderMod order,
     required ThemeData theme,
     required bool isDark,
+    String? bType,
   }) {
     final status = order.status;
     final int idx = _orders.indexOf(order);
@@ -2024,7 +2032,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                         fontSize: 12, color: theme.textTheme.bodySmall?.color ?? const Color(0xff6B7280))),
                 ],
               ),
-              _buildStatusBadge(status),
+              _buildStatusBadge(status, bType),
             ],
           ),
           const SizedBox(height: 16),
