@@ -467,6 +467,9 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
               } else if (normalized == 'PERCEL_BOOKING' || normalized == 'PARCEL_BOOKING' || normalized == 'PARCEL_DELIVERY') {
                 titleLabel = 'Parcel Delivery';
                 columnAddressLabel = 'Pickup / Delivery';
+              } else if (normalized == 'ORDER_BOOKING') {
+                columnPriceLabel = 'Total Price';
+                shortPriceLabel = 'Total Price';
               }
             }
 
