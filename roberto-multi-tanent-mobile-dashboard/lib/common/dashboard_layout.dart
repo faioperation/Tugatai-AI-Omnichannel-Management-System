@@ -661,9 +661,13 @@ class _DashboardShellState extends State<DashboardShell> {
                       );
                     }
 
-                    if (label == 'Pricing' &&
-                        normalizedBType == 'APPOINTMENT_BOOKING') {
-                      return const SizedBox.shrink();
+                    if (label == 'Pricing') {
+                      if (normalizedBType != 'PARCEL_DELIVERY' && 
+                          normalizedBType != 'PERCEL_DELIVERY' &&
+                          normalizedBType != 'PARCEL_BOOKING' &&
+                          normalizedBType != 'PERCEL_BOOKING') {
+                        return const SizedBox.shrink();
+                      }
                     }
 
                     if (label == 'Order Booking' && effectiveBType != null) {
