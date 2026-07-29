@@ -233,6 +233,8 @@ export const saveAdditionalDetails = async (tx, businessId, branchId, bookingId,
     ]);
 
     const additionalDetailsData = [];
+    let priceFromMeta = null;
+    const possibleKeys = ["total_price", "totalprice", "totalPrice", "total", "cost"];
     for (const key of Object.keys(payload)) {
         if (!standardFields.has(key) && payload[key] !== undefined && payload[key] !== null) {
             const val = typeof payload[key] === 'object' ? JSON.stringify(payload[key]) : String(payload[key]);
@@ -243,6 +245,9 @@ export const saveAdditionalDetails = async (tx, businessId, branchId, bookingId,
                 key,
                 value: val,
             });
+            if (possibleKeys.includes(key.toLowerCase())) {
+                priceFromMeta = val;
+            }
         }
     }
 
@@ -250,6 +255,17 @@ export const saveAdditionalDetails = async (tx, businessId, branchId, bookingId,
         await tx.additionalDetail.createMany({
             data: additionalDetailsData
         });
+    }
+    // Update price if meta provided
+    if (priceFromMeta !== null) {
+        try {
+            await tx.orderBooking.update({
+                where: { id: bookingId },
+                data: { price: priceFromMeta }
+            });
+        } catch (e) {
+            // ignore if not applicable
+        }
     }
 };
 
