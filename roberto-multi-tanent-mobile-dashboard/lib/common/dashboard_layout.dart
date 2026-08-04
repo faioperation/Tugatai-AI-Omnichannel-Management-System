@@ -23,6 +23,9 @@ import 'package:roberto/features/businesssubscription/screen/business_subscripti
 import 'package:roberto/features/Overview/screen/overview_screen.dart';
 import 'package:roberto/features/DemoBooking/screen/demo_booking_screen.dart';
 import 'package:roberto/features/WhatsAppCampaigns/screen/whatsapp_campaigns_screen.dart';
+import 'package:roberto/features/UserManagement/screen/user_list_screen.dart';
+import 'package:roberto/features/UserManagement/bloc/user_list_bloc.dart';
+import 'package:roberto/features/UserManagement/data/repositories/user_list_repository.dart';
 import 'package:roberto/app/app_routes.dart';
 import 'package:roberto/common/user_role.dart';
 
@@ -150,6 +153,9 @@ class _DashboardShellState extends State<DashboardShell> {
         break;
       case 'Settings':
         route = Routes.settings;
+        break;
+      case 'All Users':
+        route = Routes.allUsers;
         break;
       case 'Notifications':
         route = Routes.notifications;
@@ -382,6 +388,16 @@ class _DashboardShellState extends State<DashboardShell> {
       case 'Demo Bookings':
         return const DemoBookingScreen();
 
+      case 'All Users':
+        return BlocProvider(
+          create: (context) => UserListBloc(
+            repository: UserListRepository(
+              networkClient: context.read<NetworkClient>(),
+            ),
+          ),
+          child: const UserListScreen(),
+        );
+
       case 'Edit Profile':
         return const SettingScreen();
 
@@ -399,6 +415,7 @@ class _DashboardShellState extends State<DashboardShell> {
   static const List<Map<String, dynamic>> _systemOwnerItems = [
     {'icon': 'assets/overview.svg', 'label': 'Overview'},
     {'icon': Icons.business, 'label': 'Tenant Management'},
+    {'icon': Icons.people_outline, 'label': 'All Users'},
     {'icon': 'assets/agent.svg', 'label': 'AI Agent'},
     {'icon': 'assets/inbox.svg', 'label': 'Demo Bookings'},
     {'icon': 'assets/subscription.svg', 'label': 'Subscriptions'},
@@ -819,9 +836,12 @@ class _DashboardShellState extends State<DashboardShell> {
           color: Theme.of(context).cardTheme.color,
           padding: EdgeInsets.zero,
           offset: const Offset(0, 45),
-          onSelected: (value) {
+          onSelected: (value) async {
             if (value == 'logout') {
-              Navigator.pushReplacementNamed(context, Routes.login);
+              await LocalStorageService.clearTokens();
+              if (context.mounted) {
+                Navigator.pushNamedAndRemoveUntil(context, Routes.login, (route) => false);
+              }
             } else if (value == 'profile') {
               _selectItem('Edit Profile');
             }
