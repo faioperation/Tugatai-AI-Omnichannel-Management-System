@@ -16,5 +16,16 @@ class UserListBloc extends Bloc<UserListEvent, UserListState> {
         emit(UserListError(e.toString()));
       }
     });
+
+    on<UpdateUserStatus>((event, emit) async {
+      final currentState = state;
+      if (currentState is UserListLoaded) {
+        // Optimistically update the UI if needed, but here we can just show loading or just fetch again.
+        // Let's just update the status through API and then refresh
+        emit(UserListLoading());
+        await repository.updateUserStatus(event.userId, event.status);
+        add(FetchAllUsers());
+      }
+    });
   }
 }

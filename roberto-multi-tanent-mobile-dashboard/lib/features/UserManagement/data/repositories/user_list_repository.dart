@@ -19,4 +19,16 @@ class UserListRepository {
       throw Exception('Failed to load users: $e');
     }
   }
+
+  Future<bool> updateUserStatus(String userId, String status) async {
+    try {
+      final response = await networkClient.patchRequest(
+        '${ApiConstants.baseUrl}/user/$userId',
+        body: {'status': status},
+      );
+      return response.isSuccess;
+    } catch (e) {
+      return false;
+    }
+  }
 }
