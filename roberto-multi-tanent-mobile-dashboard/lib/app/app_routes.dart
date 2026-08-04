@@ -28,6 +28,7 @@ class Routes {
   static const String editProfile = '/edit-profile';
   static const String demoBookings = '/demo-bookings';
   static const String notifications = '/notifications';
+  static const String allUsers = '/all-users';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     String routeName = settings.name ?? '';
@@ -129,6 +130,7 @@ class Routes {
       editProfile,
       demoBookings,
       notifications,
+      allUsers,
     ].contains(normalizedName);
   }
 
@@ -166,6 +168,8 @@ class Routes {
         return 'Demo Bookings';
       case notifications:
         return 'Notifications';
+      case allUsers:
+        return 'All Users';
       default:
         return 'Overview';
     }

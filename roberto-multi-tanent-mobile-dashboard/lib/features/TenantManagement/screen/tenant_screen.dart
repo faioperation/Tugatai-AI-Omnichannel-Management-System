@@ -350,7 +350,7 @@ class _TenantScreenState extends State<TenantScreen> {
           ),
           Expanded(
             flex: 2,
-            child: Center(child: _buildStatusLabel(tenant.status ?? 'Unknown')),
+            child: Center(child: _buildStatusLabel(tenant)),
           ),
           Expanded(
             flex: 1,
@@ -451,7 +451,7 @@ class _TenantScreenState extends State<TenantScreen> {
                   color: theme.colorScheme.onSurface,
                 ),
               ),
-              _buildStatusLabel(tenant.status ?? 'Unknown'),
+              _buildStatusLabel(tenant),
             ],
           ),
           const SizedBox(height: 8),
@@ -535,9 +535,11 @@ class _TenantScreenState extends State<TenantScreen> {
     );
   }
 
-  Widget _buildStatusLabel(String status) {
+  Widget _buildStatusLabel(TenantBusiness tenant) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    final status = tenant.status ?? 'UNKNOWN';
 
     Color bgColor;
     Color textColor;
@@ -551,6 +553,10 @@ class _TenantScreenState extends State<TenantScreen> {
         bgColor = isDark ? const Color(0xFFB71C1C).withOpacity(0.2) : const Color(0xFFFFEBEE);
         textColor = isDark ? const Color(0xFFE57373) : const Color(0xff991B1B);
         break;
+      case 'PENDING':
+        bgColor = isDark ? Colors.blue.withOpacity(0.2) : Colors.blue.shade50;
+        textColor = isDark ? Colors.blue.shade300 : Colors.blue.shade700;
+        break;
       default:
         bgColor = isDark ? Colors.grey.withOpacity(0.2) : Colors.grey.shade100;
         textColor = isDark ? Colors.grey.shade400 : Colors.grey.shade700;
@@ -558,18 +564,36 @@ class _TenantScreenState extends State<TenantScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(12),
         border: isDark ? Border.all(color: textColor.withOpacity(0.3)) : null,
       ),
-      child: Text(
-        status,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: textColor,
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING'].contains(status.toUpperCase()) ? status.toUpperCase() : 'ACTIVE',
+          isDense: true,
+          icon: Icon(Icons.arrow_drop_down, size: 16, color: textColor),
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: textColor,
+          ),
+          items: ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING'].map((String value) {
+            return DropdownMenuItem<String>(
+              value: value,
+              child: Text(value),
+            );
+          }).toList(),
+          onChanged: (newValue) {
+            if (newValue != null && newValue != status.toUpperCase()) {
+              context.read<TenantBloc>().add(UpdateTenantRequested(
+                businessId: tenant.id,
+                payload: {'status': newValue},
+              ));
+            }
+          },
         ),
       ),
     );
