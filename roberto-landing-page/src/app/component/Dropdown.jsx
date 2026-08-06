@@ -82,7 +82,7 @@ const Dropdown = ({
 
         {/* Dropdown Menu */}
         <div
-          className={`absolute left-0 top-[105%] w-full bg-white  border border-[#D1D5DC] rounded-md shadow-md  text-[#000000] z-30 transition-all duration-300 text-center overflow-y-scroll hide-scrollbar  ${optionClass} ${
+          className={`absolute left-0 top-[105%] w-full bg-white  border border-[#D1D5DC] rounded-md shadow-md  text-[#000000] z-30 transition-all duration-300 text-center overflow-y-auto hide-scrollbar  ${optionClass} ${
             show
               ? "opacity-100 visible max-h-60 "
               : "opacity-0 invisible max-h-0 "
@@ -92,12 +92,14 @@ const Dropdown = ({
             const isObject = typeof item === "object";
             const itemLabel = isObject ? item.label : item;
             const itemValue = isObject ? item.value : item;
+            const itemDescription = isObject ? item.description : null;
 
             return (
               <div
                 key={index}
                 onClick={() => handleSelect(itemValue)}
-                className="py-2 hover:bg-[#EA2B33] hover:text-white cursor-pointer"
+                className="py-2 hover:bg-[#8e2bea] hover:text-white cursor-pointer relative group px-4 flex justify-center items-center"
+                title={itemDescription}
               >
                 {itemLabel}
               </div>
