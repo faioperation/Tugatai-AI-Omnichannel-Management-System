@@ -348,6 +348,11 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
           value: selectedBusinessType,
           items: const ["Order Booking", "Appointment Booking", "Parcel Delivery"],
           hint: "Select type",
+          tooltips: const {
+            "Order Booking": "Manage customer orders, food delivery, or product sales.",
+            "Appointment Booking": "Schedule and manage appointments for salons, clinics, or consulting.",
+            "Parcel Delivery": "Manage logistics, parcel delivery, or cargo tracking.",
+          },
           onChanged: (val) => setState(() => selectedBusinessType = val ?? "Order Booking"),
         ),
 

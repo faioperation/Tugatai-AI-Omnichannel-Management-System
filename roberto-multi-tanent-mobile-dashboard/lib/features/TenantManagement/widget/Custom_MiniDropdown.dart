@@ -5,6 +5,7 @@ class CustomMiniDropdown extends StatelessWidget {
   final List<String> items;
   final Function(String?) onChanged;
   final String hint;
+  final Map<String, String>? tooltips;
 
   const CustomMiniDropdown({
     super.key,
@@ -12,6 +13,7 @@ class CustomMiniDropdown extends StatelessWidget {
     required this.items,
     required this.onChanged,
     required this.hint,
+    this.tooltips,
   });
 
   @override
@@ -35,12 +37,21 @@ class CustomMiniDropdown extends StatelessWidget {
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down, size: 20),
           items: items.map((String item) {
+            final String? tooltipText = tooltips?[item];
+            Widget childWidget = Text(
+              item,
+              style: const TextStyle(fontSize: 14),
+            );
+            if (tooltipText != null) {
+              childWidget = Tooltip(
+                message: tooltipText,
+                waitDuration: const Duration(milliseconds: 300),
+                child: childWidget,
+              );
+            }
             return DropdownMenuItem<String>(
               value: item,
-              child: Text(
-                item,
-                style: const TextStyle(fontSize: 14),
-              ),
+              child: childWidget,
             );
           }).toList(),
           onChanged: onChanged,
