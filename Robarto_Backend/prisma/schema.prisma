@@ -342,6 +342,7 @@ model Business {
   notifications         Notification[]         @relation("BusinessNotifications")
   additionalDetails     AdditionalDetail[]     @relation("BusinessAdditionalDetails")
   agents                Agent[]                @relation("BusinessAgents")
+  webhookUrls           WebhookUrl[]           @relation("BusinessWebhookUrls")
 
   @@map("businesses")
 }
@@ -373,6 +374,7 @@ model Branch {
   whatsappAccounts  WhatsappAccount[]  @relation("BranchWhatsappAccounts")
   campaigns         Campaign[]         @relation("BranchCampaigns")
   notifications     Notification[]     @relation("BranchNotifications")
+  webhookUrls       WebhookUrl[]       @relation("BranchWebhookUrls")
 
   @@map("branches")
 }
@@ -785,6 +787,23 @@ model Message {
   conversation Conversation @relation("ConversationMessages", fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@map("messages")
+}
+
+model WebhookUrl {
+  id         String    @id @default(uuid())
+  businessId String    @map("business_id")
+  branchId   String?   @map("branch_id")
+  token      String    @unique
+  url        String
+  isActive   Boolean   @default(true) @map("is_active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  business Business @relation("BusinessWebhookUrls", fields: [businessId], references: [id], onDelete: Cascade)
+  branch   Branch?  @relation("BranchWebhookUrls", fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@map("webhook_urls")
 }
 
 // Business Owner ends --------------------------
