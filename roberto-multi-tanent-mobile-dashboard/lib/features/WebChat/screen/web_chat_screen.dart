@@ -46,6 +46,107 @@ class _WebChatScreenState extends State<WebChatScreen> {
         );
   }
 
+  void _showInstructionsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final theme = Theme.of(context);
+        return AlertDialog(
+          title: Text(
+            'Webhook API Integration Guide',
+            style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: SizedBox(
+            width: 600,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Use the generated Webhook URL to interact with the web chat API. All requests must be sent as a POST request using multipart/form-data.',
+                    style: TextStyle(fontSize: 15, color: theme.textTheme.bodyMedium?.color, height: 1.5),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildInstructionItem(
+                    context,
+                    icon: Icons.vpn_key_outlined,
+                    title: 'Conversation ID',
+                    description: 'Generate a unique ID from the frontend for the first message and save it in localStorage. Send this ID with every message. If the user refreshes or logs out, remove it to start a new conversation.',
+                  ),
+                  const SizedBox(height: 12),
+                  _buildInstructionItem(
+                    context,
+                    icon: Icons.chat_bubble_outline,
+                    title: 'Message Content',
+                    description: 'Pass the chat message as a string field named "message".',
+                  ),
+                  const SizedBox(height: 12),
+                  _buildInstructionItem(
+                    context,
+                    icon: Icons.attach_file,
+                    title: 'File Upload',
+                    description: 'Attach files (image, audio, or PDF) using the "file" field in your form-data.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close', style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildInstructionItem(BuildContext context, {required IconData icon, required String title, required String description}) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColor.primary.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColor.primary.withOpacity(0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: AppColor.primary, size: 24),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: theme.textTheme.bodyMedium?.color,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -97,19 +198,35 @@ class _WebChatScreenState extends State<WebChatScreen> {
                   ],
                 ),
               ),
-              ElevatedButton.icon(
-                onPressed: () => _generateWebhook(context),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Generate Webhook'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primary,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _showInstructionsDialog(context),
+                    icon: const Icon(Icons.info_outline, size: 18),
+                    label: const Text('Instructions'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: () => _generateWebhook(context),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Generate Webhook'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColor.primary,
+                      foregroundColor: Colors.white,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
