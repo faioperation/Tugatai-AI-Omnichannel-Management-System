@@ -130,9 +130,9 @@ const Signup = () => {
                   label="Business Type"
                   placeholder="Select type"
                   options={[
-                    { label: "Order Booking", value: "ORDER_BOOKING", description: "Manage customer orders, food delivery, or product sales." },
-                    { label: "Appointment Booking", value: "APPOINTMENT_BOOKING", description: "Schedule and manage appointments for salons, clinics, or consulting." },
-                    { label: "Cargo", value: "PARCEL_DELIVERY", description: "Manage logistics, parcel delivery, or cargo tracking." },
+                    { label: "Order Booking", value: "ORDER_BOOKING", description: "Any type of product selling category business can be handle under this type. Example (suppose you have some product and you want to sell it to your customer like super shop,grocerry shop etc you can use this type)" },
+                    { label: "Appointment Booking", value: "APPOINTMENT_BOOKING", description: "Schedule and manage appointments for salons, clinics, or consulting. Example (suppose you have a customer and you want to book an appointment for them like doctor,beauty parlors etc you can use this type)" },
+                    { label: "Cargo", value: "PARCEL_DELIVERY", description: "Manage logistics, parcel delivery, or cargo tracking. Example (suppose you have a customer and you want to percel his product to different places etc you can use this type)" },
                   ]}
                   value={formData.businessType}
                   onSelect={(val) => handleInputChange("businessType", val)}
