@@ -93,14 +93,26 @@ class _TrainingDataViewState extends State<TrainingDataView> {
       withData: true,
     );
 
-    if (result != null) {
+    if (result != null && result.files.isNotEmpty) {
+      final file = result.files.single;
+      
+      if ((slot == 'policies' || slot == 'faq') && file.size > 3 * 1024 * 1024) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("File size exceeds 3MB limit. Please upload a smaller file."),
+            backgroundColor: Colors.red,
+          )
+        );
+        return;
+      }
+
       setState(() {
         if (slot == 'product') {
-          _newProductFile = result.files.single;
+          _newProductFile = file;
         } else if (slot == 'policies') {
-          _newPoliciesFile = result.files.single;
+          _newPoliciesFile = file;
         } else if (slot == 'faq') {
-          _newFaqFile = result.files.single;
+          _newFaqFile = file;
         }
       });
     }
@@ -246,7 +258,7 @@ class _TrainingDataViewState extends State<TrainingDataView> {
 
                 // Business Information Text Field
                 Text(
-                  'Business Information *',
+                  'Business Information (Max 4000 words) *',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -261,6 +273,10 @@ class _TrainingDataViewState extends State<TrainingDataView> {
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Business information is required';
+                    }
+                    final wordCount = value.trim().split(RegExp(r'\s+')).length;
+                    if (wordCount > 4000) {
+                      return 'Business information cannot exceed 4000 words';
                     }
                     return null;
                   },
@@ -282,7 +298,7 @@ class _TrainingDataViewState extends State<TrainingDataView> {
 
                 // Policies & Guidelines Upload (PDF required)
                 _buildFileSlot(
-                  label: 'Policies & Guidelines (PDF) *',
+                  label: 'Policies & Guidelines (PDF, Max 3MB) *',
                   fileTypeHint: 'Only .pdf files are allowed',
                   icon: Icons.picture_as_pdf_outlined,
                   iconColor: Colors.red.shade600,
@@ -295,7 +311,7 @@ class _TrainingDataViewState extends State<TrainingDataView> {
 
                 // FAQ Upload (PDF optional)
                 _buildFileSlot(
-                  label: 'Common FAQs (PDF, Optional)',
+                  label: 'Common FAQs (PDF, Optional, Max 3MB)',
                   fileTypeHint: 'Only .pdf files are allowed',
                   icon: Icons.question_answer_outlined,
                   iconColor: Colors.blue.shade600,

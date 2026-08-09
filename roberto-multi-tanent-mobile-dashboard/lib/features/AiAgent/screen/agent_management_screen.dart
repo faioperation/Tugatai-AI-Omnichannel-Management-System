@@ -1361,6 +1361,15 @@ class _AgentFormDialogState extends State<_AgentFormDialog> {
       withData: true,
     );
     if (result != null && result.files.isNotEmpty) {
+      if (result.files.single.size > 5 * 1024 * 1024) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("File size exceeds 5MB limit. Please upload a smaller file."),
+            backgroundColor: Colors.red,
+          )
+        );
+        return;
+      }
       setState(() => _pickedFile = result.files.single);
     }
   }
@@ -1372,6 +1381,15 @@ class _AgentFormDialogState extends State<_AgentFormDialog> {
       withData: true,
     );
     if (result != null && result.files.isNotEmpty) {
+      if (result.files.single.size > 5 * 1024 * 1024) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("File size exceeds 5MB limit. Please upload a smaller file."),
+            backgroundColor: Colors.red,
+          )
+        );
+        return;
+      }
       setState(() => _pickedProductFile = result.files.single);
     }
   }
@@ -1527,8 +1545,8 @@ class _AgentFormDialogState extends State<_AgentFormDialog> {
                 // PDF Upload Section (rules_file)
                 Text(
                   widget.isEdit
-                      ? 'Update Call Rules (PDF/Word)'
-                      : 'Upload Call Rules (PDF/Word)',
+                      ? 'Update Call Rules (PDF/Word) - Max 5MB'
+                      : 'Upload Call Rules (PDF/Word) - Max 5MB',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -1571,7 +1589,7 @@ class _AgentFormDialogState extends State<_AgentFormDialog> {
                 // Excel Upload Section (productFile) — only on Create
                 if (!widget.isEdit) ...[
                   Text(
-                    'Upload Product Data (Excel)',
+                    'Upload Product Data (Excel) - Max 5MB',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
