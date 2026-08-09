@@ -26,6 +26,10 @@ import 'package:roberto/features/WhatsAppCampaigns/screen/whatsapp_campaigns_scr
 import 'package:roberto/features/UserManagement/screen/user_list_screen.dart';
 import 'package:roberto/features/UserManagement/bloc/user_list_bloc.dart';
 import 'package:roberto/features/UserManagement/data/repositories/user_list_repository.dart';
+import 'package:roberto/features/WebChat/screen/web_chat_screen.dart';
+import 'package:roberto/features/WebChat/bloc/web_chat_bloc.dart';
+import 'package:roberto/features/WebChat/bloc/web_chat_event.dart';
+import 'package:roberto/features/WebChat/data/repositories/web_chat_repository.dart';
 import 'package:roberto/app/app_routes.dart';
 import 'package:roberto/common/user_role.dart';
 
@@ -156,6 +160,9 @@ class _DashboardShellState extends State<DashboardShell> {
         break;
       case 'All Users':
         route = Routes.allUsers;
+        break;
+      case 'Web Chat':
+        route = Routes.webChat;
         break;
       case 'Notifications':
         route = Routes.notifications;
@@ -398,6 +405,16 @@ class _DashboardShellState extends State<DashboardShell> {
           child: const UserListScreen(),
         );
 
+      case 'Web Chat':
+        return BlocProvider(
+          create: (context) => WebChatBloc(
+            repository: WebChatRepository(
+              networkClient: context.read<NetworkClient>(),
+            ),
+          )..add(FetchWebhooks()),
+          child: WebChatScreen(branchId: currentBranchId),
+        );
+
       case 'Edit Profile':
         return const SettingScreen();
 
@@ -417,6 +434,7 @@ class _DashboardShellState extends State<DashboardShell> {
     {'icon': Icons.business, 'label': 'Tenant Management'},
     {'icon': Icons.people_outline, 'label': 'All Users'},
     {'icon': 'assets/agent.svg', 'label': 'AI Agent'},
+    {'icon': Icons.chat, 'label': 'Web Chat'},
     {'icon': 'assets/inbox.svg', 'label': 'Demo Bookings'},
     {'icon': 'assets/subscription.svg', 'label': 'Subscriptions'},
     {'icon': 'assets/setting.svg', 'label': 'Settings'},
@@ -427,6 +445,7 @@ class _DashboardShellState extends State<DashboardShell> {
     {'icon': 'assets/inbox.svg', 'label': 'Inbox'},
     {'icon': 'assets/order.svg', 'label': 'Order Booking'},
     {'icon': 'assets/pricing.svg', 'label': 'Pricing'},
+    {'icon': Icons.chat, 'label': 'Web Chat'},
     {'icon': Icons.send, 'label': 'Campaigns'},
     {'icon': 'assets/crm.svg', 'label': 'CRM & Leads'},
     {'icon': 'assets/subscription.svg', 'label': 'Subscriptions'},
