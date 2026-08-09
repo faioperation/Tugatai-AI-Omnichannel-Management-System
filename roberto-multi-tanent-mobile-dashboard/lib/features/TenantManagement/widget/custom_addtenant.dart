@@ -349,9 +349,9 @@ class _CustomAddtenantState extends State<CustomAddtenant> {
           items: const ["Order Booking", "Appointment Booking", "Parcel Delivery"],
           hint: "Select type",
           tooltips: const {
-            "Order Booking": "Manage customer orders, food delivery, or product sales.",
-            "Appointment Booking": "Schedule and manage appointments for salons, clinics, or consulting.",
-            "Parcel Delivery": "Manage logistics, parcel delivery, or cargo tracking.",
+            "Order Booking": "Any type of product selling category business can be handle under this type. Example (suppose you have some product and you want to sell it to your customer like super shop,grocerry shop etc you can use this type)",
+            "Appointment Booking": "Schedule and manage appointments for salons, clinics, or consulting. Example (suppose you have a customer and you want to book an appointment for them like doctor,beauty parlors etc you can use this type)",
+            "Parcel Delivery": "Manage logistics, parcel delivery, or cargo tracking. Example (suppose you have a customer and you want to percel his product to different places etc you can use this type)",
           },
           onChanged: (val) => setState(() => selectedBusinessType = val ?? "Order Booking"),
         ),

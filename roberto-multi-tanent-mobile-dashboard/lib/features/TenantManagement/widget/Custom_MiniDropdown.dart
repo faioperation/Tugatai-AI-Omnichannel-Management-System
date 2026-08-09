@@ -43,9 +43,43 @@ class CustomMiniDropdown extends StatelessWidget {
               style: const TextStyle(fontSize: 14),
             );
             if (tooltipText != null) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
               childWidget = Tooltip(
-                message: tooltipText,
-                waitDuration: const Duration(milliseconds: 300),
+                richMessage: WidgetSpan(
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(maxWidth: 280),
+                    child: Text(
+                      tooltipText,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black87,
+                        fontSize: 12.5,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+                waitDuration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(left: 120),
+                preferBelow: false,
+                verticalOffset: 0,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xff2A2A2A) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: Theme.of(context).primaryColor.withOpacity(0.3),
+                    width: 1.5,
+                  ),
+                ),
                 child: childWidget,
               );
             }

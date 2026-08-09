@@ -43,6 +43,17 @@ class _SystemPromptViewState extends State<SystemPromptView> {
       return;
     }
 
+    final wordCount = prompt.split(RegExp(r'\s+')).length;
+    if (wordCount > 3000) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(
+        content: Text('System prompt cannot exceed 3000 words'),
+        backgroundColor: Colors.red,
+      ));
+      return;
+    }
+
     if (_trainingId != null) {
       context.read<AgentTrainingBloc>().add(
         UpdateAgentTrainingRequested(
@@ -120,7 +131,7 @@ class _SystemPromptViewState extends State<SystemPromptView> {
 
             // Content Box Title
             Text(
-              'System Instructions',
+              'System Instructions (Max 3000 words)',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
