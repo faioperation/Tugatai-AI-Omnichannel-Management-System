@@ -434,7 +434,6 @@ class _DashboardShellState extends State<DashboardShell> {
     {'icon': Icons.business, 'label': 'Tenant Management'},
     {'icon': Icons.people_outline, 'label': 'All Users'},
     {'icon': 'assets/agent.svg', 'label': 'AI Agent'},
-    {'icon': Icons.chat, 'label': 'Web Chat'},
     {'icon': 'assets/inbox.svg', 'label': 'Demo Bookings'},
     {'icon': 'assets/subscription.svg', 'label': 'Subscriptions'},
     {'icon': 'assets/setting.svg', 'label': 'Settings'},
