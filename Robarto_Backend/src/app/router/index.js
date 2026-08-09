@@ -45,6 +45,7 @@ import { AllConversationsRoutes } from "../modules/allConversations/allConversat
 import { DemoBookingRoutes } from "../modules/demoBooking/demoBooking.route.js";
 import { PublicMessageHistoryRoutes } from "../modules/publicApi/messageHistory/messageHistory.route.js";
 import { AssistantReplyRoutes } from "../modules/assistantReply/assistantReply.route.js";
+import { PublicMessageWebhookRoutes } from "../modules/publicApi/messageWebhook/messageWebhook.route.js";
 
 export const router = Router();
 
@@ -99,6 +100,7 @@ const moduleRoutes = [
   { path: "/public/subscription-plans", route: PublicSubscriptionRoutes },
   { path: "/v1/public/campaigns", route: PublicCampaignRoutes },
   { path: "/v1/public/message-history", route: PublicMessageHistoryRoutes },
+  { path: "/v1/public/webhook", route: PublicMessageWebhookRoutes },
 ];
 
 moduleRoutes.forEach((route) => {

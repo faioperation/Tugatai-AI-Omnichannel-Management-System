@@ -40,7 +40,7 @@ export const notifyAiAgent = async ({
             branchId = waConv.whatsappAccount.branchId || null;
           }
         }
-      } else if (channel === "instagram" || channel === "messenger") {
+      } else if (channel === "instagram" || channel === "messenger" || channel === "webhook") {
         const conv = await prisma.conversation.findUnique({
           where: { id: conversationId }
         });
@@ -99,7 +99,7 @@ export const notifyAiAgent = async ({
           if (lastOutgoing && lastOutgoing.text?.trim() === responseText.trim()) {
             alreadySent = true;
           }
-        } else if (channel === "instagram" || channel === "messenger") {
+        } else if (channel === "instagram" || channel === "messenger" || channel === "webhook") {
           const lastOutgoing = await prisma.message.findFirst({
             where: {
               conversationId,
@@ -132,6 +132,25 @@ export const notifyAiAgent = async ({
       } else if (channel === "whatsapp") {
         const { WhatsappService } = await import("../modules/whatsapp/whatsapp.service.js");
         await WhatsappService.sendTextMessage(businessId, conversationId, responseText);
+      } else if (channel === "webhook") {
+        await prisma.message.create({
+          data: {
+            conversationId,
+            senderType: "agent",
+            senderId: "ai_agent",
+            type: "text",
+            messageText: responseText,
+            aiReply: true,
+            continueAi: true,
+          },
+        });
+        await prisma.conversation.update({
+          where: { id: conversationId },
+          data: {
+            lastMessage: responseText,
+            lastMessageAt: new Date(),
+          },
+        });
       }
     }
 
