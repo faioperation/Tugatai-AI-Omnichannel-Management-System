@@ -51,6 +51,13 @@ router.patch(
   SystemStaffController.updateStaff
 );
 
+// Delete System Staff user (SYSTEM_OWNER ONLY)
+router.delete(
+  "/:id",
+  checkAuthMiddleware(Role.SYSTEM_OWNER),
+  SystemStaffController.deleteStaff
+);
+
 // Update System Staff permissions (SYSTEM_OWNER ONLY - Strictly prevents staff escalation)
 router.patch(
   "/:id/permissions",

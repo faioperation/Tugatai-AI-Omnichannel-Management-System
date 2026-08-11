@@ -282,11 +282,26 @@ const getMyPermissions = async (userId) => {
   return userPermissions.map((up) => up.permission);
 };
 
+const deleteStaff = async (id) => {
+  await getStaffById(id); // Ensures user exists and is a active staff
+
+  const deletedUser = await prisma.user.update({
+    where: { id },
+    data: {
+      deletedAt: new Date(),
+      status: "INACTIVE",
+    },
+  });
+
+  return deletedUser;
+};
+
 export const SystemStaffService = {
   createStaff,
   getAllStaff,
   getStaffById,
   updateStaff,
+  deleteStaff,
   updateStaffPermissions,
   getAllAssignablePermissions,
   getMyPermissions,
