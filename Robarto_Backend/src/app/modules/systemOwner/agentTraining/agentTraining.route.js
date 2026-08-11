@@ -22,13 +22,13 @@ router.post(
 
 router.get(
     "/all",
-    checkPermission("TRAIN_AI", "VIEW_BUSINESS"),
+    checkPermission("TRAIN_AI"),
     AgentTrainingController.getAllAgentTrainings
 );
 
 router.get(
     "/:id",
-    checkPermission("TRAIN_AI", "VIEW_BUSINESS"),
+    checkPermission("TRAIN_AI"),
     AgentTrainingController.getAgentTrainingById
 );
 
