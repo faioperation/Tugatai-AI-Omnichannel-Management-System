@@ -29,6 +29,7 @@ export const UserService = {
         lastName: true,
         profilePicture: true,
         roles: { include: { role: true } },
+        userPermissions: { include: { permission: true } },
         isVerified: true,
         createdAt: true,
         updatedAt: true,
