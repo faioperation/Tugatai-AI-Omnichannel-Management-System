@@ -22,6 +22,14 @@ export const seedDatabase = async () => {
       { name: "MANAGE_ROLES", description: "Can manage roles and permissions" },
       { name: "MANAGE_BUSINESS", description: "Can manage businesses" },
       { name: "VIEW_DASHBOARD", description: "Can view system dashboard" },
+      { name: "ONBOARD_BUSINESS", description: "Onboard businesses & initial setup" },
+      { name: "VIEW_BUSINESS", description: "View business details" },
+      { name: "UPDATE_BUSINESS", description: "Update business setup" },
+      { name: "TRAIN_AI", description: "Train AI system prompts and knowledge" },
+      { name: "UPLOAD_KNOWLEDGE", description: "Upload knowledge base files" },
+      { name: "CONFIGURE_AGENT", description: "Configure Vapi, Twilio & AI agents" },
+      { name: "SUPPORT_BUSINESS", description: "Support business owners" },
+      { name: "MANAGE_STAFF_USERS", description: "Manage users within assigned permissions" },
     ];
 
     const createdPermissions = [];
@@ -37,6 +45,7 @@ export const seedDatabase = async () => {
     // Seed Roles
     const rolesData = [
       { name: "SYSTEM_OWNER", description: "System Owner Role" },
+      { name: "SYSTEM_STAFF", description: "System Staff Role" },
       { name: "BUSINESS_OWNER", description: "Business Owner Role" },
       { name: "BRANCH_MANAGER", description: "Branch Manager Role" },
       { name: "CUSTOMER", description: "Customer Role" },

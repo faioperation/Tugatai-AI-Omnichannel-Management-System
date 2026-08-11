@@ -44,6 +44,9 @@ const getUserInfo = async (req, res, next) => {
 
     // Append businessId and businessType if BUSINESS_OWNER or BRANCH_MANAGER
     const userRoleNames = user.roles?.map(r => r.role.name) || [];
+    if (userRoleNames.includes("SYSTEM_STAFF")) {
+      user.permissions = user.userPermissions?.map(up => up.permission) || [];
+    }
     if (userRoleNames.includes("BUSINESS_OWNER")) {
       const business = await prisma.business.findFirst({
         where: { ownerId: user.id }

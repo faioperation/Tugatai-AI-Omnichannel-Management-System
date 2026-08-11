@@ -46,6 +46,7 @@ import { DemoBookingRoutes } from "../modules/demoBooking/demoBooking.route.js";
 import { PublicMessageHistoryRoutes } from "../modules/publicApi/messageHistory/messageHistory.route.js";
 import { AssistantReplyRoutes } from "../modules/assistantReply/assistantReply.route.js";
 import { PublicMessageWebhookRoutes } from "../modules/publicApi/messageWebhook/messageWebhook.route.js";
+import { SystemStaffRoutes } from "../modules/systemOwner/systemStaff/systemStaff.route.js";
 
 export const router = Router();
 
@@ -56,6 +57,7 @@ const moduleRoutes = [
   { path: "/auth", route: AuthRouter },
   { path: "/otp", route: OtpRouter },
   { path: "/system-owner/businesses", route: BusinessRoutes },
+  { path: "/system-owner/staff", route: SystemStaffRoutes },
   { path: "/system-owner/subscription-plans", route: SubscriptionPlanRoutes },
   { path: "/system-owner/activity-logs", route: ActivityLogRoutes },
   { path: "/system-owner/agent-trainings", route: AgentTrainingRoutes },

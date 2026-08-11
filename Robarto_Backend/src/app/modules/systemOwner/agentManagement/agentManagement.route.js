@@ -2,8 +2,7 @@ import express from "express";
 import { AgentController } from "./agentManagement.controller.js";
 import validateRequest from "../../../middleware/validateRequest.js";
 import { AgentValidation } from "./agentManagement.validation.js";
-import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
-import { Role } from "../../../utils/role.js";
+import { checkPermission } from "../../../middleware/checkAuthMiddleware.js";
 import { createMulterUpload } from "../../../config/multer.config.js";
 
 const router = express.Router();
@@ -16,7 +15,7 @@ const uploadFields = upload.fields([
 
 router.post(
     "/create",
-    checkAuthMiddleware(Role.SYSTEM_OWNER),
+    checkPermission("CONFIGURE_AGENT"),
     uploadFields,
     validateRequest(AgentValidation.createAgentSchema),
     AgentController.createAgent
@@ -24,19 +23,19 @@ router.post(
 
 router.get(
     "/all",
-    checkAuthMiddleware(Role.SYSTEM_OWNER),
+    checkPermission("CONFIGURE_AGENT"),
     AgentController.getAllAgents
 );
 
 router.get(
     "/:id",
-    checkAuthMiddleware(Role.SYSTEM_OWNER),
+    checkPermission("CONFIGURE_AGENT"),
     AgentController.getAgentById
 );
 
 router.patch(
     "/:id",
-    checkAuthMiddleware(Role.SYSTEM_OWNER),
+    checkPermission("CONFIGURE_AGENT"),
     uploadFields,
     validateRequest(AgentValidation.updateAgentSchema),
     AgentController.updateAgent
@@ -44,7 +43,7 @@ router.patch(
 
 router.put(
     "/:id/product-file",
-    checkAuthMiddleware(Role.SYSTEM_OWNER),
+    checkPermission("CONFIGURE_AGENT"),
     upload.fields([
         { name: "product_file", maxCount: 1 },
         { name: "productFile", maxCount: 1 }
@@ -54,8 +53,9 @@ router.put(
 
 router.delete(
     "/:id",
-    checkAuthMiddleware(Role.SYSTEM_OWNER),
+    checkPermission("CONFIGURE_AGENT"),
     AgentController.deleteAgent
 );
 
 export const AgentManagementRoutes = router;
+

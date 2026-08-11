@@ -146,3 +146,60 @@ export const checkAuthMiddleware =
         });
       }
     };
+
+export const checkPermission = (...requiredPermissions) => async (req, res, next) => {
+  // First run authentication check to ensure valid token & populate req.user
+  return checkAuthMiddleware()(req, res, async () => {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
+
+      const userRoleNames = user.roles?.map((r) => r.role.name) || [];
+
+      // SYSTEM_OWNER automatically has full access
+      if (userRoleNames.includes("SYSTEM_OWNER")) {
+        return next();
+      }
+
+      // SYSTEM_STAFF requires dynamic permission check against UserPermission table
+      if (userRoleNames.includes("SYSTEM_STAFF")) {
+        const userPermissions = await prisma.userPermission.findMany({
+          where: { userId: user.id },
+          include: { permission: true },
+        });
+
+        const assignedPermNames = userPermissions.map((up) => up.permission.name);
+
+        const hasPermission = requiredPermissions.some((perm) =>
+          assignedPermNames.includes(perm)
+        );
+
+        if (!hasPermission) {
+          return res.status(403).json({
+            success: false,
+            message: "You do not have permission for this action",
+          });
+        }
+
+        return next();
+      }
+
+      // If user is neither SYSTEM_OWNER nor SYSTEM_STAFF
+      return res.status(403).json({
+        success: false,
+        message: "You do not have permission for this action",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Permission check failed",
+      });
+    }
+  });
+};
+

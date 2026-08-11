@@ -2,8 +2,7 @@ import express from "express";
 import { AgentTrainingController } from "./agentTraining.controller.js";
 import validateRequest from "../../../middleware/validateRequest.js";
 import { AgentTrainingValidation } from "./agentTraining.validation.js";
-import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
-import { Role } from "../../../utils/role.js";
+import { checkPermission } from "../../../middleware/checkAuthMiddleware.js";
 import { createMulterUpload } from "../../../config/multer.config.js";
 
 const router = express.Router();
@@ -11,7 +10,7 @@ const upload = createMulterUpload({ folder: "agentTraining", allowedTypes: /.*/ 
 
 router.post(
     "/create",
-    checkAuthMiddleware(Role.SYSTEM_OWNER),
+    checkPermission("TRAIN_AI", "UPLOAD_KNOWLEDGE"),
     upload.fields([
         { name: 'productInformation', maxCount: 10 },
         { name: 'policiesGuidelines', maxCount: 10 },
@@ -23,19 +22,19 @@ router.post(
 
 router.get(
     "/all",
-    checkAuthMiddleware(Role.SYSTEM_OWNER),
+    checkPermission("TRAIN_AI", "VIEW_BUSINESS"),
     AgentTrainingController.getAllAgentTrainings
 );
 
 router.get(
     "/:id",
-    checkAuthMiddleware(Role.SYSTEM_OWNER),
+    checkPermission("TRAIN_AI", "VIEW_BUSINESS"),
     AgentTrainingController.getAgentTrainingById
 );
 
 router.patch(
     "/:id",
-    checkAuthMiddleware(Role.SYSTEM_OWNER),
+    checkPermission("TRAIN_AI", "UPLOAD_KNOWLEDGE"),
     upload.fields([
         { name: 'productInformation', maxCount: 10 },
         { name: 'policiesGuidelines', maxCount: 10 },
@@ -47,8 +46,9 @@ router.patch(
 
 router.delete(
     "/:id",
-    checkAuthMiddleware(Role.SYSTEM_OWNER),
+    checkPermission("TRAIN_AI"),
     AgentTrainingController.deleteAgentTraining
 );
 
 export const AgentTrainingRoutes = router;
+
