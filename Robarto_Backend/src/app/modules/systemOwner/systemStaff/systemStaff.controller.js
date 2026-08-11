@@ -117,11 +117,29 @@ const getMyPermissions = async (req, res) => {
   }
 };
 
+const deleteStaff = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await SystemStaffService.deleteStaff(id);
+    return res.status(200).json({
+      success: true,
+      message: "System Staff user deleted successfully",
+      data: result,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Failed to delete System Staff user",
+    });
+  }
+};
+
 export const SystemStaffController = {
   createStaff,
   getAllStaff,
   getStaffById,
   updateStaff,
+  deleteStaff,
   updateStaffPermissions,
   getAllAssignablePermissions,
   getMyPermissions,
