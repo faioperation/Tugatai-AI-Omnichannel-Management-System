@@ -18,18 +18,26 @@ export const seedDatabase = async () => {
 
     // Seed Permissions
     const permissionsData = [
-      { name: "MANAGE_USERS", description: "Can manage users" },
-      { name: "MANAGE_ROLES", description: "Can manage roles and permissions" },
-      { name: "MANAGE_BUSINESS", description: "Can manage businesses" },
-      { name: "VIEW_DASHBOARD", description: "Can view system dashboard" },
-      { name: "ONBOARD_BUSINESS", description: "Onboard businesses & initial setup" },
-      { name: "VIEW_BUSINESS", description: "View business details" },
-      { name: "UPDATE_BUSINESS", description: "Update business setup" },
-      { name: "TRAIN_AI", description: "Train AI system prompts and knowledge" },
-      { name: "UPLOAD_KNOWLEDGE", description: "Upload knowledge base files" },
-      { name: "CONFIGURE_AGENT", description: "Configure Vapi, Twilio & AI agents" },
-      { name: "SUPPORT_BUSINESS", description: "Support business owners" },
-      { name: "MANAGE_STAFF_USERS", description: "Manage users within assigned permissions" },
+      { name: "DASHBOARD_OVERVIEW", description: "View system dashboard overview" },
+      { name: "TENANT_MANAGEMENT", description: "Tenant management access" },
+      { name: "TENANT_CREATE", description: "Create and onboard new tenants/businesses" },
+      { name: "TENANT_UPDATE", description: "Update tenant/business details" },
+      { name: "TENANT_VIEW", description: "View tenant/business details" },
+      { name: "TENANT_DELETE", description: "Delete tenant/business" },
+      { name: "ALL_USER_VIEW", description: "View all system users" },
+      { name: "DEMO_BOOKING_VIEW", description: "View demo bookings" },
+      { name: "DEMO_BOOKING_UPDATE", description: "Update demo bookings" },
+      { name: "CHATBOT_AGENT_VIEW", description: "View chatbot agent details" },
+      { name: "CHATBOT_AGENT_KNOWLEDGE_BASE_UPLOAD", description: "Upload knowledge base files" },
+      { name: "CHATBOT_AGENT_KNOWLEDGE_UPDATE", description: "Update chatbot agent knowledge base" },
+      { name: "VOICE_AGENT_VIEW", description: "View voice agent details" },
+      { name: "VOICE_AGENT_CREATE", description: "Create voice agent" },
+      { name: "VOICE_AGENT_UPDATE", description: "Update voice agent" },
+      { name: "VOICE_AGENT_TWILIO_NUMBER_ADD", description: "Add Twilio phone number for voice agent" },
+      { name: "CHANGE_SUBSCRIPTION_PRICING", description: "Change subscription pricing" },
+      { name: "ACCESS_BILLING_SECRETS", description: "Access billing secrets" },
+      { name: "SYSTEM_SETTINGS", description: "System settings management" },
+      { name: "MANAGE_STAFF_PERMISSIONS", description: "Manage staff users and permissions" },
     ];
 
     const createdPermissions = [];

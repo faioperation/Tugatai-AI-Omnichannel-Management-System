@@ -10,7 +10,7 @@ const upload = createMulterUpload({ folder: "agentTraining", allowedTypes: /.*/ 
 
 router.post(
     "/create",
-    checkPermission("TRAIN_AI", "UPLOAD_KNOWLEDGE"),
+    checkPermission("CHATBOT_AGENT_KNOWLEDGE_BASE_UPLOAD"),
     upload.fields([
         { name: 'productInformation', maxCount: 10 },
         { name: 'policiesGuidelines', maxCount: 10 },
@@ -22,19 +22,19 @@ router.post(
 
 router.get(
     "/all",
-    checkPermission("TRAIN_AI"),
+    checkPermission("CHATBOT_AGENT_VIEW"),
     AgentTrainingController.getAllAgentTrainings
 );
 
 router.get(
     "/:id",
-    checkPermission("TRAIN_AI"),
+    checkPermission("CHATBOT_AGENT_VIEW"),
     AgentTrainingController.getAgentTrainingById
 );
 
 router.patch(
     "/:id",
-    checkPermission("TRAIN_AI", "UPLOAD_KNOWLEDGE"),
+    checkPermission("CHATBOT_AGENT_KNOWLEDGE_UPDATE", "CHATBOT_AGENT_KNOWLEDGE_BASE_UPLOAD"),
     upload.fields([
         { name: 'productInformation', maxCount: 10 },
         { name: 'policiesGuidelines', maxCount: 10 },
@@ -46,7 +46,7 @@ router.patch(
 
 router.delete(
     "/:id",
-    checkPermission("TRAIN_AI"),
+    checkPermission("CHATBOT_AGENT_KNOWLEDGE_UPDATE"),
     AgentTrainingController.deleteAgentTraining
 );
 
