@@ -259,7 +259,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
       context: context,
       builder: (dialogCtx) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
+          builder: (ctx, setDialogState) {
             return AlertDialog(
               title: const Text("Add New System Staff"),
               content: SingleChildScrollView(
@@ -375,7 +375,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
       context: context,
       builder: (dialogCtx) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
+          builder: (ctx, setDialogState) {
             return AlertDialog(
               title: Text("Edit Permissions: ${staff.firstName}"),
               content: SingleChildScrollView(

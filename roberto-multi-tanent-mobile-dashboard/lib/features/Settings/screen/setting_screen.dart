@@ -9,6 +9,7 @@ import 'package:roberto/features/Settings/bloc/profile_bloc.dart';
 import 'package:roberto/features/Settings/bloc/profile_event.dart';
 import 'package:roberto/features/Settings/bloc/profile_state.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:roberto/common/user_role.dart';
 
 class SettingScreen extends StatefulWidget {
   const SettingScreen({super.key});
