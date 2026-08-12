@@ -19,7 +19,6 @@ export const seedDatabase = async () => {
     // Seed Permissions
     const permissionsData = [
       { name: "DASHBOARD_OVERVIEW", description: "View system dashboard overview" },
-      { name: "TENANT_MANAGEMENT", description: "Tenant management access" },
       { name: "TENANT_CREATE", description: "Create and onboard new tenants/businesses" },
       { name: "TENANT_UPDATE", description: "Update tenant/business details" },
       { name: "TENANT_VIEW", description: "View tenant/business details" },
