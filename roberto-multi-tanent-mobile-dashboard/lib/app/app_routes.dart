@@ -29,6 +29,7 @@ class Routes {
   static const String demoBookings = '/demo-bookings';
   static const String notifications = '/notifications';
   static const String allUsers = '/all-users';
+  static const String staffManagement = '/staff-management';
   static const String webChat = '/web-chat';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -132,6 +133,7 @@ class Routes {
       demoBookings,
       notifications,
       allUsers,
+      staffManagement,
       webChat,
     ].contains(normalizedName);
   }
@@ -159,7 +161,7 @@ class Routes {
       case subscriptions:
         return 'Subscriptions';
       case management:
-        return role == UserRole.systemOwner
+        return (role == UserRole.systemOwner || role == UserRole.systemStaff)
             ? 'Tenant Management'
             : 'Management';
       case settings:
@@ -172,6 +174,8 @@ class Routes {
         return 'Notifications';
       case allUsers:
         return 'All Users';
+      case staffManagement:
+        return 'Staff Management';
       case webChat:
         return 'Web Chat';
       default:

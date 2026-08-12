@@ -128,6 +128,10 @@ class _SettingScreenState extends State<SettingScreen> {
                 return Column(
                   children: [
                     _buildProfileCard(context, user, isProfileLoading),
+                    if (user.primaryRole == UserRole.systemStaff || user.permissions.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      _buildMyPermissionsCard(context, user),
+                    ],
                     const SizedBox(height: 24),
                     _buildChangePasswordCard(context, isPasswordLoading),
                   ],
@@ -571,6 +575,85 @@ class _SettingScreenState extends State<SettingScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMyPermissionsCard(BuildContext context, dynamic user) {
+    final List perms = user.permissions ?? [];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.security_outlined, color: AppColor.primary, size: 22),
+              const SizedBox(width: 10),
+              const Text(
+                "My Assigned Permissions",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColor.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  "System Staff (${perms.length})",
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppColor.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Below are the specific operational permissions assigned to your account by System Owner",
+            style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color),
+          ),
+          const SizedBox(height: 16),
+          Divider(color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE)),
+          const SizedBox(height: 16),
+          if (perms.isEmpty)
+            const Text(
+              "No permissions assigned yet. Please contact your System Owner to grant access.",
+              style: TextStyle(fontSize: 13, color: Colors.orange, fontStyle: FontStyle.italic),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: perms.map<Widget>((perm) {
+                final permName = perm.toString();
+                return Chip(
+                  avatar: const Icon(Icons.check_circle_outline, size: 16, color: Colors.green),
+                  label: Text(
+                    permName,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigo),
+                  ),
+                  backgroundColor: Colors.indigo.withOpacity(0.08),
+                  side: BorderSide(color: Colors.indigo.withOpacity(0.2)),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                );
+              }).toList(),
+            ),
+        ],
+      ),
     );
   }
 }
