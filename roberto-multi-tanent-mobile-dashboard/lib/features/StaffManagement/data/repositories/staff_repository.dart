@@ -72,4 +72,11 @@ class StaffRepository {
       throw Exception(response.errorMassage ?? 'Failed to update System Staff permissions');
     }
   }
+
+  Future<void> deleteStaffUser(String staffId) async {
+    final response = await networkClient.deleteRequest('${ApiConstants.systemOwnerStaffSingle}/$staffId');
+    if (!response.isSuccess) {
+      throw Exception(response.errorMassage ?? 'Failed to delete System Staff user');
+    }
+  }
 }
