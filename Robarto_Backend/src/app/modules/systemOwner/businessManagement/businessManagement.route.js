@@ -16,7 +16,7 @@ router.post(
 
 router.get(
     "/all",
-    checkPermission("TENANT_MANAGEMENT", "TENANT_VIEW"),
+    checkPermission("TENANT_VIEW"),
     BusinessController.getAllBusinesses
 );
 
