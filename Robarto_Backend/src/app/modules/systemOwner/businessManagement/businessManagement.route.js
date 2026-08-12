@@ -9,33 +9,33 @@ const router = express.Router();
 
 router.post(
     "/create",
-    checkPermission("ONBOARD_BUSINESS"),
+    checkPermission("TENANT_CREATE"),
     validateRequest(BusinessValidation.createBusinessSchema),
     BusinessController.createBusiness
 );
 
 router.get(
     "/all",
-    checkPermission("VIEW_BUSINESS"),
+    checkPermission("TENANT_MANAGEMENT", "TENANT_VIEW"),
     BusinessController.getAllBusinesses
 );
 
 router.get(
     "/:id",
-    checkPermission("VIEW_BUSINESS"),
+    checkPermission("TENANT_VIEW"),
     BusinessController.getBusinessById
 );
 
 router.patch(
     "/:id",
-    checkPermission("UPDATE_BUSINESS"),
+    checkPermission("TENANT_UPDATE"),
     validateRequest(BusinessValidation.updateBusinessSchema),
     BusinessController.updateBusiness
 );
 
 router.delete(
     "/:id",
-    checkAuthMiddleware(Role.SYSTEM_OWNER),
+    checkPermission("TENANT_DELETE"),
     BusinessController.deleteBusiness
 );
 

@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.get(
     "/overview",
-    checkPermission("VIEW_BUSINESS", "SUPPORT_BUSINESS"),
+    checkPermission("DASHBOARD_OVERVIEW"),
     DashboardOverviewSController.getDashboardOverview
 );
 

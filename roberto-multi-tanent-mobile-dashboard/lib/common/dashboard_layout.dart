@@ -729,28 +729,33 @@ class _DashboardShellState extends State<DashboardShell> {
 
                       if (staffUser != null) {
                         if (label == 'Tenant Management' &&
-                            !staffUser.hasPermission('ONBOARD_BUSINESS') &&
-                            !staffUser.hasPermission('VIEW_BUSINESS') &&
-                            !staffUser.hasPermission('UPDATE_BUSINESS')) {
+                            !staffUser.hasPermission('TENANT_MANAGEMENT') &&
+                            !staffUser.hasPermission('TENANT_VIEW') &&
+                            !staffUser.hasPermission('TENANT_CREATE') &&
+                            !staffUser.hasPermission('TENANT_UPDATE') &&
+                            !staffUser.hasPermission('TENANT_DELETE')) {
                           return const SizedBox.shrink();
                         }
-                        if (label == 'All Users' && !staffUser.hasPermission('MANAGE_STAFF_USERS')) {
+                        if (label == 'All Users' && !staffUser.hasPermission('ALL_USER_VIEW')) {
                           return const SizedBox.shrink();
                         }
                         if (label == 'AI Agent' &&
-                            !staffUser.hasPermission('CONFIGURE_AGENT') &&
-                            !staffUser.hasPermission('TRAIN_AI') &&
-                            !staffUser.hasPermission('UPLOAD_KNOWLEDGE')) {
+                            !staffUser.hasPermission('CHATBOT_AGENT_VIEW') &&
+                            !staffUser.hasPermission('CHATBOT_AGENT_KNOWLEDGE_BASE_UPLOAD') &&
+                            !staffUser.hasPermission('CHATBOT_AGENT_KNOWLEDGE_UPDATE') &&
+                            !staffUser.hasPermission('VOICE_AGENT_VIEW') &&
+                            !staffUser.hasPermission('VOICE_AGENT_CREATE') &&
+                            !staffUser.hasPermission('VOICE_AGENT_UPDATE') &&
+                            !staffUser.hasPermission('VOICE_AGENT_TWILIO_NUMBER_ADD')) {
                           return const SizedBox.shrink();
                         }
                         if (label == 'Demo Bookings' &&
-                            !staffUser.hasPermission('SUPPORT_BUSINESS') &&
-                            !staffUser.hasPermission('VIEW_BUSINESS')) {
+                            !staffUser.hasPermission('DEMO_BOOKING_VIEW') &&
+                            !staffUser.hasPermission('DEMO_BOOKING_UPDATE')) {
                           return const SizedBox.shrink();
                         }
                         if (label == 'Overview' &&
-                            !staffUser.hasPermission('VIEW_BUSINESS') &&
-                            !staffUser.hasPermission('SUPPORT_BUSINESS')) {
+                            !staffUser.hasPermission('DASHBOARD_OVERVIEW')) {
                           return const SizedBox.shrink();
                         }
                         if (label == 'Staff Management' || label == 'Subscriptions') {

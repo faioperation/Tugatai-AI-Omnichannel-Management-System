@@ -15,7 +15,7 @@ const uploadFields = upload.fields([
 
 router.post(
     "/create",
-    checkPermission("CONFIGURE_AGENT"),
+    checkPermission("VOICE_AGENT_CREATE"),
     uploadFields,
     validateRequest(AgentValidation.createAgentSchema),
     AgentController.createAgent
@@ -23,19 +23,19 @@ router.post(
 
 router.get(
     "/all",
-    checkPermission("CONFIGURE_AGENT"),
+    checkPermission("VOICE_AGENT_VIEW"),
     AgentController.getAllAgents
 );
 
 router.get(
     "/:id",
-    checkPermission("CONFIGURE_AGENT"),
+    checkPermission("VOICE_AGENT_VIEW"),
     AgentController.getAgentById
 );
 
 router.patch(
     "/:id",
-    checkPermission("CONFIGURE_AGENT"),
+    checkPermission("VOICE_AGENT_UPDATE"),
     uploadFields,
     validateRequest(AgentValidation.updateAgentSchema),
     AgentController.updateAgent
@@ -43,7 +43,7 @@ router.patch(
 
 router.put(
     "/:id/product-file",
-    checkPermission("CONFIGURE_AGENT"),
+    checkPermission("VOICE_AGENT_UPDATE"),
     upload.fields([
         { name: "product_file", maxCount: 1 },
         { name: "productFile", maxCount: 1 }
@@ -53,7 +53,7 @@ router.put(
 
 router.delete(
     "/:id",
-    checkPermission("CONFIGURE_AGENT"),
+    checkPermission("VOICE_AGENT_UPDATE"),
     AgentController.deleteAgent
 );
 
