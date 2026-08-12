@@ -57,7 +57,7 @@ class Routes {
     if (isDashboardRoute(actualRoute)) {
       final args = settings.arguments as Map<String, dynamic>? ?? {};
       final role =
-          routeRole ?? args['role'] as UserRole? ?? UserRole.businessOwner;
+          args['role'] as UserRole? ?? routeRole ?? UserRole.businessOwner;
       final branch = args['assignedBranch'] as Map<String, String>?;
       final businessId = args['businessId'] as String?;
       final conversationId =

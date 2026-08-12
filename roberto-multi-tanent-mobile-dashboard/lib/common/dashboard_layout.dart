@@ -416,6 +416,9 @@ class _DashboardShellState extends State<DashboardShell> {
         );
 
       case 'Staff Management':
+        if (widget.role != UserRole.systemOwner) {
+          return const SizedBox.shrink();
+        }
         return BlocProvider(
           create: (context) => StaffBloc(
             repository: StaffRepository(
@@ -712,6 +715,48 @@ class _DashboardShellState extends State<DashboardShell> {
                     } else if (profileState is ProfileUpdating) {
                       bType = profileState.currentUser.businessType;
                       _cachedBusinessType = bType;
+                    }
+
+                    if (widget.role == UserRole.systemStaff) {
+                      dynamic staffUser;
+                      if (profileState is ProfileLoaded) {
+                        staffUser = profileState.user;
+                      } else if (profileState is ProfileUpdateSuccess) {
+                        staffUser = profileState.user;
+                      } else if (profileState is ProfileUpdating) {
+                        staffUser = profileState.currentUser;
+                      }
+
+                      if (staffUser != null) {
+                        if (label == 'Tenant Management' &&
+                            !staffUser.hasPermission('ONBOARD_BUSINESS') &&
+                            !staffUser.hasPermission('VIEW_BUSINESS') &&
+                            !staffUser.hasPermission('UPDATE_BUSINESS')) {
+                          return const SizedBox.shrink();
+                        }
+                        if (label == 'All Users' && !staffUser.hasPermission('MANAGE_STAFF_USERS')) {
+                          return const SizedBox.shrink();
+                        }
+                        if (label == 'AI Agent' &&
+                            !staffUser.hasPermission('CONFIGURE_AGENT') &&
+                            !staffUser.hasPermission('TRAIN_AI') &&
+                            !staffUser.hasPermission('UPLOAD_KNOWLEDGE')) {
+                          return const SizedBox.shrink();
+                        }
+                        if (label == 'Demo Bookings' &&
+                            !staffUser.hasPermission('SUPPORT_BUSINESS') &&
+                            !staffUser.hasPermission('VIEW_BUSINESS')) {
+                          return const SizedBox.shrink();
+                        }
+                        if (label == 'Overview' &&
+                            !staffUser.hasPermission('VIEW_BUSINESS') &&
+                            !staffUser.hasPermission('SUPPORT_BUSINESS')) {
+                          return const SizedBox.shrink();
+                        }
+                        if (label == 'Staff Management' || label == 'Subscriptions') {
+                          return const SizedBox.shrink();
+                        }
+                      }
                     }
 
                     final effectiveBType = bType ?? _cachedBusinessType;
