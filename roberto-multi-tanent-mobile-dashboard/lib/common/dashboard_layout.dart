@@ -30,6 +30,10 @@ import 'package:roberto/features/WebChat/screen/web_chat_screen.dart';
 import 'package:roberto/features/WebChat/bloc/web_chat_bloc.dart';
 import 'package:roberto/features/WebChat/bloc/web_chat_event.dart';
 import 'package:roberto/features/WebChat/data/repositories/web_chat_repository.dart';
+import 'package:roberto/features/StaffManagement/screen/staff_management_screen.dart';
+import 'package:roberto/features/StaffManagement/bloc/staff_bloc.dart';
+import 'package:roberto/features/StaffManagement/bloc/staff_event.dart';
+import 'package:roberto/features/StaffManagement/data/repositories/staff_repository.dart';
 import 'package:roberto/app/app_routes.dart';
 import 'package:roberto/common/user_role.dart';
 
@@ -162,6 +166,9 @@ class _DashboardShellState extends State<DashboardShell> {
         route = Routes.allUsers;
         break;
       case 'Web Chat':
+        if (widget.role == UserRole.systemOwner || widget.role == UserRole.systemStaff) {
+          return;
+        }
         route = Routes.webChat;
         break;
       case 'Notifications':
@@ -170,13 +177,16 @@ class _DashboardShellState extends State<DashboardShell> {
       case 'Edit Profile':
         route = Routes.editProfile;
         break;
+      case 'Staff Management':
+        route = Routes.staffManagement;
+        break;
       case 'Tenant Management':
         route = Routes.management;
         break;
     }
 
     String rolePath = '';
-    if (widget.role == UserRole.systemOwner) {
+    if (widget.role == UserRole.systemOwner || widget.role == UserRole.systemStaff) {
       rolePath = '/system-owner';
     } else if (widget.role == UserRole.businessOwner) {
       rolePath = '/business-owner';
@@ -323,10 +333,10 @@ class _DashboardShellState extends State<DashboardShell> {
 
     switch (_activeItem) {
       case 'Inbox':
-        return widget.role == UserRole.systemOwner
+        return (widget.role == UserRole.systemOwner || widget.role == UserRole.systemStaff)
             ? const DemoBookingScreen()
             : InboxScreen(
-                isSystemOwner: widget.role == UserRole.systemOwner,
+                isSystemOwner: widget.role == UserRole.systemOwner || widget.role == UserRole.systemStaff,
                 branchId: currentBranchId,
                 initialCustomerPhone: _inboxTargetPhone,
                 initialCustomerName: _inboxTargetName,
@@ -334,7 +344,7 @@ class _DashboardShellState extends State<DashboardShell> {
               );
       case 'Tenant Management':
       case 'Management':
-        return widget.role == UserRole.systemOwner
+        return (widget.role == UserRole.systemOwner || widget.role == UserRole.systemStaff)
             ? TenantScreen(
                 onNavigateToAiAgent: (String businessId) {
                   _selectedTenantBusinessId = businessId;
@@ -346,12 +356,12 @@ class _DashboardShellState extends State<DashboardShell> {
             : const ManagementScreen();
 
       case 'Subscriptions':
-        return widget.role == UserRole.systemOwner
+        return (widget.role == UserRole.systemOwner || widget.role == UserRole.systemStaff)
             ? const SubscriptionScreen()
             : BusinessSubscription(role: widget.role);
 
       case 'Settings':
-        return widget.role == UserRole.systemOwner
+        return (widget.role == UserRole.systemOwner || widget.role == UserRole.systemStaff)
             ? const SettingScreen()
             : BusinessownerSettings(branchId: currentBranchId);
 
@@ -373,7 +383,7 @@ class _DashboardShellState extends State<DashboardShell> {
         return AiagentScreen(businessId: _selectedTenantBusinessId);
 
       case 'AI Agent':
-        return widget.role == UserRole.systemOwner
+        return (widget.role == UserRole.systemOwner || widget.role == UserRole.systemStaff)
             ? AgentManagementScreen(businessId: _selectedTenantBusinessId)
             : AiagentScreen(businessId: _selectedTenantBusinessId);
 
@@ -405,7 +415,20 @@ class _DashboardShellState extends State<DashboardShell> {
           child: const UserListScreen(),
         );
 
+      case 'Staff Management':
+        return BlocProvider(
+          create: (context) => StaffBloc(
+            repository: StaffRepository(
+              networkClient: context.read<NetworkClient>(),
+            ),
+          )..add(FetchAllStaffRequested()),
+          child: const StaffManagementScreen(),
+        );
+
       case 'Web Chat':
+        if (widget.role == UserRole.systemOwner || widget.role == UserRole.systemStaff) {
+          return const SizedBox.shrink();
+        }
         return BlocProvider(
           create: (context) => WebChatBloc(
             repository: WebChatRepository(
@@ -433,6 +456,7 @@ class _DashboardShellState extends State<DashboardShell> {
     {'icon': 'assets/overview.svg', 'label': 'Overview'},
     {'icon': Icons.business, 'label': 'Tenant Management'},
     {'icon': Icons.people_outline, 'label': 'All Users'},
+    {'icon': Icons.admin_panel_settings_outlined, 'label': 'Staff Management'},
     {'icon': 'assets/agent.svg', 'label': 'AI Agent'},
     {'icon': 'assets/inbox.svg', 'label': 'Demo Bookings'},
     {'icon': 'assets/subscription.svg', 'label': 'Subscriptions'},
@@ -463,7 +487,11 @@ class _DashboardShellState extends State<DashboardShell> {
   Widget _buildSidebar(BuildContext context) {
     List<Map<String, dynamic>> items;
     if (widget.role == UserRole.systemOwner) {
-      items = _systemOwnerItems;
+      items = _systemOwnerItems.where((item) => item['label'] != 'Web Chat').toList();
+    } else if (widget.role == UserRole.systemStaff) {
+      items = _systemOwnerItems.where((item) =>
+        item['label'] != 'Subscriptions' && item['label'] != 'Staff Management' && item['label'] != 'Web Chat'
+      ).toList();
     } else if (widget.role == UserRole.branchManager) {
       items = _branchManagerItems;
     } else {
