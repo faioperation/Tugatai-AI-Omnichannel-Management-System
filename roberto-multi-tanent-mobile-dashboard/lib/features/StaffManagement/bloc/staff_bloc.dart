@@ -14,6 +14,7 @@ class StaffBloc extends Bloc<StaffEvent, StaffState> {
     on<FetchPermissionsRequested>(_onFetchPermissionsRequested);
     on<CreateStaffRequested>(_onCreateStaffRequested);
     on<UpdateStaffPermissionsRequested>(_onUpdateStaffPermissionsRequested);
+    on<DeleteStaffRequested>(_onDeleteStaffRequested);
   }
 
   Future<void> _onFetchAllStaffRequested(
@@ -83,6 +84,20 @@ class StaffBloc extends Bloc<StaffEvent, StaffState> {
         permissions: event.permissions,
       );
       emit(StaffOperationSuccess("Staff permissions updated successfully"));
+      add(FetchAllStaffRequested());
+    } catch (e) {
+      emit(StaffError(e.toString().replaceAll('Exception: ', '')));
+    }
+  }
+
+  Future<void> _onDeleteStaffRequested(
+    DeleteStaffRequested event,
+    Emitter<StaffState> emit,
+  ) async {
+    emit(StaffLoading());
+    try {
+      await repository.deleteStaffUser(event.staffId);
+      emit(StaffOperationSuccess("System Staff user deleted successfully"));
       add(FetchAllStaffRequested());
     } catch (e) {
       emit(StaffError(e.toString().replaceAll('Exception: ', '')));

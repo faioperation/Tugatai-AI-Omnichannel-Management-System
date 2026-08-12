@@ -717,50 +717,14 @@ class _DashboardShellState extends State<DashboardShell> {
                       _cachedBusinessType = bType;
                     }
 
+                    dynamic staffUser;
                     if (widget.role == UserRole.systemStaff) {
-                      dynamic staffUser;
                       if (profileState is ProfileLoaded) {
                         staffUser = profileState.user;
                       } else if (profileState is ProfileUpdateSuccess) {
                         staffUser = profileState.user;
                       } else if (profileState is ProfileUpdating) {
                         staffUser = profileState.currentUser;
-                      }
-
-                      if (staffUser != null) {
-                        if (label == 'Tenant Management' &&
-                            !staffUser.hasPermission('TENANT_MANAGEMENT') &&
-                            !staffUser.hasPermission('TENANT_VIEW') &&
-                            !staffUser.hasPermission('TENANT_CREATE') &&
-                            !staffUser.hasPermission('TENANT_UPDATE') &&
-                            !staffUser.hasPermission('TENANT_DELETE')) {
-                          return const SizedBox.shrink();
-                        }
-                        if (label == 'All Users' && !staffUser.hasPermission('ALL_USER_VIEW')) {
-                          return const SizedBox.shrink();
-                        }
-                        if (label == 'AI Agent' &&
-                            !staffUser.hasPermission('CHATBOT_AGENT_VIEW') &&
-                            !staffUser.hasPermission('CHATBOT_AGENT_KNOWLEDGE_BASE_UPLOAD') &&
-                            !staffUser.hasPermission('CHATBOT_AGENT_KNOWLEDGE_UPDATE') &&
-                            !staffUser.hasPermission('VOICE_AGENT_VIEW') &&
-                            !staffUser.hasPermission('VOICE_AGENT_CREATE') &&
-                            !staffUser.hasPermission('VOICE_AGENT_UPDATE') &&
-                            !staffUser.hasPermission('VOICE_AGENT_TWILIO_NUMBER_ADD')) {
-                          return const SizedBox.shrink();
-                        }
-                        if (label == 'Demo Bookings' &&
-                            !staffUser.hasPermission('DEMO_BOOKING_VIEW') &&
-                            !staffUser.hasPermission('DEMO_BOOKING_UPDATE')) {
-                          return const SizedBox.shrink();
-                        }
-                        if (label == 'Overview' &&
-                            !staffUser.hasPermission('DASHBOARD_OVERVIEW')) {
-                          return const SizedBox.shrink();
-                        }
-                        if (label == 'Staff Management' || label == 'Subscriptions') {
-                          return const SizedBox.shrink();
-                        }
                       }
                     }
 
@@ -798,6 +762,51 @@ class _DashboardShellState extends State<DashboardShell> {
                       label: displayLabel,
                       isActive: _activeItem == label,
                       onTap: () {
+                        if (staffUser != null) {
+                          bool hasPerm = true;
+                          String missingPermMsg = "You don't have permission to access $displayLabel.";
+                          
+                          if (label == 'Tenant Management' &&
+                              !staffUser.hasPermission('TENANT_MANAGEMENT') &&
+                              !staffUser.hasPermission('TENANT_VIEW') &&
+                              !staffUser.hasPermission('TENANT_CREATE') &&
+                              !staffUser.hasPermission('TENANT_UPDATE') &&
+                              !staffUser.hasPermission('TENANT_DELETE')) {
+                            hasPerm = false;
+                          } else if (label == 'All Users' && !staffUser.hasPermission('ALL_USER_VIEW')) {
+                            hasPerm = false;
+                          } else if (label == 'AI Agent' &&
+                              !staffUser.hasPermission('CHATBOT_AGENT_VIEW') &&
+                              !staffUser.hasPermission('CHATBOT_AGENT_KNOWLEDGE_BASE_UPLOAD') &&
+                              !staffUser.hasPermission('CHATBOT_AGENT_KNOWLEDGE_UPDATE') &&
+                              !staffUser.hasPermission('VOICE_AGENT_VIEW') &&
+                              !staffUser.hasPermission('VOICE_AGENT_CREATE') &&
+                              !staffUser.hasPermission('VOICE_AGENT_UPDATE') &&
+                              !staffUser.hasPermission('VOICE_AGENT_TWILIO_NUMBER_ADD')) {
+                            hasPerm = false;
+                          } else if (label == 'Demo Bookings' &&
+                              !staffUser.hasPermission('DEMO_BOOKING_VIEW') &&
+                              !staffUser.hasPermission('DEMO_BOOKING_UPDATE')) {
+                            hasPerm = false;
+                          } else if (label == 'Overview' &&
+                              !staffUser.hasPermission('DASHBOARD_OVERVIEW')) {
+                            hasPerm = false;
+                          }
+                          
+                          if (!hasPerm) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(missingPermMsg),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            if (MediaQuery.of(context).size.width <= 900) {
+                              _scaffoldKey.currentState?.closeDrawer();
+                            }
+                            return;
+                          }
+                        }
+
                         if (MediaQuery.of(context).size.width <= 900) {
                           _scaffoldKey.currentState?.closeDrawer();
                         }

@@ -31,3 +31,10 @@ class UpdateStaffPermissionsRequested extends StaffEvent {
     required this.permissions,
   });
 }
+
+class DeleteStaffRequested extends StaffEvent {
+  final String staffId;
+
+  DeleteStaffRequested(this.staffId);
+}
+

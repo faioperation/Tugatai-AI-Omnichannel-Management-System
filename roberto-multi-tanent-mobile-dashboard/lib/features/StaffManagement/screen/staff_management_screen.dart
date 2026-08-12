@@ -150,8 +150,8 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
           Expanded(flex: 2, child: CustomHeadder(label: 'Name')),
           Expanded(flex: 2, child: CustomHeadder(label: 'Email')),
           Expanded(flex: 1, child: CustomHeadder(label: 'Status')),
-          Expanded(flex: 3, child: CustomHeadder(label: 'Assigned Permissions')),
-          Expanded(flex: 1, child: CustomHeadder(label: 'Action', textAlign: TextAlign.center)),
+          Expanded(flex: 2, child: CustomHeadder(label: 'Assigned Permissions')),
+          Expanded(flex: 2, child: CustomHeadder(label: 'Action', textAlign: TextAlign.center)),
         ],
       ),
     );
@@ -199,7 +199,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
             ),
           ),
           Expanded(
-            flex: 3,
+            flex: 2,
             child: Wrap(
               spacing: 6,
               runSpacing: 4,
@@ -225,18 +225,51 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
             ),
           ),
           Expanded(
-            flex: 1,
-            child: Center(
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            flex: 2,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                  onPressed: () => _showEditPermissionsDialog(context, staff, availablePerms),
+                  icon: const Icon(Icons.security, size: 16),
+                  label: const Text("Perms", style: TextStyle(fontSize: 12)),
                 ),
-                onPressed: () => _showEditPermissionsDialog(context, staff, availablePerms),
-                icon: const Icon(Icons.security, size: 16),
-                label: const Text("Edit Perms", style: TextStyle(fontSize: 12)),
-              ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  onPressed: () => _confirmDeleteStaff(context, staff),
+                  tooltip: 'Delete Staff',
+                ),
+              ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteStaff(BuildContext context, StaffUserModel staff) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete System Staff"),
+        content: Text("Are you sure you want to delete ${staff.firstName}? This action cannot be undone."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              context.read<StaffBloc>().add(DeleteStaffRequested(staff.id));
+              Navigator.pop(ctx);
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
