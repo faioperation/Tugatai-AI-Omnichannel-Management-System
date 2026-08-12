@@ -23,6 +23,8 @@ class RoleReports extends StatelessWidget {
         return _buildBusinessOwnerReports(context);
       case UserRole.branchManager:
         return _buildBranchManagerReports(context);
+      case UserRole.systemStaff:
+        return const SizedBox.shrink();
     }
   }
 

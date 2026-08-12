@@ -8,22 +8,22 @@ class StaffRepository {
   StaffRepository({required this.networkClient});
 
   Future<List<StaffUserModel>> fetchAllStaff() async {
-    final response = await networkClient.get(ApiConstants.systemOwnerStaffAll);
-    if (response.isSuccess && response.data != null) {
-      final List dataList = response.data['data'] ?? [];
+    final response = await networkClient.getRequest(ApiConstants.systemOwnerStaffAll);
+    if (response.isSuccess && response.responseData != null) {
+      final List dataList = response.responseData['data'] ?? [];
       return dataList.map((e) => StaffUserModel.fromJson(e)).toList();
     } else {
-      throw Exception(response.message ?? 'Failed to fetch System Staff users');
+      throw Exception(response.errorMassage ?? 'Failed to fetch System Staff users');
     }
   }
 
   Future<List<PermissionModel>> fetchAssignablePermissions() async {
-    final response = await networkClient.get(ApiConstants.systemOwnerPermissionsAll);
-    if (response.isSuccess && response.data != null) {
-      final List dataList = response.data['data'] ?? [];
+    final response = await networkClient.getRequest(ApiConstants.systemOwnerPermissionsAll);
+    if (response.isSuccess && response.responseData != null) {
+      final List dataList = response.responseData['data'] ?? [];
       return dataList.map((e) => PermissionModel.fromJson(e)).toList();
     } else {
-      throw Exception(response.message ?? 'Failed to fetch assignable permissions');
+      throw Exception(response.errorMassage ?? 'Failed to fetch assignable permissions');
     }
   }
 
@@ -44,15 +44,15 @@ class StaffRepository {
       'permissions': permissions,
     };
 
-    final response = await networkClient.post(
+    final response = await networkClient.postRequest(
       ApiConstants.systemOwnerStaffCreate,
-      data: body,
+      body: body,
     );
 
-    if (response.isSuccess && response.data != null) {
-      return StaffUserModel.fromJson(response.data['data']);
+    if (response.isSuccess && response.responseData != null) {
+      return StaffUserModel.fromJson(response.responseData['data']);
     } else {
-      throw Exception(response.message ?? 'Failed to create System Staff user');
+      throw Exception(response.errorMassage ?? 'Failed to create System Staff user');
     }
   }
 
@@ -61,15 +61,15 @@ class StaffRepository {
     required List<String> permissions,
   }) async {
     final url = '${ApiConstants.systemOwnerStaffPermissions}/$staffId/permissions';
-    final response = await networkClient.patch(
+    final response = await networkClient.patchRequest(
       url,
-      data: {'permissions': permissions},
+      body: {'permissions': permissions},
     );
 
-    if (response.isSuccess && response.data != null) {
-      return StaffUserModel.fromJson(response.data['data']);
+    if (response.isSuccess && response.responseData != null) {
+      return StaffUserModel.fromJson(response.responseData['data']);
     } else {
-      throw Exception(response.message ?? 'Failed to update System Staff permissions');
+      throw Exception(response.errorMassage ?? 'Failed to update System Staff permissions');
     }
   }
 }
