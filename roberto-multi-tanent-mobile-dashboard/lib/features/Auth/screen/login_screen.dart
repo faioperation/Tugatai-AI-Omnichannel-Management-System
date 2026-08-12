@@ -38,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
             final user = state.user;
             final role = user.primaryRole;
             String routePath = '';
-            if (role == UserRole.systemOwner) {
+            if (role == UserRole.systemOwner || role == UserRole.systemStaff) {
               routePath = '/system-owner';
             } else if (role == UserRole.businessOwner) {
               routePath = '/business-owner';

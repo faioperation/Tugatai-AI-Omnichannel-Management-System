@@ -11,6 +11,7 @@ class UserModel {
   final String? branchAddress;
   final String? branchId;
   final String? businessType;
+  final List<String> permissions;
 
   UserModel({
     required this.id,
@@ -23,22 +24,47 @@ class UserModel {
     this.branchAddress,
     this.branchId,
     this.businessType,
+    this.permissions = const [],
   });
+
+  bool hasPermission(String permissionName) {
+    if (primaryRole == UserRole.systemOwner) return true;
+    return permissions.contains(permissionName);
+  }
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     UserRole? parsedRole;
 
     if (json['roles'] != null && (json['roles'] as List).isNotEmpty) {
       final roleList = json['roles'] as List;
-      final roleData = roleList.first['role'];
-      if (roleData != null && roleData['name'] != null) {
-        String roleName = roleData['name'];
-        if (roleName == 'SYSTEM_OWNER') {
-          parsedRole = UserRole.systemOwner;
-        } else if (roleName == 'BUSINESS_OWNER') {
-          parsedRole = UserRole.businessOwner;
-        } else if (roleName == 'BRANCH_MANAGER') {
-          parsedRole = UserRole.branchManager;
+      for (var r in roleList) {
+        final roleData = r['role'];
+        if (roleData != null && roleData['name'] != null) {
+          String roleName = roleData['name'];
+          if (roleName == 'SYSTEM_OWNER') {
+            parsedRole = UserRole.systemOwner;
+            break;
+          } else if (roleName == 'SYSTEM_STAFF') {
+            parsedRole = UserRole.systemStaff;
+            break;
+          } else if (roleName == 'BUSINESS_OWNER') {
+            parsedRole = UserRole.businessOwner;
+            break;
+          } else if (roleName == 'BRANCH_MANAGER') {
+            parsedRole = UserRole.branchManager;
+            break;
+          }
+        }
+      }
+    }
+
+    List<String> parsedPermissions = [];
+    if (json['permissions'] != null && json['permissions'] is List) {
+      for (var p in json['permissions']) {
+        if (p is Map && p['name'] != null) {
+          parsedPermissions.add(p['name'].toString());
+        } else if (p is String) {
+          parsedPermissions.add(p.toString());
         }
       }
     }
@@ -61,6 +87,7 @@ class UserModel {
       branchAddress: json['branch']?['address'],
       branchId: json['branch']?['id'],
       businessType: parsedBusinessType?.toString(),
+      permissions: parsedPermissions,
     );
   }
 }
