@@ -767,7 +767,6 @@ class _DashboardShellState extends State<DashboardShell> {
                           String missingPermMsg = "You don't have permission to access $displayLabel.";
                           
                           if (label == 'Tenant Management' &&
-                              !staffUser.hasPermission('TENANT_MANAGEMENT') &&
                               !staffUser.hasPermission('TENANT_VIEW') &&
                               !staffUser.hasPermission('TENANT_CREATE') &&
                               !staffUser.hasPermission('TENANT_UPDATE') &&
