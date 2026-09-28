@@ -420,17 +420,46 @@ const updateBusinessService = async (id, payload) => {
 // Delete Business
 // ─────────────────────────────────────────────────────────────────────────────
 const deleteBusinessService = async (id) => {
-    const isExist = await prisma.business.findUnique({ where: { id } });
+    const isExist = await prisma.business.findUnique({
+        where: { id },
+        include: {
+            branchManagers: {
+                select: { id: true, email: true }
+            }
+        }
+    });
 
     if (!isExist) {
         throw new DevBuildError("Business not found", StatusCodes.NOT_FOUND);
     }
 
     const result = await prisma.$transaction(async (transactionClient) => {
+        // Collect all branch manager emails for this tenant
+        const branchManagerEmails = (isExist.branchManagers || [])
+            .map((bm) => bm.email)
+            .filter(Boolean);
+
+        // Delete the business record (Cascades to branches, bookings, campaigns, whatsapp, leads, conversations, etc.)
         const deletedBusiness = await transactionClient.business.delete({ where: { id } });
 
+        // Delete all Branch Manager User accounts associated with this tenant
+        if (branchManagerEmails.length > 0) {
+            await transactionClient.user.deleteMany({
+                where: {
+                    email: { in: branchManagerEmails }
+                }
+            });
+        }
+
+        // Delete Business Owner User if they don't own any other business
         if (isExist.ownerId) {
-            await transactionClient.user.delete({ where: { id: isExist.ownerId } });
+            const remainingBusinesses = await transactionClient.business.count({
+                where: { ownerId: isExist.ownerId }
+            });
+
+            if (remainingBusinesses === 0) {
+                await transactionClient.user.delete({ where: { id: isExist.ownerId } }).catch(() => {});
+            }
         }
 
         return deletedBusiness;

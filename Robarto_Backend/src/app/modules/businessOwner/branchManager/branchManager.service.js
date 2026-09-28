@@ -197,12 +197,20 @@ const deleteBranchManagerService = async (id) => {
         throw new DevBuildError("Branch Manager not found", StatusCodes.NOT_FOUND);
     }
 
-    const result = await prisma.branchManager.delete({
-        where: { id },
+    const result = await prisma.$transaction(async (transactionClient) => {
+        const deletedBM = await transactionClient.branchManager.delete({
+            where: { id },
+        });
+
+        if (isExist.email) {
+            await transactionClient.user.deleteMany({
+                where: { email: isExist.email }
+            });
+        }
+
+        return deletedBM;
     });
-    
-    // Might also want to delete or suspend the associated User here if they were created simultaneously.
-    
+
     return result;
 };
 

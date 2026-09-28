@@ -9,22 +9,48 @@ import { setAuthCookie } from "../../utils/setCookie.js";
 import { StatusCodes } from "http-status-codes";
 import passport from "passport";
 import prisma from "../../prisma/client.js";
+import { getClientIp, recordFailedLogin, clearLoginRateLimit } from "../../middleware/loginRateLimiter.js";
 
 const credentialLogin = async (req, res, next) => {
+  const email = req.body?.email?.trim()?.toLowerCase();
+  const clientIp = getClientIp(req);
+
   try {
     passport.authenticate("local", async (err, user, info) => {
       try {
         if (err) {
-          return next(new DevBuildError(err, StatusCodes.UNAUTHORIZED));
+          if (email) {
+            await recordFailedLogin(email, clientIp);
+          }
+          return next(new DevBuildError(err?.message || err, StatusCodes.UNAUTHORIZED));
         }
 
         if (!user) {
+          let errorMessage = info?.message || "Authentication failed";
+          if (email) {
+            const failResult = await recordFailedLogin(email, clientIp);
+            if (failResult.isBlocked) {
+              return next(
+                new DevBuildError(
+                  failResult.message,
+                  StatusCodes.TOO_MANY_REQUESTS
+                )
+              );
+            }
+            errorMessage = `${errorMessage}. ${failResult.remainingAttempts} attempt(s) remaining before 15-minute lock.`;
+          }
+
           return next(
             new DevBuildError(
-              info?.message || "Authentication failed",
+              errorMessage,
               StatusCodes.FORBIDDEN
             )
           );
+        }
+
+        // Clear failed attempts upon successful login
+        if (email) {
+          await clearLoginRateLimit(email, clientIp);
         }
 
         // Generate access & refresh tokens
