@@ -3,7 +3,7 @@ import { sendEmail } from "../../utils/sendEmail.js";
 import jwt from "jsonwebtoken";
 import DevBuildError from "../../lib/DevBuildError.js";
 import { StatusCodes } from "http-status-codes";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import prisma from "../../prisma/client.js";
 import { OtpService } from "../otp/otp.service.js";
 

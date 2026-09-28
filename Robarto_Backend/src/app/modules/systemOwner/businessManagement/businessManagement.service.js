@@ -1,7 +1,7 @@
 import prisma from "../../../prisma/client.js";
 import DevBuildError from "../../../lib/DevBuildError.js";
 import { StatusCodes } from "http-status-codes";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { envVars } from "../../../config/env.js";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
 import { sendEmail } from "../../../utils/sendEmail.js";
