@@ -1,6 +1,6 @@
 import { envVars } from "../../config/env.js";
 import DevBuildError from "../../lib/DevBuildError.js";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { Role } from "../../utils/role.js";
 
 export const UserService = {

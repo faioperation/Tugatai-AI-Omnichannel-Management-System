@@ -1,7 +1,7 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import prisma from "../prisma/client.js";
 import { envVars } from "../config/env.js";
 

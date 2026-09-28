@@ -1,5 +1,5 @@
 import prisma from "../../../prisma/client.js";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { envVars } from "../../../config/env.js";
 import {
   ASSIGNABLE_STAFF_PERMISSIONS,

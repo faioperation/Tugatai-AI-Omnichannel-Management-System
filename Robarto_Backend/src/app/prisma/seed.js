@@ -1,5 +1,5 @@
 import prisma from "./client.js";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { envVars } from "../config/env.js";
 
 export const seedDatabase = async () => {

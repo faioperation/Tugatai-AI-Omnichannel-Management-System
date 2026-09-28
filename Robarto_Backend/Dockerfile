@@ -18,17 +18,11 @@ FROM node:20-alpine AS builder
 
 WORKDIR /usr/src/app
 
-# Required for building bcrypt native module
-RUN apk add --no-cache python3 make g++
-
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
 
 ARG DATABASE_URL
 ENV DATABASE_URL=${DATABASE_URL}
-
-# Build bcrypt native binary
-RUN npm rebuild bcrypt --build-from-source
 
 # Generate Prisma client
 RUN npx prisma generate
