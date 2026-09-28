@@ -7,8 +7,15 @@ import { checkAuthMiddleware } from "../../middleware/checkAuthMiddleware.js";
 import validateRequest from "../../middleware/validateRequest.js";
 import { AuthValidation } from "./auth.validation.js";
 
+import { checkLoginBlock } from "../../middleware/loginRateLimiter.js";
+
 const router = express.Router();
-router.post("/login", validateRequest(AuthValidation.loginSchema), AuthController.credentialLogin);
+router.post(
+  "/login",
+  checkLoginBlock,
+  validateRequest(AuthValidation.loginSchema),
+  AuthController.credentialLogin
+);
 router.post("/refresh-token", AuthController.getNewAccessToken);
 router.post("/logout", AuthController.logout);
 router.post("/forgot-password", validateRequest(AuthValidation.forgotPasswordSchema), AuthController.forgotPassword);
