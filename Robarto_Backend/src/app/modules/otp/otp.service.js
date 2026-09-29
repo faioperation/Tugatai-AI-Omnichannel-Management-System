@@ -4,6 +4,8 @@ import { redisClient } from "../../config/redis.config.js";
 import DevBuildError from "../../lib/DevBuildError.js";
 import jwt from "jsonwebtoken";
 import { envVars } from "../../config/env.js";
+import { StatusCodes } from "http-status-codes";
+import { recordFailedOtpVerify, clearOtpVerifyLimit } from "../../middleware/otpRateLimiter.js";
 
 const OTP_EXPIRATION = 2 * 60; // 2 minutes
 
@@ -52,7 +54,7 @@ export const OtpService = {
   },
 
   // ✅ Verify OTP
-  verifyOtp: async (prisma, email, otp) => {
+  verifyOtp: async (prisma, email, otp, clientIp = "unknown") => {
     const user = await prisma.user.findUnique({
       where: { email },
       select: {
@@ -72,12 +74,15 @@ export const OtpService = {
     const redisKey = `otp:${email}`;
     const savedOtp = await redisClient.get(redisKey);
 
-    if (!savedOtp) {
-      throw new DevBuildError("Invalid or expired OTP", 401);
-    }
-
-    if (savedOtp !== otp) {
-      throw new DevBuildError("Invalid OTP", 401);
+    if (!savedOtp || savedOtp !== otp) {
+      const failResult = await recordFailedOtpVerify(email, clientIp, "otp");
+      if (failResult.isBlocked) {
+        throw new DevBuildError(failResult.message, StatusCodes.TOO_MANY_REQUESTS);
+      }
+      throw new DevBuildError(
+        savedOtp ? failResult.message : "Invalid or expired OTP",
+        StatusCodes.UNAUTHORIZED
+      );
     }
 
     await prisma.user.update({
@@ -85,6 +90,7 @@ export const OtpService = {
       data: { isVerified: true },
     });
     await redisClient.del(redisKey);
+    await clearOtpVerifyLimit(email, clientIp);
   },
 
   // ✅ Send Forgot Password OTP
@@ -120,12 +126,19 @@ export const OtpService = {
   },
 
   // ✅ Verify Forgot Password OTP & Return Token
-  verifyForgotPasswordOtp: async (prisma, email, otp) => {
+  verifyForgotPasswordOtp: async (prisma, email, otp, clientIp = "unknown") => {
     const redisKey = `forgot-password:${email}`;
     const savedOtp = await redisClient.get(redisKey);
 
     if (!savedOtp || savedOtp !== otp) {
-      throw new DevBuildError("Invalid or expired OTP", 401);
+      const failResult = await recordFailedOtpVerify(email, clientIp, "forgot-password");
+      if (failResult.isBlocked) {
+        throw new DevBuildError(failResult.message, StatusCodes.TOO_MANY_REQUESTS);
+      }
+      throw new DevBuildError(
+        savedOtp ? failResult.message : "Invalid or expired OTP",
+        StatusCodes.UNAUTHORIZED
+      );
     }
 
     // OTP is valid, generate a short-lived reset token
@@ -152,6 +165,7 @@ export const OtpService = {
     });
 
     await redisClient.del(redisKey);
+    await clearOtpVerifyLimit(email, clientIp);
     return resetToken;
   },
 };

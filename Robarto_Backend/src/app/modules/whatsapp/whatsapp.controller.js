@@ -121,8 +121,9 @@ export const WhatsappController = {
       let finalUrl = req.body.url;
 
       if (req.file) {
-        // Construct the public URL using BACKEND_URL from env
-        finalUrl = `${envVars.BACKEND_URL}/uploads/whatsapp/${req.file.filename}`;
+        // Construct the URL using BACKEND_URL, appending token for external Meta download access
+        const tokenQuery = envVars.PUBLIC_API_TOKEN ? `?token=${envVars.PUBLIC_API_TOKEN}` : "";
+        finalUrl = `${envVars.BACKEND_URL}/uploads/whatsapp/${req.file.filename}${tokenQuery}`;
       }
 
       if (!finalUrl) {

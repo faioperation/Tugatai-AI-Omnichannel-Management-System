@@ -8,6 +8,7 @@ import validateRequest from "../../middleware/validateRequest.js";
 import { AuthValidation } from "./auth.validation.js";
 
 import { checkLoginBlock } from "../../middleware/loginRateLimiter.js";
+import { checkOtpSendLimit, checkOtpVerifyBlock } from "../../middleware/otpRateLimiter.js";
 
 const router = express.Router();
 router.post(
@@ -18,8 +19,18 @@ router.post(
 );
 router.post("/refresh-token", AuthController.getNewAccessToken);
 router.post("/logout", AuthController.logout);
-router.post("/forgot-password", validateRequest(AuthValidation.forgotPasswordSchema), AuthController.forgotPassword);
-router.post("/verify-forgot-password-otp", validateRequest(AuthValidation.verifyForgotPasswordOtpSchema), AuthController.verifyForgotPasswordOtp);
+router.post(
+  "/forgot-password",
+  checkOtpSendLimit,
+  validateRequest(AuthValidation.forgotPasswordSchema),
+  AuthController.forgotPassword
+);
+router.post(
+  "/verify-forgot-password-otp",
+  checkOtpVerifyBlock,
+  validateRequest(AuthValidation.verifyForgotPasswordOtpSchema),
+  AuthController.verifyForgotPasswordOtp
+);
 router.post(
   "/reset-password",
   checkAuthMiddleware(...Object.values(Role)),

@@ -1,6 +1,8 @@
 import { OtpService } from "./otp.service.js";
 import DevBuildError from "../../lib/DevBuildError.js";
 import prisma from "../../prisma/client.js";
+import { getClientIp } from "../../middleware/loginRateLimiter.js";
+import { recordOtpSend } from "../../middleware/otpRateLimiter.js";
 
 //        SEND OTP   
 
@@ -16,6 +18,8 @@ const sendOtp = async (req, res) => {
     }
 
     await OtpService.sendOtp(prisma, email, name);
+    const clientIp = getClientIp(req);
+    await recordOtpSend(email, clientIp);
 
     return res.json({
       success: true,
@@ -54,7 +58,8 @@ const verifyOtp = async (req, res) => {
       });
     }
 
-    await OtpService.verifyOtp(prisma, email, otp);
+    const clientIp = getClientIp(req);
+    await OtpService.verifyOtp(prisma, email, otp, clientIp);
 
     return res.json({
       success: true,

@@ -51,7 +51,8 @@ export const generateInvoicePdf = async (data) => {
   const fileName = `invoice-${invoiceNo}-${Date.now()}.pdf`;
   const filePath = path.join(INVOICE_DIR, fileName);
   const backendUrl = envVars.BACKEND_URL || "http://localhost:8001";
-  const fileUrl = `${backendUrl}/uploads/invoices/${fileName}`;
+  const tokenQuery = envVars.PUBLIC_API_TOKEN ? `?token=${envVars.PUBLIC_API_TOKEN}` : "";
+  const fileUrl = `${backendUrl}/uploads/invoices/${fileName}${tokenQuery}`;
 
   await new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: "A4", margin: 50 });
