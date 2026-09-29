@@ -207,8 +207,9 @@ export const sendMediaMessage = async (req, res, next) => {
     let filePath = null;
 
     if (req.file) {
-      // Use BACKEND_URL from envVars
-      finalUrl = `${envVars.BACKEND_URL}/uploads/messenger/${req.file.filename}`;
+      // Use BACKEND_URL from envVars, appending token for external Meta download access
+      const tokenQuery = envVars.PUBLIC_API_TOKEN ? `?token=${envVars.PUBLIC_API_TOKEN}` : "";
+      finalUrl = `${envVars.BACKEND_URL}/uploads/messenger/${req.file.filename}${tokenQuery}`;
       // Save the actual relative path from the server
       filePath = `uploads/messenger/${req.file.filename}`;
     }

@@ -58,14 +58,16 @@ app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
 
+import { uploadAuthMiddleware } from "./app/middleware/uploadAuthMiddleware.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const uploadsPath = path.join(__dirname, "..", "uploads");
 
 // Routes
 app.use("/api", router);
-app.use("/uploads", express.static(uploadsPath));
-app.use("/api/uploads", express.static(uploadsPath));
+app.use("/uploads", uploadAuthMiddleware, express.static(uploadsPath));
+app.use("/api/uploads", uploadAuthMiddleware, express.static(uploadsPath));
 
 // Health check (Liveness / Readiness)
 app.get("/health", (req, res) => {

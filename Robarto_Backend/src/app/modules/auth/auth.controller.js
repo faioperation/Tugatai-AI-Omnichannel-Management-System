@@ -231,6 +231,8 @@ const logout = async (req, res, next) => {
   }
 };
 
+import { recordOtpSend } from "../../middleware/otpRateLimiter.js";
+
 const forgotPassword = async (req, res, next) => {
   try {
     // const prisma = req.app.get("prisma"); // REMOVED
@@ -246,6 +248,8 @@ const forgotPassword = async (req, res, next) => {
     }
 
     await forgotPasswordService(prisma, email);
+    const clientIp = getClientIp(req);
+    await recordOtpSend(email, clientIp);
 
     sendResponse(res, {
       success: true,
@@ -272,7 +276,8 @@ const verifyForgotPasswordOtp = async (req, res, next) => {
       });
     }
 
-    const resetToken = await OtpService.verifyForgotPasswordOtp(prisma, email, otp);
+    const clientIp = getClientIp(req);
+    const resetToken = await OtpService.verifyForgotPasswordOtp(prisma, email, otp, clientIp);
 
     sendResponse(res, {
       success: true,

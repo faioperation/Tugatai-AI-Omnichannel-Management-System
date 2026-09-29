@@ -217,7 +217,8 @@ export const sendMediaMessage = async (req, res, next) => {
     let filePath = null;
 
     if (req.file) {
-      finalUrl = `${envVars.BACKEND_URL}/uploads/instagram/${req.file.filename}`;
+      const tokenQuery = envVars.PUBLIC_API_TOKEN ? `?token=${envVars.PUBLIC_API_TOKEN}` : "";
+      finalUrl = `${envVars.BACKEND_URL}/uploads/instagram/${req.file.filename}${tokenQuery}`;
       filePath = `uploads/instagram/${req.file.filename}`;
     }
 
