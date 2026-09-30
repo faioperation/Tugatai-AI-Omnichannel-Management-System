@@ -23,6 +23,8 @@ InstagramRoutes.get("/auth/instagram/callback", authFacebookCallback);
 // Webhook Routes (Meta calls these directly)
 InstagramRoutes.get("/webhook/instagram", verifyWebhook);
 InstagramRoutes.post("/webhook/instagram", handleWebhookEvent);
+InstagramRoutes.get("/instagram/webhook", verifyWebhook);
+InstagramRoutes.post("/instagram/webhook", handleWebhookEvent);
 
 
 // --- Protected API Routes ---

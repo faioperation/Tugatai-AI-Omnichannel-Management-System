@@ -10,6 +10,10 @@ export const WhatsappRoutes = Router();
 // Public Webhooks (No auth needed, Meta will call these directly)
 WhatsappRoutes.get("/webhooks/whatsapp", WhatsappController.verifyWebhook);
 WhatsappRoutes.post("/webhooks/whatsapp", WhatsappController.receiveWebhook);
+WhatsappRoutes.get("/webhook/whatsapp", WhatsappController.verifyWebhook);
+WhatsappRoutes.post("/webhook/whatsapp", WhatsappController.receiveWebhook);
+WhatsappRoutes.get("/whatsapp/webhook", WhatsappController.verifyWebhook);
+WhatsappRoutes.post("/whatsapp/webhook", WhatsappController.receiveWebhook);
 WhatsappRoutes.get("/auth/whatsapp/callback", WhatsappController.authWhatsAppCallback);
 
 // Protected API Routes
