@@ -26,17 +26,22 @@ export const getPageTokens = async (userAccessToken) => {
 };
 
 export const subscribeAppToPage = async (pageId, pageAccessToken) => {
-  // Subscribe the app to the page's webhook events
-  const response = await axios.post(
-    `${getGraphUrl()}/${pageId}/subscribed_apps`,
-    {
-      subscribed_fields: ["messages", "messaging_postbacks", "messaging_optins"],
-    },
-    {
-      params: {
-        access_token: pageAccessToken,
-      },
-    }
-  );
-  return response.data;
+  try {
+    // Subscribe the app to the page's webhook events
+    const response = await axios.post(
+      `${getGraphUrl()}/${pageId}/subscribed_apps`,
+      null,
+      {
+        params: {
+          access_token: pageAccessToken,
+          subscribed_fields: "messages,messaging_postbacks,messaging_optins",
+        },
+      }
+    );
+    console.log(`✅ [Facebook] Successfully subscribed app to page ${pageId}:`, response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`❌ [Facebook] Error subscribing app to page ${pageId}:`, error.response?.data || error.message);
+    return null;
+  }
 };

@@ -64,6 +64,29 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const uploadsPath = path.join(__dirname, "..", "uploads");
 
+// Debug logger for all incoming requests
+app.use((req, res, next) => {
+  if (req.originalUrl.includes("webhook") || req.originalUrl.includes("callback") || req.originalUrl.includes("messenger") || req.originalUrl.includes("instagram")) {
+    console.log(`📡 [Incoming Meta/Webhook Request] ${req.method} ${req.originalUrl}`);
+    if (req.method === "POST") {
+      console.log("📦 Payload:", JSON.stringify(req.body, null, 2));
+    }
+  }
+  next();
+});
+
+import { MessengerRoutes } from "./app/modules/messenger/messenger.route.js";
+import { InstagramRoutes } from "./app/modules/instagram/instagram.route.js";
+import { WhatsappRoutes } from "./app/modules/whatsapp/whatsapp.routes.js";
+
+// Root-level Webhook fallbacks in case Meta is configured without /api or /v1 prefix
+app.use("/webhook", MessengerRoutes);
+app.use("/webhook", InstagramRoutes);
+app.use("/webhook", WhatsappRoutes);
+app.use("/api/v1", MessengerRoutes);
+app.use("/api/v1", InstagramRoutes);
+app.use("/api/v1", WhatsappRoutes);
+
 // Routes
 app.use("/api", router);
 app.use("/uploads", uploadAuthMiddleware, express.static(uploadsPath));

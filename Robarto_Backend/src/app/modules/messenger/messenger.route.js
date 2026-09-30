@@ -21,9 +21,12 @@ export const MessengerRoutes = Router();
 MessengerRoutes.get("/auth/facebook/callback", authFacebookCallback);
 
 // Webhook Routes (Meta calls these directly)
-// Note: Kept as /webhook/facebook in case existing Meta apps are using it
 MessengerRoutes.get("/webhook/facebook", verifyWebhook);
 MessengerRoutes.post("/webhook/facebook", handleWebhookEvent);
+MessengerRoutes.get("/facebook/webhook", verifyWebhook);
+MessengerRoutes.post("/facebook/webhook", handleWebhookEvent);
+MessengerRoutes.get("/messenger/webhook", verifyWebhook);
+MessengerRoutes.post("/messenger/webhook", handleWebhookEvent);
 
 
 // --- Protected API Routes ---

@@ -20,8 +20,8 @@ export const authFacebook = async (req, res, next) => {
 
     const redirectUri = envVars.INSTAGRAM_REDIRECT_URI;
     const appId = envVars.META_APP_ID;
-    // Scopes needed for Instagram Messaging
-    const permissions = "instagram_manage_messages,pages_show_list,pages_manage_metadata,business_management";
+    // Scopes needed for Instagram Messaging via Facebook Page
+    const permissions = "pages_show_list,pages_messaging,pages_manage_metadata,instagram_manage_messages,business_management";
     
     // Using state to pass businessId and branchId to callback
     const state = JSON.stringify({ businessId, branchId });
@@ -75,6 +75,7 @@ export const authFacebookCallback = async (req, res, next) => {
 
     // 3. Fetch pages and their linked instagram accounts
     const pages = await getPageTokens(longLivedToken);
+    console.log("🔍 [Instagram OAuth] Pages returned from Meta:", JSON.stringify(pages, null, 2));
     
     const connectedInstagramAccounts = [];
 
@@ -126,6 +127,15 @@ export const authFacebookCallback = async (req, res, next) => {
         // Automatically subscribe app to page webhook (which handles IG webhooks)
         await subscribeAppToPage(page.id, page.access_token);
       }
+    }
+
+    if (connectedInstagramAccounts.length === 0) {
+      return sendResponse(res, {
+        statusCode: 200,
+        success: false,
+        message: "No linked Instagram Professional/Business account found on your Facebook Pages. Please link your Instagram Business account to your Facebook Page first (Page Settings -> Linked Accounts -> Instagram).",
+        data: { accounts: [] },
+      });
     }
 
     sendResponse(res, {
