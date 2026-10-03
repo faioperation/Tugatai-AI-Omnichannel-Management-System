@@ -54,8 +54,14 @@ class _ChatViewState extends State<ChatView> {
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent) {
           final isCtrlOrCmd = HardwareKeyboard.instance.isControlPressed ||
-              HardwareKeyboard.instance.isMetaPressed;
-          if (event.logicalKey == LogicalKeyboardKey.enter && isCtrlOrCmd) {
+              HardwareKeyboard.instance.isMetaPressed ||
+              HardwareKeyboard.instance.logicalKeysPressed.contains(LogicalKeyboardKey.controlLeft) ||
+              HardwareKeyboard.instance.logicalKeysPressed.contains(LogicalKeyboardKey.controlRight) ||
+              HardwareKeyboard.instance.logicalKeysPressed.contains(LogicalKeyboardKey.metaLeft) ||
+              HardwareKeyboard.instance.logicalKeysPressed.contains(LogicalKeyboardKey.metaRight);
+          if ((event.logicalKey == LogicalKeyboardKey.enter ||
+                  event.logicalKey == LogicalKeyboardKey.numpadEnter) &&
+              isCtrlOrCmd) {
             sendMessage();
             return KeyEventResult.handled;
           }
@@ -397,24 +403,32 @@ class _ChatViewState extends State<ChatView> {
                           color: theme.cardTheme.color,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: TextField(
-                          controller: controller,
-                          focusNode: _focusNode,
-                          style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
-                          maxLines: 4,
-                          minLines: 1,
-                          keyboardType: TextInputType.multiline,
-                          decoration: InputDecoration(
-                            hintText: "Type a message... (Ctrl + Enter to send, Shift + Enter for new line)",
-                            hintStyle: TextStyle(
-                              fontSize: 12,
-                              color: theme.hintColor.withOpacity(0.7),
+                        child: CallbackShortcuts(
+                          bindings: <ShortcutActivator, VoidCallback>{
+                            const SingleActivator(LogicalKeyboardKey.enter, control: true): sendMessage,
+                            const SingleActivator(LogicalKeyboardKey.enter, meta: true): sendMessage,
+                            const SingleActivator(LogicalKeyboardKey.numpadEnter, control: true): sendMessage,
+                            const SingleActivator(LogicalKeyboardKey.numpadEnter, meta: true): sendMessage,
+                          },
+                          child: TextField(
+                            controller: controller,
+                            focusNode: _focusNode,
+                            style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
+                            maxLines: 4,
+                            minLines: 1,
+                            keyboardType: TextInputType.multiline,
+                            decoration: InputDecoration(
+                              hintText: "Type a message... (Ctrl + Enter to send, Shift + Enter for new line)",
+                              hintStyle: TextStyle(
+                                fontSize: 12,
+                                color: theme.hintColor.withOpacity(0.7),
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 10),
                             ),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                            onSubmitted: (_) => sendMessage(),
                           ),
-                          onSubmitted: (_) => sendMessage(),
                         ),
                       ),
                       const SizedBox(height: 4),
