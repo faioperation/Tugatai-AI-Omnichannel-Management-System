@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:image_picker/image_picker.dart';
@@ -43,11 +44,25 @@ class ChatView extends StatefulWidget {
 class _ChatViewState extends State<ChatView> {
   final TextEditingController controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  late final FocusNode _focusNode;
   bool _isGeneratingReply = false;
 
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode(
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent) {
+          final isCtrlOrCmd = HardwareKeyboard.instance.isControlPressed ||
+              HardwareKeyboard.instance.isMetaPressed;
+          if (event.logicalKey == LogicalKeyboardKey.enter && isCtrlOrCmd) {
+            sendMessage();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+    );
     _scrollToBottom();
   }
 
@@ -66,6 +81,7 @@ class _ChatViewState extends State<ChatView> {
 
   @override
   void dispose() {
+    _focusNode.dispose();
     _scrollController.dispose();
     controller.dispose();
     super.dispose();
@@ -371,29 +387,61 @@ class _ChatViewState extends State<ChatView> {
                 const SizedBox(width: 10),
 
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: theme.cardTheme.color,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: TextField(
-                      controller: controller,
-                      style: TextStyle(color: theme.colorScheme.onSurface),
-                      maxLines: null,
-                      keyboardType: TextInputType.multiline,
-                      decoration: const InputDecoration(
-                        hintText: "Type a message",
-                        border: InputBorder.none,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: theme.cardTheme.color,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: TextField(
+                          controller: controller,
+                          focusNode: _focusNode,
+                          style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
+                          maxLines: 4,
+                          minLines: 1,
+                          keyboardType: TextInputType.multiline,
+                          decoration: InputDecoration(
+                            hintText: "Type a message... (Ctrl + Enter to send, Shift + Enter for new line)",
+                            hintStyle: TextStyle(
+                              fontSize: 12,
+                              color: theme.hintColor.withOpacity(0.7),
+                            ),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                          onSubmitted: (_) => sendMessage(),
+                        ),
                       ),
-                      onSubmitted: (_) => sendMessage(),
-                    ),
+                      const SizedBox(height: 4),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "⌨️ Shortcuts: Ctrl + Enter to Send • Shift + Enter for New Line",
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: theme.hintColor.withOpacity(0.8),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
                 const SizedBox(width: 10),
 
                 IconButton(
+                  tooltip: "Send message (Ctrl + Enter)",
                   icon: const Icon(Icons.send, color: AppColor.primary),
                   onPressed: sendMessage,
                 ),

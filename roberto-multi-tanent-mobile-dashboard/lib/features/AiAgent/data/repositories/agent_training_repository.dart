@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:roberto/core/network/api_constants.dart';
 import 'package:roberto/core/services/local_storage_service.dart';
@@ -57,7 +59,13 @@ class AgentTrainingRepository {
     if (file == null) return;
     try {
       final String fileName = file.name as String;
-      final Uint8List? bytes = file.bytes as Uint8List?;
+      Uint8List? bytes = file.bytes as Uint8List?;
+      if (bytes == null && !kIsWeb && file.path != null && (file.path as String).isNotEmpty) {
+        final f = File(file.path as String);
+        if (await f.exists()) {
+          bytes = await f.readAsBytes();
+        }
+      }
       if (bytes != null) {
         request.files.add(
           http.MultipartFile.fromBytes(
@@ -68,7 +76,7 @@ class AgentTrainingRepository {
         );
       }
     } catch (e) {
-      // ignore
+      debugPrint('Error attaching file for $fieldName: $e');
     }
   }
 
