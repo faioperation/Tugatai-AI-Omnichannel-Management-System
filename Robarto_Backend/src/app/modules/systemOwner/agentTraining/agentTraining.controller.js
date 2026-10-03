@@ -9,7 +9,7 @@ const mapFiles = async (filesArray) => {
     if (!filesArray) return null;
     const result = [];
     for (const file of filesArray) {
-        const filePath = `./uploads/agentTraining/${file.filename}`;
+        const filePath = file.path || `./uploads/agentTraining/${file.filename}`;
         const extractedText = await extractTextFromFile(filePath, file.mimetype);
         
         const fileObj = {
@@ -21,12 +21,13 @@ const mapFiles = async (filesArray) => {
         };
 
         // Check if the uploaded file is an Excel spreadsheet to extract raw JSON data
-        if (
+        const isExcel =
             file.mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
             file.mimetype === "application/vnd.ms-excel" ||
-            file.originalname.endsWith(".xlsx") ||
-            file.originalname.endsWith(".xls")
-        ) {
+            (file.originalname && (file.originalname.toLowerCase().endsWith(".xlsx") || file.originalname.toLowerCase().endsWith(".xls"))) ||
+            (file.filename && (file.filename.toLowerCase().endsWith(".xlsx") || file.filename.toLowerCase().endsWith(".xls")));
+
+        if (isExcel) {
             const excelJson = await extractExcelData(filePath);
             if (excelJson) {
                 fileObj.jsonData = excelJson;

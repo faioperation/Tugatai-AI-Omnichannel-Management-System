@@ -6,7 +6,11 @@ import { checkPermission } from "../../../middleware/checkAuthMiddleware.js";
 import { createMulterUpload } from "../../../config/multer.config.js";
 
 const router = express.Router();
-const upload = createMulterUpload({ folder: "agentTraining", allowedTypes: /.*/ });
+const upload = createMulterUpload({
+    folder: "agentTraining",
+    allowedTypes: /.*/,
+    maxSize: 50 * 1024 * 1024,
+});
 
 router.post(
     "/create",
