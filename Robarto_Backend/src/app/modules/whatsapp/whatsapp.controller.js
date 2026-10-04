@@ -1,6 +1,6 @@
 import { envVars } from "../../config/env.js";
 import { WhatsappService } from "./whatsapp.service.js";
-import { handleWebhookEvent } from "./whatsapp.webhook.js";
+import { handleWebhookEvent, handleEvolutionWebhookEvent } from "./whatsapp.webhook.js";
 import prisma from "../../prisma/client.js";
 import { getBusinessAndBranchForUser } from "../../utils/workflowHelpers.js";
 
@@ -28,6 +28,16 @@ export const WhatsappController = {
     }
   },
 
+  receiveEvolutionWebhook: async (req, res) => {
+    try {
+      await handleEvolutionWebhookEvent(req.body);
+      res.status(200).send("OK");
+    } catch (error) {
+      console.error("[Evolution Webhook] Error:", error);
+      res.status(200).send("OK");
+    }
+  },
+
   connectAccount: async (req, res) => {
     try {
       const { businessId } = await getBusinessAndBranchForUser(req.user);
@@ -35,6 +45,34 @@ export const WhatsappController = {
       
       const account = await WhatsappService.connectAccount(businessId, req.body);
       res.json({ success: true, data: account });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  connectQrAccount: async (req, res) => {
+    try {
+      const { businessId, branchId: userBranchId, isOwner } = await getBusinessAndBranchForUser(req.user);
+      if (!businessId) return res.status(404).json({ success: false, message: "Business not found for this user" });
+
+      const branchId = isOwner ? (req.body.branchId || null) : userBranchId;
+      const data = await WhatsappService.connectQrAccount(businessId, branchId);
+      res.json({ success: true, data });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  getQrCodeStatus: async (req, res) => {
+    try {
+      const { businessId } = await getBusinessAndBranchForUser(req.user);
+      if (!businessId) return res.status(404).json({ success: false, message: "Business not found for this user" });
+
+      const { instanceName } = req.query;
+      if (!instanceName) return res.status(400).json({ success: false, message: "instanceName query parameter is required" });
+
+      const data = await WhatsappService.getQrCodeStatus(businessId, instanceName);
+      res.json({ success: true, data });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }

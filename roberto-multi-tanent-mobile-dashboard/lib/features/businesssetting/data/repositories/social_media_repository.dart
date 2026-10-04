@@ -135,6 +135,27 @@ class SocialMediaRepository {
     return response.isSuccess && (response.responseData?['success'] == true);
   }
 
+  Future<Map<String, dynamic>> connectWhatsAppQr(String branchId) async {
+    final response = await networkClient.postRequest(
+      ApiConstants.whatsappQrConnect,
+      body: {'branchId': branchId.isNotEmpty ? branchId : null},
+    );
+    if (response.isSuccess && response.responseData != null && response.responseData['success'] == true) {
+      return Map<String, dynamic>.from(response.responseData['data'] ?? {});
+    }
+    return {};
+  }
+
+  Future<Map<String, dynamic>> getWhatsAppQrStatus(String instanceName) async {
+    final response = await networkClient.getRequest(
+      '${ApiConstants.whatsappQrStatus}?instanceName=$instanceName',
+    );
+    if (response.isSuccess && response.responseData != null && response.responseData['success'] == true) {
+      return Map<String, dynamic>.from(response.responseData['data'] ?? {});
+    }
+    return {};
+  }
+
   Future<String?> getGoogleCalendarAuthUrl(String branchId) async {
     final response = await networkClient.getRequest(
       '${ApiConstants.googleCalendarConnect}?branchId=$branchId',

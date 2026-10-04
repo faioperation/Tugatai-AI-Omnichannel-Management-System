@@ -1,5 +1,6 @@
 import prisma from "../../prisma/client.js";
 import { MetaGraphAPI } from "./whatsapp.meta.js";
+import { EvolutionAPI } from "./whatsapp.evolution.js";
 import { envVars } from "../../config/env.js";
 import { NotificationService } from "../notification/notification.service.js";
 
@@ -21,6 +22,7 @@ export const WhatsappService = {
         },
       },
       update: {
+        connectionType: "META_CLOUD_API",
         wabaId: payload.wabaId,
         phoneNumber: payload.phoneNumber,
         accessToken: payload.accessToken,
@@ -30,6 +32,7 @@ export const WhatsappService = {
       create: {
         businessId,
         branchId: payload.branchId || null,
+        connectionType: "META_CLOUD_API",
         wabaId: payload.wabaId,
         phoneNumberId: payload.phoneNumberId,
         phoneNumber: payload.phoneNumber,
@@ -39,10 +42,107 @@ export const WhatsappService = {
     });
   },
 
+  connectQrAccount: async (businessId, branchId = null) => {
+    const instanceName = `biz_${businessId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16)}_${Date.now()}`;
+    const webhookUrl = envVars.EVOLUTION_WEBHOOK_URL || "http://backend:8001/api/v1/whatsapp/webhook/evolution";
+
+    // 1. Create or get instance from Evolution API
+    const instanceData = await EvolutionAPI.createInstance(instanceName, webhookUrl);
+
+    let qrCode = instanceData.qrcode?.base64 || instanceData.base64 || instanceData.code || null;
+
+    // If QR code is not immediately in create response, try to fetch it
+    if (!qrCode) {
+      try {
+        const connectData = await EvolutionAPI.connectInstance(instanceName);
+        qrCode = connectData.base64 || connectData.code || null;
+      } catch (err) {
+        console.warn("[Evolution API] Could not fetch immediate QR code:", err.message);
+      }
+    }
+
+    // 2. Upsert account record
+    const account = await prisma.whatsappAccount.upsert({
+      where: {
+        businessId_instanceName: {
+          businessId,
+          instanceName,
+        },
+      },
+      update: {
+        connectionType: "QR_CODE",
+        branchId: branchId || null,
+        status: "INACTIVE",
+        qrCode: qrCode || null,
+      },
+      create: {
+        businessId,
+        branchId: branchId || null,
+        connectionType: "QR_CODE",
+        instanceName,
+        status: "INACTIVE",
+        qrCode: qrCode || null,
+      },
+    });
+
+    return {
+      accountId: account.id,
+      instanceName,
+      qrCode,
+      status: account.status,
+    };
+  },
+
+  getQrCodeStatus: async (businessId, instanceName) => {
+    const account = await prisma.whatsappAccount.findFirst({
+      where: { businessId, instanceName },
+    });
+
+    if (!account) throw new Error("WhatsApp QR instance not found");
+
+    const state = await EvolutionAPI.getConnectionState(instanceName);
+
+    let qrCode = account.qrCode;
+    if (state !== "open") {
+      try {
+        const connectData = await EvolutionAPI.connectInstance(instanceName);
+        qrCode = connectData.base64 || connectData.code || qrCode;
+        if (qrCode !== account.qrCode) {
+          await prisma.whatsappAccount.update({
+            where: { id: account.id },
+            data: { qrCode },
+          });
+        }
+      } catch (e) {}
+    }
+
+    if (state === "open" && account.status !== "ACTIVE") {
+      await prisma.whatsappAccount.update({
+        where: { id: account.id },
+        data: { status: "ACTIVE", qrCode: null },
+      });
+    }
+
+    return {
+      connected: state === "open",
+      state,
+      qrCode: state === "open" ? null : qrCode,
+    };
+  },
+
   disconnectAccount: async (businessId, accountId) => {
+    const account = await prisma.whatsappAccount.findFirst({
+      where: { id: accountId, businessId },
+    });
+
+    if (account?.connectionType === "QR_CODE" && account.instanceName) {
+      await EvolutionAPI.logoutInstance(account.instanceName);
+      await EvolutionAPI.deleteInstance(account.instanceName);
+    }
+
     return await prisma.whatsappAccount.updateMany({
       where: { id: accountId, businessId },
-      data: { status: "DISCONNECTED" },
+      data: { status: "DISCONNECTED", qrCode: null },
     });
   },
 
@@ -113,12 +213,24 @@ export const WhatsappService = {
     const account = conversation.whatsappAccount;
     const contact = conversation.contact;
 
-    const response = await MetaGraphAPI.sendMessage(
-      account.phoneNumberId,
-      account.accessToken,
-      contact.phoneNumber,
-      messageText
-    );
+    let metaMsgId = null;
+
+    if (account.connectionType === "QR_CODE") {
+      const evoRes = await EvolutionAPI.sendMessage(
+        account.instanceName,
+        contact.phoneNumber,
+        messageText
+      );
+      metaMsgId = evoRes?.key?.id || `evo_out_${Date.now()}`;
+    } else {
+      const response = await MetaGraphAPI.sendMessage(
+        account.phoneNumberId,
+        account.accessToken,
+        contact.phoneNumber,
+        messageText
+      );
+      metaMsgId = response.messages?.[0]?.id;
+    }
 
     const message = await prisma.whatsappMessage.create({
       data: {
@@ -126,7 +238,7 @@ export const WhatsappService = {
         whatsappAccountId: account.id,
         conversationId,
         contactId: contact.id,
-        metaMessageId: response.messages?.[0]?.id,
+        metaMessageId: metaMsgId,
         direction: "OUTGOING",
         type: "text",
         text: messageText,
@@ -173,13 +285,26 @@ export const WhatsappService = {
     const account = conversation.whatsappAccount;
     const contact = conversation.contact;
 
-    const response = await MetaGraphAPI.sendMedia(
-      account.phoneNumberId,
-      account.accessToken,
-      contact.phoneNumber,
-      type,
-      mediaUrl
-    );
+    let metaMsgId = null;
+
+    if (account.connectionType === "QR_CODE") {
+      const evoRes = await EvolutionAPI.sendMedia(
+        account.instanceName,
+        contact.phoneNumber,
+        type,
+        mediaUrl
+      );
+      metaMsgId = evoRes?.key?.id || `evo_out_media_${Date.now()}`;
+    } else {
+      const response = await MetaGraphAPI.sendMedia(
+        account.phoneNumberId,
+        account.accessToken,
+        contact.phoneNumber,
+        type,
+        mediaUrl
+      );
+      metaMsgId = response.messages?.[0]?.id;
+    }
 
     const message = await prisma.whatsappMessage.create({
       data: {
@@ -187,7 +312,7 @@ export const WhatsappService = {
         whatsappAccountId: account.id,
         conversationId,
         contactId: contact.id,
-        metaMessageId: response.messages?.[0]?.id,
+        metaMessageId: metaMsgId,
         direction: "OUTGOING",
         type: type,
         mediaUrl: mediaUrl,

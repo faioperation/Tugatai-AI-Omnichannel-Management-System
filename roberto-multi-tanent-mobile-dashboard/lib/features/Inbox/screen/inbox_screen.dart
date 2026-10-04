@@ -596,42 +596,47 @@ class _InboxScreenState extends State<InboxScreen> {
         final isMobile = constraints.maxWidth < _kTablet;
 
         return SelectionArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              if (!isMobile) ...[
-                Text(
-                  "Inbox",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              isMobile ? 12 : 24,
+              isMobile ? 12 : 20,
+              isMobile ? 12 : 24,
+              isMobile ? 12 : 20,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                if (!isMobile) ...[
+                  Text(
+                    "Inbox",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Manage all your customer conversations in one place",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  const SizedBox(height: 6),
+                  Text(
+                    "Manage all your customer conversations in one place",
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-              ],
-              
-              // Chat UI Container
-              Container(
-                height: isMobile 
-                    ? MediaQuery.of(context).size.height - 170 
-                    : (MediaQuery.of(context).size.height > 600 ? MediaQuery.of(context).size.height - 220 : 600),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE)),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
+                  const SizedBox(height: 20),
+                ],
+                
+                // Chat UI Container (takes full remaining screen height)
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardTheme.color,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Theme.of(context).dividerTheme.color ?? const Color(0xffEEEEEE)),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
                   child: isDesktop 
                       ? Row(
                           children: [
@@ -782,9 +787,11 @@ class _InboxScreenState extends State<InboxScreen> {
                                   ),
                               ],
                             ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

@@ -132,6 +132,8 @@ class ApiConstants {
   static const String whatsappAuth = '$baseUrl/v1/whatsapp/auth';
   static const String whatsappStatus = '$baseUrl/v1/whatsapp/status';
   static const String whatsappDisconnect = '$baseUrl/v1/whatsapp/disconnect';
+  static const String whatsappQrConnect = '$baseUrl/v1/whatsapp/qr/connect';
+  static const String whatsappQrStatus = '$baseUrl/v1/whatsapp/qr/status';
 
 
   // Google Calendar

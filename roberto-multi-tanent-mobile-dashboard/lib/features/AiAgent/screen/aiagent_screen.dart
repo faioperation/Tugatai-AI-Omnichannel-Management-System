@@ -117,31 +117,20 @@ class _AiagentScreenState extends State<AiagentScreen> {
           duration: const Duration(milliseconds: 250),
           transitionBuilder: (child, animation) =>
               FadeTransition(opacity: animation, child: child),
-          child: BlocBuilder<AgentTrainingBloc, AgentTrainingState>(
-            builder: (context, state) {
-              if (state is AgentTrainingLoading) {
-                return const Padding(
-                  padding: EdgeInsets.all(40),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-
-              return _selectedTab == 0
-                  ? SystemPromptView(
-                      key: const ValueKey('system'),
-                      businessId: widget.businessId!,
-                      onNext: () {
-                        setState(() {
-                          _selectedTab = 1;
-                        });
-                      },
-                    )
-                  : TrainingDataView(
-                      key: const ValueKey('training'),
-                      businessId: widget.businessId!,
-                    );
-            },
-          ),
+          child: _selectedTab == 0
+              ? SystemPromptView(
+                  key: const ValueKey('system'),
+                  businessId: widget.businessId!,
+                  onNext: () {
+                    setState(() {
+                      _selectedTab = 1;
+                    });
+                  },
+                )
+              : TrainingDataView(
+                  key: const ValueKey('training'),
+                  businessId: widget.businessId!,
+                ),
         ),
       ],
     );

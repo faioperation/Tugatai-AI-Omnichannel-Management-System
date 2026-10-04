@@ -19,7 +19,7 @@ class SocialMediaBloc extends Bloc<SocialMediaEvent, SocialMediaState> {
   }
 
   Future<void> _onCheckSocialMediaStatus(CheckSocialMediaStatus event, Emitter<SocialMediaState> emit) async {
-    emit(state.copyWith(isLoading: true, clearError: true));
+    emit(state.copyWith(isLoading: true, clearError: true, clearRedirectUrl: true));
     try {
       final results = await Future.wait([
         repository.getFacebookStatus(event.branchId),
