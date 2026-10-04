@@ -62,6 +62,8 @@ services:
       DB_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER}
       RUN_SEED: "false"
+      EVOLUTION_API_URL: http://evolution-api:8080
+      EVOLUTION_API_KEY: omnirra_evolution_secret_key_2026
     depends_on:
       postgres:
         condition: service_healthy
@@ -152,6 +154,22 @@ services:
     networks:
       - frontend
 
+  evolution-api:
+    image: atendai/evolution-api:v2.1.2
+    restart: unless-stopped
+    environment:
+      - SERVER_URL=http://backend:8001
+      - AUTHENTICATION_API_KEY=omnirra_evolution_secret_key_2026
+      - LOG_LEVEL=ERROR,WARN,INFO
+      - DATABASE_ENABLED=false
+      - WEBHOOK_GLOBAL_ENABLED=true
+      - WEBHOOK_GLOBAL_URL=http://backend:8001/api/v1/whatsapp/webhook/evolution
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - frontend
+      - backend
+
   nginx:
     image: nginx:1.29-alpine
     restart: unless-stopped
@@ -184,3 +202,4 @@ volumes:
   postgres_data:
   redis_data:
   backend_uploads:
+  evolution_instances:

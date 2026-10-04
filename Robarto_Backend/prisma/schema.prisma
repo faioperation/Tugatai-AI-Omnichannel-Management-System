@@ -832,19 +832,27 @@ enum WhatsappAccountStatus {
   DISCONNECTED
 }
 
+enum WhatsappConnectionType {
+  META_CLOUD_API
+  QR_CODE
+}
+
 model WhatsappAccount {
-  id            String                @id @default(uuid())
-  businessId    String                @map("business_id")
-  branchId      String?               @map("branch_id")
-  wabaId        String                @map("waba_id")
-  phoneNumberId String                @map("phone_number_id")
-  phoneNumber   String                @map("phone_number")
-  accessToken   String                @map("access_token")
-  status        WhatsappAccountStatus @default(ACTIVE)
-  aiReply       Boolean               @default(true) @map("ai_reply")
-  metadata      Json?
-  createdAt     DateTime              @default(now()) @map("created_at")
-  updatedAt     DateTime              @updatedAt @map("updated_at")
+  id             String                 @id @default(uuid())
+  businessId     String                 @map("business_id")
+  branchId       String?                @map("branch_id")
+  connectionType WhatsappConnectionType @default(META_CLOUD_API) @map("connection_type")
+  wabaId         String?                @map("waba_id")
+  phoneNumberId  String?                @map("phone_number_id")
+  phoneNumber    String?                @map("phone_number")
+  accessToken    String?                @map("access_token")
+  instanceName   String?                @map("instance_name")
+  qrCode         String?                @map("qr_code")
+  status         WhatsappAccountStatus  @default(ACTIVE)
+  aiReply        Boolean                @default(true) @map("ai_reply")
+  metadata       Json?
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
 
   business      Business               @relation("BusinessWhatsappAccounts", fields: [businessId], references: [id], onDelete: Cascade)
   branch        Branch?                @relation("BranchWhatsappAccounts", fields: [branchId], references: [id], onDelete: SetNull)
@@ -853,6 +861,7 @@ model WhatsappAccount {
   messages      WhatsappMessage[]      @relation("AccountWhatsappMessages")
 
   @@unique([businessId, phoneNumberId])
+  @@unique([businessId, instanceName])
   @@map("whatsapp_accounts")
 }
 

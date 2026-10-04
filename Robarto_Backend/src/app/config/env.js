@@ -108,6 +108,10 @@ const loadEnvVars = () => {
 
     // Firebase Cloud Messaging
     FIREBASE_SERVICE_ACCOUNT_PATH: process.env.FIREBASE_SERVICE_ACCOUNT_PATH,
+
+    // Evolution API / QR Code WhatsApp Integration
+    EVOLUTION_API_URL: process.env.EVOLUTION_API_URL || "http://evolution-api:8080",
+    EVOLUTION_API_KEY: process.env.EVOLUTION_API_KEY || "evolution_secret_key",
   };
 };
 

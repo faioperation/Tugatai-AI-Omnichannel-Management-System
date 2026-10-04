@@ -11,6 +11,7 @@ import 'package:roberto/features/businesssetting/widget/custom_media.dart';
 import 'package:roberto/features/businesssetting/bloc/social_media_bloc.dart';
 import 'package:roberto/features/businesssetting/bloc/social_media_event.dart';
 import 'package:roberto/features/businesssetting/bloc/social_media_state.dart';
+import 'package:roberto/features/businesssetting/widget/whatsapp_connect_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:roberto/features/Auth/widget/custom_textfield.dart';
 
@@ -183,7 +184,13 @@ class _BusinessownerSettingsState extends State<BusinessownerSettings> {
                                   if (state.isWhatsAppConnected && state.whatsappAccountId != null) {
                                     context.read<SocialMediaBloc>().add(DisconnectWhatsApp(state.whatsappAccountId!, widget.branchId));
                                   } else {
-                                    context.read<SocialMediaBloc>().add(ConnectWhatsApp(widget.branchId));
+                                    showDialog(
+                                      context: context,
+                                      builder: (dialogContext) => BlocProvider.value(
+                                        value: context.read<SocialMediaBloc>(),
+                                        child: WhatsAppConnectDialog(branchId: widget.branchId),
+                                      ),
+                                    );
                                   }
                                 },
                               ),

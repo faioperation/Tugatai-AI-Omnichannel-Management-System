@@ -216,3 +216,203 @@ const processMessageStatuses = async (value) => {
     }
   }
 };
+
+export const handleEvolutionWebhookEvent = async (body) => {
+  const event = body.event || body.type;
+  const instanceName = body.instance;
+
+  if (!instanceName) return;
+
+  const account = await prisma.whatsappAccount.findFirst({
+    where: { instanceName },
+  });
+
+  if (!account) return;
+  const businessId = account.businessId;
+
+  // Handle Connection Status updates
+  if (event === "connection.update" || event === "CONNECTION_UPDATE") {
+    const state = body.data?.state || body.state;
+    if (state === "open") {
+      await prisma.whatsappAccount.update({
+        where: { id: account.id },
+        data: { status: "ACTIVE", qrCode: null },
+      });
+    } else if (state === "close") {
+      await prisma.whatsappAccount.update({
+        where: { id: account.id },
+        data: { status: "DISCONNECTED" },
+      });
+    }
+    return;
+  }
+
+  // Handle QR Code updates
+  if (event === "qrcode.updated" || event === "QRCODE_UPDATED") {
+    const qrcode = body.data?.qrcode?.base64 || body.qrcode?.base64 || body.data?.base64;
+    if (qrcode) {
+      await prisma.whatsappAccount.update({
+        where: { id: account.id },
+        data: { qrCode: qrcode },
+      });
+    }
+    return;
+  }
+
+  // Handle Incoming Messages
+  if (event === "messages.upsert" || event === "MESSAGES_UPSERT") {
+    const msgData = body.data?.message || body.data;
+    const key = body.data?.key || msgData?.key;
+
+    if (!key || key.fromMe) return; // Skip our own outgoing messages
+
+    const remoteJid = key.remoteJid || "";
+    if (remoteJid.includes("@g.us")) return; // Skip group messages for now
+
+    const phoneNumber = remoteJid.replace("@s.whatsapp.net", "").replace(/\D/g, "");
+    const waUserId = phoneNumber;
+    const name = body.data?.pushName || "Customer";
+
+    // Extract Message text / media
+    let text = null;
+    let type = "text";
+    let mediaUrl = null;
+
+    const rawMsg = body.data?.message || {};
+    if (rawMsg.conversation) {
+      text = rawMsg.conversation;
+    } else if (rawMsg.extendedTextMessage?.text) {
+      text = rawMsg.extendedTextMessage.text;
+    } else if (rawMsg.imageMessage) {
+      type = "image";
+      text = rawMsg.imageMessage.caption || null;
+      mediaUrl = rawMsg.imageMessage.url || null;
+    } else if (rawMsg.videoMessage) {
+      type = "video";
+      text = rawMsg.videoMessage.caption || null;
+      mediaUrl = rawMsg.videoMessage.url || null;
+    } else if (rawMsg.audioMessage) {
+      type = "audio";
+      mediaUrl = rawMsg.audioMessage.url || null;
+    } else if (rawMsg.documentMessage) {
+      type = "document";
+      text = rawMsg.documentMessage.fileName || "document";
+      mediaUrl = rawMsg.documentMessage.url || null;
+    }
+
+    if (!text && !mediaUrl) return;
+
+    // Check conversation limit
+    const existingContact = await prisma.whatsappContact.findUnique({
+      where: {
+        businessId_waUserId: { businessId, waUserId },
+      },
+    });
+
+    let existingConv = null;
+    if (existingContact) {
+      existingConv = await prisma.whatsappConversation.findUnique({
+        where: {
+          businessId_contactId: { businessId, contactId: existingContact.id },
+        },
+      });
+    }
+
+    if (!existingConv) {
+      const limitReached = await isConversationLimitReached(businessId);
+      if (limitReached) {
+        console.warn(`[Evolution Webhook] Conversation limit reached for business: ${businessId}.`);
+        return;
+      }
+    }
+
+    // Upsert Contact
+    const dbContact = await prisma.whatsappContact.upsert({
+      where: {
+        businessId_waUserId: { businessId, waUserId },
+      },
+      update: {
+        name: name || undefined,
+        phoneNumber,
+        lastMessageAt: new Date(),
+      },
+      create: {
+        businessId,
+        whatsappAccountId: account.id,
+        waUserId,
+        phoneNumber,
+        name,
+        lastMessageAt: new Date(),
+      },
+    });
+
+    // Upsert Conversation
+    const conversation = await prisma.whatsappConversation.upsert({
+      where: {
+        businessId_contactId: { businessId, contactId: dbContact.id },
+      },
+      update: {
+        unreadCount: { increment: 1 },
+        seen: false,
+        lastMessageAt: new Date(),
+      },
+      create: {
+        businessId,
+        whatsappAccountId: account.id,
+        contactId: dbContact.id,
+        unreadCount: 1,
+        seen: false,
+        lastMessageAt: new Date(),
+      },
+    });
+
+    const msgId = key.id || `evo_${Date.now()}`;
+
+    // Create incoming message record
+    await prisma.whatsappMessage.create({
+      data: {
+        businessId,
+        whatsappAccountId: account.id,
+        conversationId: conversation.id,
+        contactId: dbContact.id,
+        metaMessageId: msgId,
+        direction: "INCOMING",
+        type,
+        text,
+        mediaUrl,
+        rawPayload: body.data,
+        status: "DELIVERED",
+      },
+    });
+
+    // Update conversation last message ID
+    await prisma.whatsappConversation.update({
+      where: { id: conversation.id },
+      data: { lastMessageId: msgId },
+    });
+
+    // Send notifications
+    NotificationService.shouldSendMessageNotification(conversation.id, "whatsapp").then((shouldNotify) => {
+      if (shouldNotify) {
+        NotificationService.createAndSendNotification({
+          title: "New WhatsApp Message",
+          message: `Message: "${text || "Attachment/Other"}"`,
+          type: "NEW_MESSAGE",
+          businessId,
+          branchId: account.branchId || null,
+          conversationId: conversation.id,
+        }).catch(err => console.error("Error sending incoming message notification:", err));
+      }
+    }).catch(err => console.error("Error checking throttling:", err));
+
+    // Notify AI Agent
+    notifyAiAgent({
+      businessId,
+      recipientId: waUserId,
+      conversationId: conversation.id,
+      channel: "whatsapp",
+      message: text || `[Media ${type}]`,
+    });
+  }
+};
+
