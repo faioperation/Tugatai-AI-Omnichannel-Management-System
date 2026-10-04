@@ -17,27 +17,45 @@ export const EvolutionAPI = {
   createInstance: async (instanceName, webhookUrl) => {
     const client = getClient();
     try {
+      const allEvents = [
+        "APPLICATION_STARTUP",
+        "QRCODE_UPDATED",
+        "CONNECTION_UPDATE",
+        "MESSAGES_SET",
+        "MESSAGES_UPSERT",
+        "MESSAGES_UPDATE",
+        "MESSAGES_DELETE",
+        "SEND_MESSAGE",
+        "CONTACTS_SET",
+        "CONTACTS_UPSERT",
+        "CHATS_SET",
+        "CHATS_UPSERT",
+      ];
+
       const response = await client.post("/instance/create", {
         instanceName,
         qrcode: true,
         integration: "WHATSAPP-BAILEYS",
+        webhook: webhookUrl || undefined,
+        webhook_by_events: false,
+        events: allEvents,
       });
 
-      // If webhookUrl is provided, configure webhook for this instance
+      // If webhookUrl is provided, also explicitly call /webhook/set/:instance
       if (webhookUrl) {
         try {
           await client.post(`/webhook/set/${instanceName}`, {
+            enabled: true,
+            url: webhookUrl,
+            webhookByEvents: false,
+            webhook_by_events: false,
+            events: allEvents,
             webhook: {
               enabled: true,
               url: webhookUrl,
               byEvents: false,
               base64: false,
-              events: [
-                "MESSAGES_UPSERT",
-                "MESSAGES_UPDATE",
-                "CONNECTION_UPDATE",
-                "QRCODE_UPDATED",
-              ],
+              events: allEvents,
             },
           });
         } catch (webhookErr) {

@@ -218,22 +218,37 @@ const processMessageStatuses = async (value) => {
 };
 
 export const handleEvolutionWebhookEvent = async (body) => {
-  const event = body.event || body.type;
+  const event = body.event || body.type || "";
   const instanceName = body.instance;
-
-  if (!instanceName) return;
-
-  const account = await prisma.whatsappAccount.findFirst({
-    where: { instanceName },
-  });
-
-  if (!account) return;
-  const businessId = account.businessId;
 
   console.log(`[Evolution Webhook] Received event: "${event}" for instance: "${instanceName}"`);
 
+  let account = null;
+  if (instanceName) {
+    account = await prisma.whatsappAccount.findFirst({
+      where: { instanceName },
+    });
+  }
+
+  // Fallback by sender phone if instanceName lookup fails
+  if (!account && (body.sender || body.data?.wuid)) {
+    const rawSender = body.sender || body.data?.wuid;
+    const phone = rawSender.replace("@s.whatsapp.net", "").replace(/\D/g, "");
+    account = await prisma.whatsappAccount.findFirst({
+      where: { phoneNumber: phone, status: "ACTIVE" },
+    });
+  }
+
+  if (!account) {
+    console.warn(`[Evolution Webhook] No matching WhatsappAccount found for instance: "${instanceName}"`);
+    return;
+  }
+  const businessId = account.businessId;
+
+  const eventNormalized = event.toLowerCase().replace(/[-_.]/g, "");
+
   // Handle Connection Status updates
-  if (event === "connection.update" || event === "CONNECTION_UPDATE") {
+  if (eventNormalized.includes("connectionupdate") || eventNormalized === "connection") {
     const state = body.data?.state || body.state;
     const wuid = body.data?.wuid || body.sender;
     const phone = wuid ? wuid.replace("@s.whatsapp.net", "").replace(/\D/g, "") : null;
@@ -259,7 +274,7 @@ export const handleEvolutionWebhookEvent = async (body) => {
   }
 
   // Handle QR Code updates
-  if (event === "qrcode.updated" || event === "QRCODE_UPDATED") {
+  if (eventNormalized.includes("qrcodeupdated") || eventNormalized.includes("qrcode")) {
     const qrcode = body.data?.qrcode?.base64 || body.qrcode?.base64 || body.data?.base64;
     if (qrcode) {
       await prisma.whatsappAccount.update({
@@ -271,168 +286,176 @@ export const handleEvolutionWebhookEvent = async (body) => {
   }
 
   // Handle Incoming Messages
-  if (event === "messages.upsert" || event === "MESSAGES_UPSERT" || event === "messages.upsert".toUpperCase()) {
-    const msgData = body.data?.message || body.data;
-    const key = body.data?.key || msgData?.key;
+  if (eventNormalized.includes("messagesupsert") || eventNormalized.includes("messageupsert") || eventNormalized === "message" || eventNormalized === "messages") {
+    const rawItems = Array.isArray(body.data)
+      ? body.data
+      : (Array.isArray(body.data?.messages) ? body.data.messages : [body.data]);
 
-    console.log(`[Evolution Webhook] Incoming message event details:`, {
-      fromMe: key?.fromMe,
-      remoteJid: key?.remoteJid,
-      pushName: body.data?.pushName,
-    });
+    for (const item of rawItems) {
+      if (!item) continue;
+      const key = item.key || item.message?.key;
 
-    if (!key || key.fromMe) {
-      console.log(`[Evolution Webhook] Skipped message because key is missing or fromMe is true.`);
-      return; // Skip our own outgoing messages
-    }
+      console.log(`[Evolution Webhook] Processing message item:`, {
+        fromMe: key?.fromMe,
+        remoteJid: key?.remoteJid,
+        pushName: item.pushName || body.data?.pushName,
+      });
 
-    const remoteJid = key.remoteJid || "";
-    if (remoteJid.includes("@g.us")) return; // Skip group messages for now
+      if (!key || key.fromMe) {
+        console.log(`[Evolution Webhook] Skipped message because key is missing or fromMe is true.`);
+        continue; // Skip outgoing messages
+      }
 
-    const phoneNumber = remoteJid.replace("@s.whatsapp.net", "").replace(/\D/g, "");
-    const waUserId = phoneNumber;
-    const name = body.data?.pushName || "Customer";
+      const remoteJid = key.remoteJid || "";
+      if (remoteJid.includes("@g.us")) continue; // Skip group messages
 
-    // Extract Message text / media
-    let text = null;
-    let type = "text";
-    let mediaUrl = null;
+      const phoneNumber = remoteJid.replace("@s.whatsapp.net", "").replace(/\D/g, "");
+      const waUserId = phoneNumber;
+      const name = item.pushName || body.data?.pushName || "Customer";
 
-    const rawMsg = body.data?.message || {};
-    if (rawMsg.conversation) {
-      text = rawMsg.conversation;
-    } else if (rawMsg.extendedTextMessage?.text) {
-      text = rawMsg.extendedTextMessage.text;
-    } else if (rawMsg.imageMessage) {
-      type = "image";
-      text = rawMsg.imageMessage.caption || null;
-      mediaUrl = rawMsg.imageMessage.url || null;
-    } else if (rawMsg.videoMessage) {
-      type = "video";
-      text = rawMsg.videoMessage.caption || null;
-      mediaUrl = rawMsg.videoMessage.url || null;
-    } else if (rawMsg.audioMessage) {
-      type = "audio";
-      mediaUrl = rawMsg.audioMessage.url || null;
-    } else if (rawMsg.documentMessage) {
-      type = "document";
-      text = rawMsg.documentMessage.fileName || "document";
-      mediaUrl = rawMsg.documentMessage.url || null;
-    }
+      // Extract Message text / media
+      let text = null;
+      let type = "text";
+      let mediaUrl = null;
 
-    if (!text && !mediaUrl) return;
+      const rawMsg = item.message || {};
+      if (rawMsg.conversation) {
+        text = rawMsg.conversation;
+      } else if (rawMsg.extendedTextMessage?.text) {
+        text = rawMsg.extendedTextMessage.text;
+      } else if (rawMsg.imageMessage) {
+        type = "image";
+        text = rawMsg.imageMessage.caption || null;
+        mediaUrl = rawMsg.imageMessage.url || null;
+      } else if (rawMsg.videoMessage) {
+        type = "video";
+        text = rawMsg.videoMessage.caption || null;
+        mediaUrl = rawMsg.videoMessage.url || null;
+      } else if (rawMsg.audioMessage) {
+        type = "audio";
+        mediaUrl = rawMsg.audioMessage.url || null;
+      } else if (rawMsg.documentMessage) {
+        type = "document";
+        text = rawMsg.documentMessage.fileName || "document";
+        mediaUrl = rawMsg.documentMessage.url || null;
+      }
 
-    // Check conversation limit
-    const existingContact = await prisma.whatsappContact.findUnique({
-      where: {
-        businessId_waUserId: { businessId, waUserId },
-      },
-    });
+      if (!text && !mediaUrl) continue;
 
-    let existingConv = null;
-    if (existingContact) {
-      existingConv = await prisma.whatsappConversation.findUnique({
+      // Check conversation limit
+      const existingContact = await prisma.whatsappContact.findUnique({
         where: {
-          businessId_contactId: { businessId, contactId: existingContact.id },
+          businessId_waUserId: { businessId, waUserId },
         },
       });
-    }
 
-    if (!existingConv) {
-      const limitReached = await isConversationLimitReached(businessId);
-      if (limitReached) {
-        console.warn(`[Evolution Webhook] Conversation limit reached for business: ${businessId}.`);
-        return;
+      let existingConv = null;
+      if (existingContact) {
+        existingConv = await prisma.whatsappConversation.findUnique({
+          where: {
+            businessId_contactId: { businessId, contactId: existingContact.id },
+          },
+        });
       }
-    }
 
-    // Upsert Contact
-    const dbContact = await prisma.whatsappContact.upsert({
-      where: {
-        businessId_waUserId: { businessId, waUserId },
-      },
-      update: {
-        name: name || undefined,
-        phoneNumber,
-        lastMessageAt: new Date(),
-      },
-      create: {
-        businessId,
-        whatsappAccountId: account.id,
-        waUserId,
-        phoneNumber,
-        name,
-        lastMessageAt: new Date(),
-      },
-    });
+      if (!existingConv) {
+        const limitReached = await isConversationLimitReached(businessId);
+        if (limitReached) {
+          console.warn(`[Evolution Webhook] Conversation limit reached for business: ${businessId}.`);
+          continue;
+        }
+      }
 
-    // Upsert Conversation
-    const conversation = await prisma.whatsappConversation.upsert({
-      where: {
-        businessId_contactId: { businessId, contactId: dbContact.id },
-      },
-      update: {
-        unreadCount: { increment: 1 },
-        seen: false,
-        lastMessageAt: new Date(),
-      },
-      create: {
-        businessId,
-        whatsappAccountId: account.id,
-        contactId: dbContact.id,
-        unreadCount: 1,
-        seen: false,
-        lastMessageAt: new Date(),
-      },
-    });
-
-    const msgId = key.id || `evo_${Date.now()}`;
-
-    // Create incoming message record
-    await prisma.whatsappMessage.create({
-      data: {
-        businessId,
-        whatsappAccountId: account.id,
-        conversationId: conversation.id,
-        contactId: dbContact.id,
-        metaMessageId: msgId,
-        direction: "INCOMING",
-        type,
-        text,
-        mediaUrl,
-        rawPayload: body.data,
-        status: "DELIVERED",
-      },
-    });
-
-    // Update conversation last message ID
-    await prisma.whatsappConversation.update({
-      where: { id: conversation.id },
-      data: { lastMessageId: msgId },
-    });
-
-    // Send notifications
-    NotificationService.shouldSendMessageNotification(conversation.id, "whatsapp").then((shouldNotify) => {
-      if (shouldNotify) {
-        NotificationService.createAndSendNotification({
-          title: "New WhatsApp Message",
-          message: `Message: "${text || "Attachment/Other"}"`,
-          type: "NEW_MESSAGE",
+      // Upsert Contact
+      const dbContact = await prisma.whatsappContact.upsert({
+        where: {
+          businessId_waUserId: { businessId, waUserId },
+        },
+        update: {
+          name: name || undefined,
+          phoneNumber,
+          lastMessageAt: new Date(),
+        },
+        create: {
           businessId,
-          branchId: account.branchId || null,
-          conversationId: conversation.id,
-        }).catch(err => console.error("Error sending incoming message notification:", err));
-      }
-    }).catch(err => console.error("Error checking throttling:", err));
+          whatsappAccountId: account.id,
+          waUserId,
+          phoneNumber,
+          name,
+          lastMessageAt: new Date(),
+        },
+      });
 
-    // Notify AI Agent
-    notifyAiAgent({
-      businessId,
-      recipientId: waUserId,
-      conversationId: conversation.id,
-      channel: "whatsapp",
-      message: text || `[Media ${type}]`,
-    });
+      // Upsert Conversation
+      const conversation = await prisma.whatsappConversation.upsert({
+        where: {
+          businessId_contactId: { businessId, contactId: dbContact.id },
+        },
+        update: {
+          unreadCount: { increment: 1 },
+          seen: false,
+          lastMessageAt: new Date(),
+        },
+        create: {
+          businessId,
+          whatsappAccountId: account.id,
+          contactId: dbContact.id,
+          unreadCount: 1,
+          seen: false,
+          lastMessageAt: new Date(),
+        },
+      });
+
+      const msgId = key.id || `evo_${Date.now()}`;
+
+      // Create incoming message record
+      await prisma.whatsappMessage.create({
+        data: {
+          businessId,
+          whatsappAccountId: account.id,
+          conversationId: conversation.id,
+          contactId: dbContact.id,
+          metaMessageId: msgId,
+          direction: "INCOMING",
+          type,
+          text,
+          mediaUrl,
+          rawPayload: item,
+          status: "DELIVERED",
+        },
+      });
+
+      // Update conversation last message ID
+      await prisma.whatsappConversation.update({
+        where: { id: conversation.id },
+        data: { lastMessageId: msgId },
+      });
+
+      console.log(`[Evolution Webhook] Saved incoming WhatsApp message from ${phoneNumber}: "${text}"`);
+
+      // Send notifications
+      NotificationService.shouldSendMessageNotification(conversation.id, "whatsapp").then((shouldNotify) => {
+        if (shouldNotify) {
+          NotificationService.createAndSendNotification({
+            title: "New WhatsApp Message",
+            message: `Message: "${text || "Attachment/Other"}"`,
+            type: "NEW_MESSAGE",
+            businessId,
+            branchId: account.branchId || null,
+            conversationId: conversation.id,
+          }).catch(err => console.error("Error sending incoming message notification:", err));
+        }
+      }).catch(err => console.error("Error checking throttling:", err));
+
+      // Notify AI Agent
+      notifyAiAgent({
+        businessId,
+        recipientId: waUserId,
+        conversationId: conversation.id,
+        channel: "whatsapp",
+        message: text || `[Media ${type}]`,
+      });
+    }
   }
 };
 

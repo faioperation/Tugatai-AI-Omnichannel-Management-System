@@ -44,7 +44,7 @@ export const WhatsappService = {
 
   connectQrAccount: async (businessId, branchId = null) => {
     const instanceName = `biz_${businessId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16)}_${Date.now()}`;
-    const webhookUrl = `${envVars.BACKEND_URL}/api/v1/whatsapp/webhook/evolution`;
+    const webhookUrl = envVars.EVOLUTION_WEBHOOK_URL || "http://backend:8001/api/v1/whatsapp/webhook/evolution";
 
     // 1. Create or get instance from Evolution API
     const instanceData = await EvolutionAPI.createInstance(instanceName, webhookUrl);

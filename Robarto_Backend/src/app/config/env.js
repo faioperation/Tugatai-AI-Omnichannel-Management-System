@@ -111,7 +111,8 @@ const loadEnvVars = () => {
 
     // Evolution API / QR Code WhatsApp Integration
     EVOLUTION_API_URL: process.env.EVOLUTION_API_URL || "http://evolution-api:8080",
-    EVOLUTION_API_KEY: process.env.EVOLUTION_API_KEY || "evolution_secret_key",
+    EVOLUTION_API_KEY: process.env.EVOLUTION_API_KEY || "omnirra_evolution_secret_key_2026",
+    EVOLUTION_WEBHOOK_URL: process.env.EVOLUTION_WEBHOOK_URL || "http://backend:8001/api/v1/whatsapp/webhook/evolution",
   };
 };
 
