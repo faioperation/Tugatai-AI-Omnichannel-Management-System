@@ -34,6 +34,11 @@ class _TrainingDataViewState extends State<TrainingDataView> {
   String? _serverPoliciesUrl;
   String? _serverFaqUrl;
 
+  // Original filenames stored on the server
+  String? _serverProductOriginalName;
+  String? _serverPoliciesOriginalName;
+  String? _serverFaqOriginalName;
+
   @override
   void initState() {
     super.initState();
@@ -52,13 +57,25 @@ class _TrainingDataViewState extends State<TrainingDataView> {
     _trainingId = training.id;
 
     _serverProductUrl = _extractUrl(training.productInformation);
+    _serverProductOriginalName = _extractOriginalName(training.productInformation);
+
     _serverPoliciesUrl = _extractUrl(training.policiesGuidelines);
+    _serverPoliciesOriginalName = _extractOriginalName(training.policiesGuidelines);
+
     _serverFaqUrl = _extractUrl(training.faq);
+    _serverFaqOriginalName = _extractOriginalName(training.faq);
   }
 
   String? _extractUrl(dynamic value) {
     if (value == null) return null;
-    if (value is String && value.isNotEmpty) return value;
+    if (value is String && value.isNotEmpty) {
+      try {
+        final decoded = json.decode(value);
+        return _extractUrl(decoded);
+      } catch (_) {
+        return value;
+      }
+    }
     if (value is List && value.isNotEmpty) {
       final first = value.first;
       if (first is Map) {
@@ -67,6 +84,32 @@ class _TrainingDataViewState extends State<TrainingDataView> {
     }
     if (value is Map) {
       return value['url']?.toString() ?? value['path']?.toString();
+    }
+    return null;
+  }
+
+  String? _extractOriginalName(dynamic value) {
+    if (value == null) return null;
+    if (value is String && value.isNotEmpty) {
+      try {
+        final decoded = json.decode(value);
+        return _extractOriginalName(decoded);
+      } catch (_) {
+        return null;
+      }
+    }
+    if (value is List && value.isNotEmpty) {
+      final first = value.first;
+      if (first is Map) {
+        return first['originalname']?.toString() ??
+            first['originalName']?.toString() ??
+            first['name']?.toString();
+      }
+    }
+    if (value is Map) {
+      return value['originalname']?.toString() ??
+          value['originalName']?.toString() ??
+          value['name']?.toString();
     }
     return null;
   }
@@ -290,6 +333,7 @@ class _TrainingDataViewState extends State<TrainingDataView> {
                   icon: Icons.table_chart_outlined,
                   iconColor: Colors.green.shade600,
                   serverUrl: _serverProductUrl,
+                  serverOriginalName: _serverProductOriginalName,
                   newFile: _newProductFile,
                   onPick: () => _pickFile('product'),
                   onClearNew: () => setState(() => _newProductFile = null),
@@ -303,6 +347,7 @@ class _TrainingDataViewState extends State<TrainingDataView> {
                   icon: Icons.picture_as_pdf_outlined,
                   iconColor: Colors.red.shade600,
                   serverUrl: _serverPoliciesUrl,
+                  serverOriginalName: _serverPoliciesOriginalName,
                   newFile: _newPoliciesFile,
                   onPick: () => _pickFile('policies'),
                   onClearNew: () => setState(() => _newPoliciesFile = null),
@@ -316,6 +361,7 @@ class _TrainingDataViewState extends State<TrainingDataView> {
                   icon: Icons.question_answer_outlined,
                   iconColor: Colors.blue.shade600,
                   serverUrl: _serverFaqUrl,
+                  serverOriginalName: _serverFaqOriginalName,
                   newFile: _newFaqFile,
                   onPick: () => _pickFile('faq'),
                   onClearNew: () => setState(() => _newFaqFile = null),
@@ -366,6 +412,7 @@ class _TrainingDataViewState extends State<TrainingDataView> {
     required IconData icon,
     required Color iconColor,
     required String? serverUrl,
+    required String? serverOriginalName,
     required PlatformFile? newFile,
     required VoidCallback onPick,
     required VoidCallback onClearNew,
@@ -375,9 +422,9 @@ class _TrainingDataViewState extends State<TrainingDataView> {
     final hasNew = newFile != null;
     final fileName = hasNew
         ? newFile.name
-        : hasServer
-            ? _getFileName(serverUrl)
-            : null;
+        : (serverOriginalName != null && serverOriginalName.isNotEmpty)
+            ? serverOriginalName
+            : (hasServer ? _getFileName(serverUrl) : null);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -424,7 +471,7 @@ class _TrainingDataViewState extends State<TrainingDataView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        fileName!,
+                        fileName ?? '',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
@@ -436,11 +483,11 @@ class _TrainingDataViewState extends State<TrainingDataView> {
                       const SizedBox(height: 2),
                       Text(
                         hasNew
-                            ? '📎 New file selected'
+                            ? '📎 New file selected (Click Save to apply)'
                             : '✅ Uploaded to server',
                         style: TextStyle(
                           fontSize: 11,
-                          color: hasNew ? iconColor : Colors.green.shade600,
+                          color: hasNew ? theme.colorScheme.primary : Colors.green.shade600,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
