@@ -17,49 +17,42 @@ export const EvolutionAPI = {
   createInstance: async (instanceName, webhookUrl) => {
     const client = getClient();
     try {
-      const allEvents = [
-        "APPLICATION_STARTUP",
-        "QRCODE_UPDATED",
-        "CONNECTION_UPDATE",
-        "MESSAGES_SET",
-        "MESSAGES_UPSERT",
-        "MESSAGES_UPDATE",
-        "MESSAGES_DELETE",
-        "SEND_MESSAGE",
-        "CONTACTS_SET",
-        "CONTACTS_UPSERT",
-        "CHATS_SET",
-        "CHATS_UPSERT",
-      ];
-
+      // 1. Create instance (Clean DTO matching Evolution API specification)
       const response = await client.post("/instance/create", {
         instanceName,
         qrcode: true,
         integration: "WHATSAPP-BAILEYS",
-        webhook: webhookUrl || undefined,
-        webhook_by_events: false,
-        events: allEvents,
       });
 
-      // If webhookUrl is provided, also explicitly call /webhook/set/:instance
+      // 2. Configure Webhook for this instance
       if (webhookUrl) {
         try {
+          const eventsList = [
+            "APPLICATION_STARTUP",
+            "QRCODE_UPDATED",
+            "CONNECTION_UPDATE",
+            "MESSAGES_SET",
+            "MESSAGES_UPSERT",
+            "MESSAGES_UPDATE",
+            "MESSAGES_DELETE",
+            "SEND_MESSAGE",
+            "CONTACTS_SET",
+            "CONTACTS_UPSERT",
+            "CHATS_SET",
+            "CHATS_UPSERT",
+          ];
+
           await client.post(`/webhook/set/${instanceName}`, {
-            enabled: true,
-            url: webhookUrl,
-            webhookByEvents: false,
-            webhook_by_events: false,
-            events: allEvents,
             webhook: {
               enabled: true,
               url: webhookUrl,
               byEvents: false,
               base64: false,
-              events: allEvents,
+              events: eventsList,
             },
           });
         } catch (webhookErr) {
-          console.warn(`[EvolutionAPI] Webhook setup warning for ${instanceName}:`, webhookErr.message);
+          console.warn(`[EvolutionAPI] Webhook setup warning for ${instanceName}:`, webhookErr.response?.data || webhookErr.message);
         }
       }
 
