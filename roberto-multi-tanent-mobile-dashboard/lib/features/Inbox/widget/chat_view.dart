@@ -211,7 +211,7 @@ class _ChatViewState extends State<ChatView> {
 
     if (widget.conversation == null) {
       return Container(
-        color: theme.scaffoldBackgroundColor,
+        color: theme.cardTheme.color,
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -234,7 +234,7 @@ class _ChatViewState extends State<ChatView> {
         : 'S';
 
     return Container(
-      color: theme.scaffoldBackgroundColor,
+      color: theme.cardTheme.color,
       child: Column(
         children: [
           // Header
@@ -352,7 +352,7 @@ class _ChatViewState extends State<ChatView> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: theme.brightness == Brightness.light ? const Color(0xffF3F4F6) : theme.colorScheme.surface,
+              color: theme.cardTheme.color,
               border: Border(top: BorderSide(color: theme.dividerTheme.color ?? const Color(0xffEEEEEE))),
             ),
             child: Row(
@@ -400,8 +400,9 @@ class _ChatViewState extends State<ChatView> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
                         decoration: BoxDecoration(
-                          color: theme.cardTheme.color,
+                          color: theme.scaffoldBackgroundColor,
                           borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: theme.dividerTheme.color?.withOpacity(0.5) ?? const Color(0xffEEEEEE)),
                         ),
                         child: CallbackShortcuts(
                           bindings: <ShortcutActivator, VoidCallback>{
