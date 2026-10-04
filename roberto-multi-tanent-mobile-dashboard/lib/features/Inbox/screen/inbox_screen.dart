@@ -787,9 +787,11 @@ class _InboxScreenState extends State<InboxScreen> {
                                   ),
                               ],
                             ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
