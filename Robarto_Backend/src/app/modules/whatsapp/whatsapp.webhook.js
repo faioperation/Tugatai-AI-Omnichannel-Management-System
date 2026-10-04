@@ -230,19 +230,30 @@ export const handleEvolutionWebhookEvent = async (body) => {
   if (!account) return;
   const businessId = account.businessId;
 
+  console.log(`[Evolution Webhook] Received event: "${event}" for instance: "${instanceName}"`);
+
   // Handle Connection Status updates
   if (event === "connection.update" || event === "CONNECTION_UPDATE") {
     const state = body.data?.state || body.state;
+    const wuid = body.data?.wuid || body.sender;
+    const phone = wuid ? wuid.replace("@s.whatsapp.net", "").replace(/\D/g, "") : null;
+
     if (state === "open") {
       await prisma.whatsappAccount.update({
         where: { id: account.id },
-        data: { status: "ACTIVE", qrCode: null },
+        data: {
+          status: "ACTIVE",
+          qrCode: null,
+          ...(phone ? { phoneNumber: phone } : {}),
+        },
       });
+      console.log(`[Evolution Webhook] Instance "${instanceName}" is now ACTIVE. Phone: ${phone}`);
     } else if (state === "close") {
       await prisma.whatsappAccount.update({
         where: { id: account.id },
         data: { status: "DISCONNECTED" },
       });
+      console.log(`[Evolution Webhook] Instance "${instanceName}" is now DISCONNECTED.`);
     }
     return;
   }
@@ -260,11 +271,20 @@ export const handleEvolutionWebhookEvent = async (body) => {
   }
 
   // Handle Incoming Messages
-  if (event === "messages.upsert" || event === "MESSAGES_UPSERT") {
+  if (event === "messages.upsert" || event === "MESSAGES_UPSERT" || event === "messages.upsert".toUpperCase()) {
     const msgData = body.data?.message || body.data;
     const key = body.data?.key || msgData?.key;
 
-    if (!key || key.fromMe) return; // Skip our own outgoing messages
+    console.log(`[Evolution Webhook] Incoming message event details:`, {
+      fromMe: key?.fromMe,
+      remoteJid: key?.remoteJid,
+      pushName: body.data?.pushName,
+    });
+
+    if (!key || key.fromMe) {
+      console.log(`[Evolution Webhook] Skipped message because key is missing or fromMe is true.`);
+      return; // Skip our own outgoing messages
+    }
 
     const remoteJid = key.remoteJid || "";
     if (remoteJid.includes("@g.us")) return; // Skip group messages for now
