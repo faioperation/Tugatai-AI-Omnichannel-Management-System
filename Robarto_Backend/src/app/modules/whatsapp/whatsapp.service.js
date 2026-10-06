@@ -198,7 +198,7 @@ export const WhatsappService = {
 
   getConversations: async (businessId, branchId) => {
     const branches = await prisma.branch.findMany({ where: { businessId } });
-    const singleBranchId = branches.length === 1 ? branches[0].id : null;
+    const singleBranchId = branches.length > 0 ? branches[0].id : null;
 
     const whereClause = { businessId };
     if (branchId) {
@@ -232,7 +232,7 @@ export const WhatsappService = {
       const summary = summaries.find((s) => s.conversationId === c.id);
       return {
         ...c,
-        branchId: c.whatsappAccount?.branchId || singleBranchId || branchId || null,
+        branchId: c.whatsappAccount?.branchId || branchId || singleBranchId || null,
         chatSummary: summary || null,
       };
     });

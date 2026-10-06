@@ -37,6 +37,17 @@ const processIncomingMessages = async (value) => {
 
   const businessId = account.businessId;
 
+  if (!account.branchId) {
+    const branches = await prisma.branch.findMany({ where: { businessId } });
+    if (branches.length === 1) {
+      account.branchId = branches[0].id;
+      await prisma.whatsappAccount.update({
+        where: { id: account.id },
+        data: { branchId: branches[0].id },
+      }).catch(() => {});
+    }
+  }
+
   for (const contact of contacts) {
     const waUserId = contact.wa_id;
     const name = contact.profile?.name;
@@ -267,6 +278,17 @@ export const handleEvolutionWebhookEvent = async (body) => {
     return;
   }
   const businessId = account.businessId;
+
+  if (!account.branchId) {
+    const branches = await prisma.branch.findMany({ where: { businessId } });
+    if (branches.length === 1) {
+      account.branchId = branches[0].id;
+      await prisma.whatsappAccount.update({
+        where: { id: account.id },
+        data: { branchId: branches[0].id },
+      }).catch(() => {});
+    }
+  }
 
   const eventNormalized = event.toLowerCase().replace(/[-_.]/g, "");
 

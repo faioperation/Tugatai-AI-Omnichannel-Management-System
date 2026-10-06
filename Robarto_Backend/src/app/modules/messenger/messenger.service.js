@@ -54,6 +54,18 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
   }
 
   const businessId = connection.businessId;
+  let branchId = connection.branchId;
+
+  if (!branchId) {
+    const branches = await prisma.branch.findMany({ where: { businessId } });
+    if (branches.length === 1) {
+      branchId = branches[0].id;
+      await prisma.socialConnection.update({
+        where: { id: connection.id },
+        data: { branchId },
+      }).catch(() => {});
+    }
+  }
 
   // Fetch customerName if conversation doesn't exist or is missing name
   const existingConv = await prisma.conversation.findUnique({
@@ -100,13 +112,13 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
     update: {
       lastMessage: lastMessageContent,
       lastMessageAt: new Date(),
-      branchId: connection.branchId || null,
+      branchId: branchId || existingConv?.branchId || null,
       customerName: customerName || undefined,
       seen: false,
     },
     create: {
       businessId,
-      branchId: connection.branchId || null,
+      branchId: branchId || null,
       platform: "messenger",
       customerId: senderId,
       customerName: customerName || "Social Customer",
@@ -337,14 +349,14 @@ export const sendMediaMessageToUser = async (businessId, recipientId, type, medi
 
 export const getConversations = async (businessId, branchId) => {
   const branches = await prisma.branch.findMany({ where: { businessId } });
-  const singleBranchId = branches.length === 1 ? branches[0].id : null;
+  const singleBranchId = branches.length > 0 ? branches[0].id : null;
 
   // If active connection has a branchId, sync any null branch conversations for this business
   const activeConnection = await prisma.socialConnection.findFirst({
     where: { businessId, provider: "facebook", isActive: true },
   });
 
-  const effectiveBranchId = activeConnection?.branchId || singleBranchId || branchId;
+  const effectiveBranchId = activeConnection?.branchId || branchId || singleBranchId;
 
   if (effectiveBranchId) {
     await prisma.conversation.updateMany({

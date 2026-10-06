@@ -63,6 +63,18 @@ export const handleIncomingMessage = async (instagramAccountId, webhookEvent) =>
   }
 
   const businessId = connection.businessId;
+  let branchId = connection.branchId;
+
+  if (!branchId) {
+    const branches = await prisma.branch.findMany({ where: { businessId } });
+    if (branches.length === 1) {
+      branchId = branches[0].id;
+      await prisma.socialConnection.update({
+        where: { id: connection.id },
+        data: { branchId },
+      }).catch(() => {});
+    }
+  }
 
   // Fetch customerName if conversation doesn't exist or is missing name
   const existingConv = await prisma.conversation.findUnique({
@@ -101,13 +113,13 @@ export const handleIncomingMessage = async (instagramAccountId, webhookEvent) =>
     update: {
       lastMessage: lastMessageContent,
       lastMessageAt: new Date(),
-      branchId: connection.branchId || null,
+      branchId: branchId || existingConv?.branchId || null,
       customerName: customerName || undefined,
       seen: false,
     },
     create: {
       businessId,
-      branchId: connection.branchId || null,
+      branchId: branchId || null,
       platform: "instagram",
       customerId: senderId,
       customerName: customerName || "Instagram User",
@@ -338,13 +350,13 @@ export const sendMediaMessageToUser = async (businessId, recipientId, type, medi
 
 export const getConversations = async (businessId, branchId) => {
   const branches = await prisma.branch.findMany({ where: { businessId } });
-  const singleBranchId = branches.length === 1 ? branches[0].id : null;
+  const singleBranchId = branches.length > 0 ? branches[0].id : null;
 
   const activeConnection = await prisma.socialConnection.findFirst({
     where: { businessId, provider: "instagram", isActive: true },
   });
 
-  const effectiveBranchId = activeConnection?.branchId || singleBranchId || branchId;
+  const effectiveBranchId = activeConnection?.branchId || branchId || singleBranchId;
 
   if (effectiveBranchId) {
     await prisma.conversation.updateMany({

@@ -3,7 +3,7 @@ import prisma from "../../prisma/client.js";
 export const AllConversationsService = {
   getAllConversations: async (businessId, branchId) => {
     const branches = await prisma.branch.findMany({ where: { businessId } });
-    const singleBranchId = branches.length === 1 ? branches[0].id : null;
+    const singleBranchId = branches.length > 0 ? branches[0].id : null;
     const effectiveBranchId = branchId || singleBranchId;
 
     // 1. Fetch Messenger & Instagram Conversations
