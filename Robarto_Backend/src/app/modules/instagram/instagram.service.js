@@ -231,6 +231,8 @@ export const sendMessageToUser = async (businessId, recipientId, messageText, se
   };
 
   let response;
+  const errors = [];
+
   try {
     try {
       response = await axios.post(
@@ -243,16 +245,26 @@ export const sendMessageToUser = async (businessId, recipientId, messageText, se
         }
       );
     } catch (meError) {
-      console.warn("Instagram /me/messages failed, retrying with pageId endpoint:", meError.response?.data || meError.message);
-      response = await axios.post(
-        `${getGraphUrl()}/${connection.pageId}/messages`,
-        payload,
-        {
-          params: {
-            access_token: connection.accessToken,
-          },
-        }
-      );
+      const errDetail = meError.response?.data || meError.message;
+      errors.push(`/me/messages: ${JSON.stringify(errDetail)}`);
+      console.warn("Instagram /me/messages failed, retrying with pageId endpoint:", errDetail);
+      
+      try {
+        response = await axios.post(
+          `${getGraphUrl()}/${connection.pageId}/messages`,
+          payload,
+          {
+            params: {
+              access_token: connection.accessToken,
+            },
+          }
+        );
+      } catch (pageError) {
+        const pageErrDetail = pageError.response?.data || pageError.message;
+        errors.push(`/${connection.pageId}/messages: ${JSON.stringify(pageErrDetail)}`);
+        console.error(`❌ [Instagram Send Error] Both endpoints failed for recipient ${recipientId}:`, errors);
+        throw pageError;
+      }
     }
 
     // Save the outgoing message to Prisma
