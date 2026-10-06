@@ -196,9 +196,9 @@ export const getPageTokens = async (userAccessToken) => {
 
 export const subscribeAppToPage = async (pageId, pageAccessToken, igAccountId = null) => {
   try {
-    // Subscribe the app to the page's webhook events
-    const response = await axios.post(
-      `${getGraphUrl()}/${pageId}/subscribed_apps`,
+    // 1. Subscribe via /me/subscribed_apps (automatically resolves to the Facebook Page for pageAccessToken)
+    const meRes = await axios.post(
+      `${getGraphUrl()}/me/subscribed_apps`,
       null,
       {
         params: {
@@ -207,12 +207,29 @@ export const subscribeAppToPage = async (pageId, pageAccessToken, igAccountId = 
         },
       }
     );
-    console.log(`✅ [Instagram] Successfully subscribed app to page ${pageId}:`, response.data);
-  } catch (error) {
-    console.error(`❌ [Instagram] Error subscribing app to page ${pageId}:`, error.response?.data || error.message);
+    console.log(`✅ [Instagram] Successfully subscribed app via /me:`, meRes.data);
+  } catch (meErr) {
+    console.warn(`[Instagram] /me/subscribed_apps notice:`, meErr.response?.data || meErr.message);
+    if (pageId) {
+      try {
+        const response = await axios.post(
+          `${getGraphUrl()}/${pageId}/subscribed_apps`,
+          null,
+          {
+            params: {
+              access_token: pageAccessToken,
+              subscribed_fields: "messages,messaging_postbacks,messaging_optins,standby",
+            },
+          }
+        );
+        console.log(`✅ [Instagram] Successfully subscribed app to page ${pageId}:`, response.data);
+      } catch (error) {
+        console.error(`❌ [Instagram] Error subscribing app to page ${pageId}:`, error.response?.data || error.message);
+      }
+    }
   }
 
-  if (igAccountId) {
+  if (igAccountId && igAccountId !== pageId) {
     try {
       const igSubRes = await axios.post(
         `${getGraphUrl()}/${igAccountId}/subscribed_apps`,
@@ -220,13 +237,13 @@ export const subscribeAppToPage = async (pageId, pageAccessToken, igAccountId = 
         {
           params: {
             access_token: pageAccessToken,
-            subscribed_fields: "messages,messaging_postbacks,messaging_optins",
+            subscribed_fields: "messages,messaging_postbacks,messaging_optins,standby",
           },
         }
       );
       console.log(`✅ [Instagram] Successfully subscribed app to Instagram Account ${igAccountId}:`, igSubRes.data);
     } catch (igSubErr) {
-      console.warn(`⚠️ [Instagram] Note on subscribing direct igAccountId ${igAccountId}:`, igSubErr.response?.data?.error?.message || igSubErr.message);
+      // Direct IG node subscribed_apps might not be supported on all versions
     }
   }
 };
