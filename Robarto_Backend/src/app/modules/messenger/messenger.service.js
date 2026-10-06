@@ -348,43 +348,15 @@ export const sendMediaMessageToUser = async (businessId, recipientId, type, medi
 };
 
 export const getConversations = async (businessId, branchId) => {
-  const branches = await prisma.branch.findMany({ where: { businessId } });
-  const singleBranchId = branches.length > 0 ? branches[0].id : null;
-
-  // If active connection has a branchId, sync any null branch conversations for this business
-  const activeConnection = await prisma.socialConnection.findFirst({
-    where: { businessId, provider: "facebook", isActive: true },
-  });
-
-  const effectiveBranchId = activeConnection?.branchId || branchId || singleBranchId;
-
-  if (effectiveBranchId) {
-    await prisma.conversation.updateMany({
-      where: { businessId, platform: "messenger", branchId: null },
-      data: { branchId: effectiveBranchId },
-    }).catch(() => {});
-  }
-
   const whereClause = { businessId, platform: "messenger" };
   if (branchId) {
-    whereClause.OR = [
-      { branchId: branchId },
-      { branchId: null },
-    ];
+    whereClause.branchId = branchId;
   }
 
-  let conversations = await prisma.conversation.findMany({
+  const conversations = await prisma.conversation.findMany({
     where: whereClause,
     orderBy: { lastMessageAt: 'desc' },
   });
-
-  // Fallback: if no conversations found with branch filter, return all business messenger conversations
-  if (conversations.length === 0 && branchId) {
-    conversations = await prisma.conversation.findMany({
-      where: { businessId, platform: "messenger" },
-      orderBy: { lastMessageAt: 'desc' },
-    });
-  }
 
   const conversationIds = conversations.map((c) => c.id);
   const summaries = await prisma.chatSummary.findMany({
@@ -395,7 +367,6 @@ export const getConversations = async (businessId, branchId) => {
     const summary = summaries.find((s) => s.conversationId === c.id);
     return {
       ...c,
-      branchId: c.branchId || effectiveBranchId || null,
       chatSummary: summary || null,
     };
   });

@@ -2,41 +2,24 @@ import prisma from "../../prisma/client.js";
 
 export const AllConversationsService = {
   getAllConversations: async (businessId, branchId) => {
-    const branches = await prisma.branch.findMany({ where: { businessId } });
-    const singleBranchId = branches.length > 0 ? branches[0].id : null;
-    const effectiveBranchId = branchId || singleBranchId;
-
     // 1. Fetch Messenger & Instagram Conversations
     const convWhereClause = { businessId };
     if (branchId) {
-      convWhereClause.OR = [
-        { branchId },
-        { branchId: null },
-      ];
+      convWhereClause.branchId = branchId;
     }
 
-    let standardConversations = await prisma.conversation.findMany({
+    const standardConversations = await prisma.conversation.findMany({
       where: convWhereClause,
       orderBy: { lastMessageAt: "desc" },
     });
 
-    if (standardConversations.length === 0 && branchId) {
-      standardConversations = await prisma.conversation.findMany({
-        where: { businessId },
-        orderBy: { lastMessageAt: "desc" },
-      });
-    }
-
     // 2. Fetch WhatsApp Conversations
     const waWhereClause = { businessId };
     if (branchId) {
-      waWhereClause.OR = [
-        { whatsappAccount: { branchId } },
-        { whatsappAccount: { branchId: null } },
-      ];
+      waWhereClause.whatsappAccount = { branchId };
     }
 
-    let whatsappConversations = await prisma.whatsappConversation.findMany({
+    const whatsappConversations = await prisma.whatsappConversation.findMany({
       where: waWhereClause,
       include: {
         contact: true,
@@ -44,17 +27,6 @@ export const AllConversationsService = {
       },
       orderBy: { lastMessageAt: "desc" },
     });
-
-    if (whatsappConversations.length === 0 && branchId) {
-      whatsappConversations = await prisma.whatsappConversation.findMany({
-        where: { businessId },
-        include: {
-          contact: true,
-          whatsappAccount: true,
-        },
-        orderBy: { lastMessageAt: "desc" },
-      });
-    }
 
     // 3. Fetch Chat Summaries for all conversations
     const allConversationIds = [
@@ -117,7 +89,7 @@ export const AllConversationsService = {
       return {
         id: c.id,
         businessId: c.businessId,
-        branchId: c.whatsappAccount?.branchId || effectiveBranchId || null,
+        branchId: c.whatsappAccount?.branchId || null,
         platform: "whatsapp",
         customerId: c.contactId,
         customerName: c.contact?.name || "WhatsApp User",
