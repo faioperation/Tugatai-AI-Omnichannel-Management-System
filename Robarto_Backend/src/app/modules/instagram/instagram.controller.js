@@ -318,6 +318,15 @@ export const checkConnectionStatus = async (req, res, next) => {
     });
 
     if (connections.length > 0) {
+      // Auto-refresh Meta webhook subscriptions in the background to ensure webhooks are active
+      connections.forEach((conn) => {
+        if (conn.accessToken && conn.pageId) {
+          subscribeAppToPage(conn.pageId, conn.accessToken, conn.pageId).catch((err) => {
+            console.warn(`[Instagram Auto-Sub] Warning for page ${conn.pageId}:`, err.message);
+          });
+        }
+      });
+
       const safeConnections = connections.map(({ accessToken, ...safe }) => safe);
       res.json({ success: true, connected: true, data: safeConnections });
     } else {
