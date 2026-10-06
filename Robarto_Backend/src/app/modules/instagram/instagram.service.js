@@ -75,6 +75,14 @@ export const handleIncomingMessage = async (instagramAccountId, webhookEvent) =>
   }
 
   if (!connection) {
+    // Fallback: match any active Instagram connection in system
+    connection = await prisma.socialConnection.findFirst({
+      where: { provider: "instagram", isActive: true },
+      orderBy: { updatedAt: "desc" },
+    });
+  }
+
+  if (!connection) {
     console.warn(`Received message for unconnected instagram account: ${instagramAccountId}`);
     return;
   }
