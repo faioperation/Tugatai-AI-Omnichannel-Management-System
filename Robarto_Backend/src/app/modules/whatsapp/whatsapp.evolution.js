@@ -84,8 +84,8 @@ export const EvolutionAPI = {
 
   sendMessage: async (instanceName, to, text) => {
     const client = getClient();
-    // Normalize phone number (remove +, spaces, non-digits)
-    const cleanNumber = to.replace(/\D/g, "");
+    // Normalize phone number (remove JID suffix, +, spaces, non-digits)
+    const cleanNumber = (to || "").replace(/@.*$/, "").replace(/\D/g, "");
     try {
       const response = await client.post(`/message/sendText/${instanceName}`, {
         number: cleanNumber,
@@ -116,7 +116,7 @@ export const EvolutionAPI = {
 
   sendMedia: async (instanceName, to, type, mediaUrl, caption = "") => {
     const client = getClient();
-    const cleanNumber = to.replace(/\D/g, "");
+    const cleanNumber = (to || "").replace(/@.*$/, "").replace(/\D/g, "");
     
     // mediatype: 'image' | 'document' | 'video' | 'audio'
     let mediatype = "image";

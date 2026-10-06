@@ -210,8 +210,31 @@ export const WhatsappService = {
 
     if (!conversation) throw new Error("Conversation not found");
 
-    const account = conversation.whatsappAccount;
+    let account = conversation.whatsappAccount;
     const contact = conversation.contact;
+
+    if (!contact) throw new Error("Contact not found for this conversation");
+
+    // If conversation's linked account is inactive or disconnected, find the current ACTIVE account for this business
+    if (!account || account.status !== "ACTIVE") {
+      const activeAccount = await prisma.whatsappAccount.findFirst({
+        where: {
+          businessId,
+          status: "ACTIVE",
+          ...(account?.branchId ? { branchId: account.branchId } : {}),
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+      if (activeAccount) {
+        account = activeAccount;
+        await prisma.whatsappConversation.update({
+          where: { id: conversationId },
+          data: { whatsappAccountId: activeAccount.id },
+        });
+      }
+    }
+
+    if (!account) throw new Error("No active WhatsApp account found for this business. Please connect WhatsApp.");
 
     let metaMsgId = null;
 
@@ -282,8 +305,30 @@ export const WhatsappService = {
 
     if (!conversation) throw new Error("Conversation not found");
 
-    const account = conversation.whatsappAccount;
+    let account = conversation.whatsappAccount;
     const contact = conversation.contact;
+
+    if (!contact) throw new Error("Contact not found for this conversation");
+
+    if (!account || account.status !== "ACTIVE") {
+      const activeAccount = await prisma.whatsappAccount.findFirst({
+        where: {
+          businessId,
+          status: "ACTIVE",
+          ...(account?.branchId ? { branchId: account.branchId } : {}),
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+      if (activeAccount) {
+        account = activeAccount;
+        await prisma.whatsappConversation.update({
+          where: { id: conversationId },
+          data: { whatsappAccountId: activeAccount.id },
+        });
+      }
+    }
+
+    if (!account) throw new Error("No active WhatsApp account found for this business. Please connect WhatsApp.");
 
     let metaMsgId = null;
 
