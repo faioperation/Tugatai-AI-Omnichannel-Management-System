@@ -408,7 +408,125 @@ export const sendMediaMessageToUser = async (businessId, recipientId, type, medi
   }
 };
 
+export const syncInstagramConversationsFromMeta = async (businessId, branchId = null) => {
+  try {
+    const connection = await prisma.socialConnection.findFirst({
+      where: { businessId, provider: "instagram", isActive: true },
+    });
+
+    if (!connection || !connection.accessToken) return;
+
+    const response = await axios.get(`${getGraphUrl()}/me/conversations`, {
+      params: {
+        access_token: connection.accessToken,
+        platform: "instagram",
+        fields: "id,updated_time,participants,messages{id,message,from,created_time}",
+      },
+    });
+
+    const metaConversations = response.data?.data || [];
+    const resolvedBranchId = branchId || connection.branchId || null;
+
+    for (const metaConv of metaConversations) {
+      const participants = metaConv.participants?.data || [];
+      const customer = participants.find((p) => p.id !== connection.pageId) || participants[0];
+      if (!customer) continue;
+
+      const customerId = customer.id;
+      const customerName = customer.username || customer.name || "Instagram User";
+
+      let conversation = await prisma.conversation.findUnique({
+        where: {
+          businessId_platform_customerId: {
+            businessId,
+            platform: "instagram",
+            customerId,
+          },
+        },
+      });
+
+      const messagesList = metaConv.messages?.data || [];
+      const latestMsg = messagesList[0];
+
+      if (!conversation) {
+        conversation = await prisma.conversation.create({
+          data: {
+            businessId,
+            branchId: resolvedBranchId,
+            platform: "instagram",
+            customerId,
+            customerName,
+            lastMessage: latestMsg?.message || "Message on Instagram",
+            lastMessageAt: latestMsg ? new Date(latestMsg.created_time) : new Date(),
+            seen: false,
+          },
+        });
+      } else {
+        if (!conversation.branchId && resolvedBranchId) {
+          await prisma.conversation.update({
+            where: { id: conversation.id },
+            data: { branchId: resolvedBranchId },
+          });
+        }
+      }
+
+      for (const msg of [...messagesList].reverse()) {
+        const platformMessageId = msg.id;
+        const exists = await prisma.message.findFirst({
+          where: {
+            conversationId: conversation.id,
+            platformMessageId,
+          },
+        });
+
+        if (!exists) {
+          const isCustomer = msg.from?.id === customerId;
+          const senderType = isCustomer ? "customer" : "business";
+          const messageText = msg.message || "";
+
+          await prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              senderType,
+              senderId: msg.from?.id || customerId,
+              messageText,
+              platformMessageId,
+              type: "text",
+              createdAt: new Date(msg.created_time),
+            },
+          });
+
+          await prisma.conversation.update({
+            where: { id: conversation.id },
+            data: {
+              lastMessage: messageText,
+              lastMessageAt: new Date(msg.created_time),
+            },
+          });
+
+          // Trigger AI Agent reply if incoming customer message is recent
+          const msgAgeMs = Date.now() - new Date(msg.created_time).getTime();
+          if (isCustomer && msgAgeMs < 300000 && messageText) {
+            notifyAiAgent({
+              businessId,
+              recipientId: customerId,
+              conversationId: conversation.id,
+              channel: "instagram",
+              message: messageText,
+            });
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.warn("[Instagram Sync] Notice syncing conversations from Meta Graph API:", error.response?.data?.error?.message || error.message);
+  }
+};
+
 export const getConversations = async (businessId, branchId) => {
+  // Sync live conversations directly from Meta Graph API
+  await syncInstagramConversationsFromMeta(businessId, branchId);
+
   if (branchId) {
     await prisma.conversation.updateMany({
       where: { businessId, platform: "instagram", branchId: null },
@@ -446,6 +564,14 @@ export const getConversations = async (businessId, branchId) => {
 };
 
 export const getMessages = async (conversationId) => {
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+  });
+
+  if (conversation) {
+    await syncInstagramConversationsFromMeta(conversation.businessId, conversation.branchId);
+  }
+
   const messages = await prisma.message.findMany({
     where: { conversationId },
     orderBy: { createdAt: 'asc' },
