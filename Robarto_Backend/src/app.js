@@ -67,9 +67,15 @@ const uploadsPath = path.join(__dirname, "..", "uploads");
 // Debug logger for all incoming requests
 app.use((req, res, next) => {
   if (req.originalUrl.includes("webhook") || req.originalUrl.includes("callback") || req.originalUrl.includes("messenger") || req.originalUrl.includes("instagram")) {
-    console.log(`📡 [Incoming Meta/Webhook Request] ${req.method} ${req.originalUrl}`);
-    if (req.method === "POST") {
-      console.log("📦 Payload:", JSON.stringify(req.body, null, 2));
+    console.log(`📡 [Incoming Webhook Request] ${req.method} ${req.originalUrl}`);
+    if (req.method === "POST" && req.body) {
+      // Don't dump huge binary sync payloads
+      if (req.body.event?.includes("messages.edited") || req.body.event?.includes("chats.set") || req.body.event?.includes("contacts.")) {
+        console.log(`📦 [Evolution Event] ${req.body.event} for instance ${req.body.instance || "default"}`);
+      } else {
+        const preview = JSON.stringify(req.body);
+        console.log("📦 Payload:", preview.length > 500 ? `${preview.substring(0, 500)}... (truncated)` : preview);
+      }
     }
   }
   next();
