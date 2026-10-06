@@ -160,6 +160,12 @@ export const getBusinessAndBranchForUser = async (user) => {
   const isBusinessOwner = userRoleNames.includes("BUSINESS_OWNER");
   const isBranchManager = userRoleNames.includes("BRANCH_MANAGER");
 
+  // Check if user is the direct owner of a business
+  const ownedBusiness = await prisma.business.findFirst({ where: { ownerId: user.id } });
+  if (ownedBusiness) {
+    return { businessId: ownedBusiness.id, branchId: null, isOwner: true };
+  }
+
   if (isBusinessOwner) {
     const business = await prisma.business.findFirst({ where: { ownerId: user.id } });
     return { businessId: business?.id || null, branchId: null, isOwner: true };
@@ -178,6 +184,13 @@ export const getBusinessAndBranchForUser = async (user) => {
       };
     }
   }
+
+  // Fallback for system admins or default business
+  if (userRoleNames.includes("SYSTEM_ADMIN") || userRoleNames.includes("SYSTEM_OWNER")) {
+    const anyBusiness = await prisma.business.findFirst();
+    return { businessId: anyBusiness?.id || null, branchId: null, isOwner: true };
+  }
+
   return { businessId: null, branchId: null, isOwner: false };
 };
 

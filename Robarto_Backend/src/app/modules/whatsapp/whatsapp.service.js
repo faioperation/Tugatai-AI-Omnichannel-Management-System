@@ -197,6 +197,9 @@ export const WhatsappService = {
   },
 
   getConversations: async (businessId, branchId) => {
+    const branches = await prisma.branch.findMany({ where: { businessId } });
+    const singleBranchId = branches.length === 1 ? branches[0].id : null;
+
     const whereClause = { businessId };
     if (branchId) {
       whereClause.OR = [
@@ -205,11 +208,20 @@ export const WhatsappService = {
       ];
     }
 
-    const conversations = await prisma.whatsappConversation.findMany({
+    let conversations = await prisma.whatsappConversation.findMany({
       where: whereClause,
       include: { contact: true, whatsappAccount: true },
       orderBy: { lastMessageAt: 'desc' },
     });
+
+    // Fallback: if no conversations found with branch filter, return all business whatsapp conversations
+    if (conversations.length === 0 && branchId) {
+      conversations = await prisma.whatsappConversation.findMany({
+        where: { businessId },
+        include: { contact: true, whatsappAccount: true },
+        orderBy: { lastMessageAt: 'desc' },
+      });
+    }
 
     const conversationIds = conversations.map((c) => c.id);
     const summaries = await prisma.chatSummary.findMany({
@@ -220,7 +232,7 @@ export const WhatsappService = {
       const summary = summaries.find((s) => s.conversationId === c.id);
       return {
         ...c,
-        branchId: c.whatsappAccount?.branchId || null,
+        branchId: c.whatsappAccount?.branchId || singleBranchId || branchId || null,
         chatSummary: summary || null,
       };
     });
