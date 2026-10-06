@@ -86,18 +86,19 @@ export const authFacebookCallback = async (req, res, next) => {
         },
       });
 
-      // Check if connection exists for this page and branch under the SAME business
+      // Check if connection exists for this page under the SAME business
       const connection = await prisma.socialConnection.findFirst({
-        where: { businessId, pageId: page.id, provider: "facebook", branchId: branchId || null },
+        where: { businessId, pageId: page.id, provider: "facebook" },
       });
 
       if (connection) {
-        // Update existing connection
+        // Update existing connection with latest token and branchId
         await prisma.socialConnection.update({
           where: { id: connection.id },
           data: {
             accessToken: page.access_token,
             pageName: page.name,
+            branchId: branchId || connection.branchId || null,
             isActive: true,
           },
         });
@@ -106,13 +107,22 @@ export const authFacebookCallback = async (req, res, next) => {
         await prisma.socialConnection.create({
           data: {
             businessId,
-            branchId,
+            branchId: branchId || null,
             provider: "facebook",
             pageId: page.id,
             pageName: page.name,
             accessToken: page.access_token,
+            isActive: true,
           },
         });
+      }
+
+      // Sync any existing conversations for this business/platform to the branch
+      if (branchId) {
+        await prisma.conversation.updateMany({
+          where: { businessId, platform: "messenger" },
+          data: { branchId },
+        }).catch(() => {});
       }
 
       // Automatically subscribe app to page webhook

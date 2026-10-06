@@ -93,18 +93,19 @@ export const authFacebookCallback = async (req, res, next) => {
           },
         });
 
-        // Check if connection exists for this instagram account and branch under the SAME business
+        // Check if connection exists for this instagram account under the SAME business
         const connection = await prisma.socialConnection.findFirst({
-          where: { businessId, pageId: igAccountId, provider: "instagram", branchId: branchId || null },
+          where: { businessId, pageId: igAccountId, provider: "instagram" },
         });
 
         if (connection) {
-          // Update existing connection
+          // Update existing connection with latest token and branchId
           await prisma.socialConnection.update({
             where: { id: connection.id },
             data: {
               accessToken: page.access_token, // We use the Facebook Page Token to interact with IG Graph API
               pageName: page.name + " (Instagram)",
+              branchId: branchId || connection.branchId || null,
               isActive: true,
             },
           });
@@ -113,13 +114,22 @@ export const authFacebookCallback = async (req, res, next) => {
           await prisma.socialConnection.create({
             data: {
               businessId,
-              branchId,
+              branchId: branchId || null,
               provider: "instagram",
               pageId: igAccountId,
               pageName: page.name + " (Instagram)",
               accessToken: page.access_token,
+              isActive: true,
             },
           });
+        }
+
+        // Sync any existing conversations for this business/platform to the branch
+        if (branchId) {
+          await prisma.conversation.updateMany({
+            where: { businessId, platform: "instagram" },
+            data: { branchId },
+          }).catch(() => {});
         }
         
         connectedInstagramAccounts.push({ id: igAccountId, name: page.name + " (Instagram)" });
