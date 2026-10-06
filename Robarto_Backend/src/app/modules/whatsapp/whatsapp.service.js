@@ -43,8 +43,38 @@ export const WhatsappService = {
   },
 
   connectQrAccount: async (businessId, branchId = null) => {
-    const instanceName = `biz_${businessId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16)}_${Date.now()}`;
+    const cleanBiz = businessId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16);
+    const cleanBranch = branchId ? branchId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8) : "main";
+    const instanceName = `biz_${cleanBiz}_${cleanBranch}`;
     const webhookUrl = envVars.EVOLUTION_WEBHOOK_URL || "http://backend:8001/api/v1/whatsapp/webhook/evolution";
+
+    // Clean up any old dangling/timestamped inactive instances for this business
+    try {
+      const oldAccounts = await prisma.whatsappAccount.findMany({
+        where: {
+          businessId,
+          connectionType: "QR_CODE",
+          instanceName: { not: instanceName },
+          status: "INACTIVE",
+        },
+      });
+
+      for (const oldAcc of oldAccounts) {
+        if (oldAcc.instanceName) {
+          EvolutionAPI.deleteInstance(oldAcc.instanceName).catch(() => {});
+        }
+      }
+      await prisma.whatsappAccount.deleteMany({
+        where: {
+          businessId,
+          connectionType: "QR_CODE",
+          instanceName: { not: instanceName },
+          status: "INACTIVE",
+        },
+      });
+    } catch (cleanErr) {
+      console.warn("[Evolution API] Error cleaning old instances:", cleanErr.message);
+    }
 
     // 1. Create or get instance from Evolution API
     const instanceData = await EvolutionAPI.createInstance(instanceName, webhookUrl);
@@ -72,7 +102,6 @@ export const WhatsappService = {
       update: {
         connectionType: "QR_CODE",
         branchId: branchId || null,
-        status: "INACTIVE",
         qrCode: qrCode || null,
       },
       create: {
@@ -94,18 +123,29 @@ export const WhatsappService = {
   },
 
   getQrCodeStatus: async (businessId, instanceName) => {
-    const account = await prisma.whatsappAccount.findFirst({
-      where: { businessId, instanceName },
-    });
+    let account = null;
+    if (instanceName) {
+      account = await prisma.whatsappAccount.findFirst({
+        where: { businessId, instanceName },
+      });
+    }
+
+    if (!account) {
+      account = await prisma.whatsappAccount.findFirst({
+        where: { businessId, connectionType: "QR_CODE" },
+        orderBy: { updatedAt: "desc" },
+      });
+    }
 
     if (!account) throw new Error("WhatsApp QR instance not found");
 
-    const state = await EvolutionAPI.getConnectionState(instanceName);
+    const targetInstance = account.instanceName || instanceName;
+    const state = await EvolutionAPI.getConnectionState(targetInstance);
 
     let qrCode = account.qrCode;
     if (state !== "open") {
       try {
-        const connectData = await EvolutionAPI.connectInstance(instanceName);
+        const connectData = await EvolutionAPI.connectInstance(targetInstance);
         qrCode = connectData.base64 || connectData.code || qrCode;
         if (qrCode !== account.qrCode) {
           await prisma.whatsappAccount.update({
@@ -127,6 +167,7 @@ export const WhatsappService = {
       connected: state === "open",
       state,
       qrCode: state === "open" ? null : qrCode,
+      instanceName: targetInstance,
     };
   },
 
