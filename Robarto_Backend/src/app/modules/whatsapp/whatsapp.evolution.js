@@ -86,11 +86,32 @@ export const EvolutionAPI = {
     const client = getClient();
     // Normalize phone number (remove +, spaces, non-digits)
     const cleanNumber = to.replace(/\D/g, "");
-    const response = await client.post(`/message/sendText/${instanceName}`, {
-      number: cleanNumber,
-      text,
-    });
-    return response.data;
+    try {
+      const response = await client.post(`/message/sendText/${instanceName}`, {
+        number: cleanNumber,
+        text,
+      });
+      return response.data;
+    } catch (error) {
+      // If instance socket is not in memory or restarting, trigger connect and retry once
+      const errMsg = error.response?.data?.response?.message || error.response?.data?.message || "";
+      if (errMsg.includes("onWhatsApp") || error.response?.status === 500) {
+        console.log(`[EvolutionAPI] Re-triggering connection for "${instanceName}" and retrying send...`);
+        try {
+          await client.get(`/instance/connect/${instanceName}`);
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          const retryRes = await client.post(`/message/sendText/${instanceName}`, {
+            number: cleanNumber,
+            text,
+          });
+          return retryRes.data;
+        } catch (retryErr) {
+          console.error(`[EvolutionAPI] Retry failed for "${instanceName}":`, retryErr.response?.data || retryErr.message);
+          throw retryErr;
+        }
+      }
+      throw error;
+    }
   },
 
   sendMedia: async (instanceName, to, type, mediaUrl, caption = "") => {
@@ -103,13 +124,33 @@ export const EvolutionAPI = {
     else if (type === "video") mediatype = "video";
     else if (type === "audio") mediatype = "audio";
 
-    const response = await client.post(`/message/sendMedia/${instanceName}`, {
-      number: cleanNumber,
-      mediatype,
-      media: mediaUrl,
-      caption: caption || undefined,
-    });
-    return response.data;
+    try {
+      const response = await client.post(`/message/sendMedia/${instanceName}`, {
+        number: cleanNumber,
+        mediatype,
+        media: mediaUrl,
+        caption: caption || undefined,
+      });
+      return response.data;
+    } catch (error) {
+      const errMsg = error.response?.data?.response?.message || error.response?.data?.message || "";
+      if (errMsg.includes("onWhatsApp") || error.response?.status === 500) {
+        try {
+          await client.get(`/instance/connect/${instanceName}`);
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          const retryRes = await client.post(`/message/sendMedia/${instanceName}`, {
+            number: cleanNumber,
+            mediatype,
+            media: mediaUrl,
+            caption: caption || undefined,
+          });
+          return retryRes.data;
+        } catch (retryErr) {
+          throw retryErr;
+        }
+      }
+      throw error;
+    }
   },
 
   deleteInstance: async (instanceName) => {
