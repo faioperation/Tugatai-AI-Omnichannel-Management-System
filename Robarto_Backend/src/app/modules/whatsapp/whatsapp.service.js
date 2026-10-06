@@ -6,11 +6,7 @@ import { NotificationService } from "../notification/notification.service.js";
 
 export const WhatsappService = {
   connectAccount: async (businessId, payload) => {
-    let branchId = payload.branchId || null;
-    if (!branchId) {
-      const branches = await prisma.branch.findMany({ where: { businessId } });
-      if (branches.length > 0) branchId = branches[0].id;
-    }
+    const branchId = payload.branchId || null;
 
     // Clean up any existing connection for this WhatsApp phone number under a DIFFERENT business
     await prisma.whatsappAccount.deleteMany({
@@ -49,11 +45,6 @@ export const WhatsappService = {
   },
 
   connectQrAccount: async (businessId, branchId = null) => {
-    if (!branchId) {
-      const branches = await prisma.branch.findMany({ where: { businessId } });
-      if (branches.length > 0) branchId = branches[0].id;
-    }
-
     const cleanBiz = businessId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16);
     const cleanBranch = branchId ? branchId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8) : "main";
     const instanceName = `biz_${cleanBiz}_${cleanBranch}`;

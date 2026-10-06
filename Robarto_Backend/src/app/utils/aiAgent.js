@@ -52,28 +52,6 @@ export const notifyAiAgent = async ({
           branchId = conv.branchId;
         }
       }
-
-      // If branchId is null, resolve from business branches and persist
-      if (!branchId) {
-        const firstBranch = await prisma.branch.findFirst({ where: { businessId } });
-        if (firstBranch) {
-          branchId = firstBranch.id;
-          if (channel === "whatsapp") {
-            const waConv = await prisma.whatsappConversation.findUnique({ where: { id: conversationId } });
-            if (waConv?.whatsappAccountId) {
-              await prisma.whatsappAccount.update({
-                where: { id: waConv.whatsappAccountId },
-                data: { branchId: firstBranch.id },
-              }).catch(() => {});
-            }
-          } else {
-            await prisma.conversation.update({
-              where: { id: conversationId },
-              data: { branchId: firstBranch.id },
-            }).catch(() => {});
-          }
-        }
-      }
     } catch (e) {
       console.error("[AI Agent] Error resolving branchId or aiReply for conversation:", e);
     }

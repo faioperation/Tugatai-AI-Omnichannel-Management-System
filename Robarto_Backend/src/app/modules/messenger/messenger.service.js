@@ -54,18 +54,7 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
   }
 
   const businessId = connection.businessId;
-  let branchId = connection.branchId;
-
-  if (!branchId) {
-    const branches = await prisma.branch.findMany({ where: { businessId } });
-    if (branches.length === 1) {
-      branchId = branches[0].id;
-      await prisma.socialConnection.update({
-        where: { id: connection.id },
-        data: { branchId },
-      }).catch(() => {});
-    }
-  }
+  const branchId = connection.branchId || null;
 
   // Fetch customerName if conversation doesn't exist or is missing name
   const existingConv = await prisma.conversation.findUnique({
