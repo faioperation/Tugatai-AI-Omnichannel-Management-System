@@ -21,7 +21,7 @@ export const authFacebook = async (req, res, next) => {
     const redirectUri = envVars.INSTAGRAM_REDIRECT_URI;
     const appId = envVars.META_APP_ID;
     // Scopes needed for Instagram Messaging via Facebook Page
-    const permissions = "pages_show_list,pages_messaging,pages_manage_metadata,instagram_manage_messages,business_management";
+    const permissions = "pages_show_list,pages_messaging,pages_manage_metadata,instagram_manage_messages,instagram_basic,business_management";
     
     // Using state to pass businessId and branchId to callback
     const state = JSON.stringify({ businessId, branchId });

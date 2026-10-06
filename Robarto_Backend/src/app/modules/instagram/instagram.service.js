@@ -53,9 +53,26 @@ export const handleIncomingMessage = async (instagramAccountId, webhookEvent) =>
   if (!lastMessageContent) lastMessageContent = "Attachment/Other";
 
   // Find the social connection for this instagram account to identify the business
-  const connection = await prisma.socialConnection.findFirst({
+  let connection = await prisma.socialConnection.findFirst({
     where: { pageId: instagramAccountId, provider: "instagram", isActive: true },
   });
+
+  if (!connection && webhookEvent.recipient?.id) {
+    connection = await prisma.socialConnection.findFirst({
+      where: { pageId: webhookEvent.recipient.id, provider: "instagram", isActive: true },
+    });
+  }
+
+  if (!connection) {
+    const fbConnection = await prisma.socialConnection.findFirst({
+      where: { pageId: instagramAccountId, provider: "facebook", isActive: true },
+    });
+    if (fbConnection) {
+      connection = await prisma.socialConnection.findFirst({
+        where: { businessId: fbConnection.businessId, provider: "instagram", isActive: true },
+      });
+    }
+  }
 
   if (!connection) {
     console.warn(`Received message for unconnected instagram account: ${instagramAccountId}`);
@@ -193,16 +210,30 @@ export const sendMessageToUser = async (businessId, recipientId, messageText, se
     message: { text: messageText },
   };
 
+  let response;
   try {
-    const response = await axios.post(
-      `${getGraphUrl()}/me/messages`,
-      payload,
-      {
-        params: {
-          access_token: connection.accessToken,
-        },
-      }
-    );
+    try {
+      response = await axios.post(
+        `${getGraphUrl()}/me/messages`,
+        payload,
+        {
+          params: {
+            access_token: connection.accessToken,
+          },
+        }
+      );
+    } catch (meError) {
+      console.warn("Instagram /me/messages failed, retrying with pageId endpoint:", meError.response?.data || meError.message);
+      response = await axios.post(
+        `${getGraphUrl()}/${connection.pageId}/messages`,
+        payload,
+        {
+          params: {
+            access_token: connection.accessToken,
+          },
+        }
+      );
+    }
 
     // Save the outgoing message to Prisma
     const conversation = await prisma.conversation.findUnique({
@@ -338,6 +369,18 @@ export const sendMediaMessageToUser = async (businessId, recipientId, type, medi
 };
 
 export const getConversations = async (businessId, branchId) => {
+  if (branchId) {
+    const activeConnection = await prisma.socialConnection.findFirst({
+      where: { businessId, provider: "instagram", branchId, isActive: true },
+    });
+    if (activeConnection) {
+      await prisma.conversation.updateMany({
+        where: { businessId, platform: "instagram", branchId: null },
+        data: { branchId },
+      }).catch(() => {});
+    }
+  }
+
   const whereClause = { businessId, platform: "instagram" };
   if (branchId) {
     whereClause.branchId = branchId;
