@@ -6,6 +6,12 @@ import { NotificationService } from "../notification/notification.service.js";
 
 export const WhatsappService = {
   connectAccount: async (businessId, payload) => {
+    let branchId = payload.branchId || null;
+    if (!branchId) {
+      const branches = await prisma.branch.findMany({ where: { businessId } });
+      if (branches.length > 0) branchId = branches[0].id;
+    }
+
     // Clean up any existing connection for this WhatsApp phone number under a DIFFERENT business
     await prisma.whatsappAccount.deleteMany({
       where: {
@@ -27,11 +33,11 @@ export const WhatsappService = {
         phoneNumber: payload.phoneNumber,
         accessToken: payload.accessToken,
         status: "ACTIVE",
-        branchId: payload.branchId || null,
+        branchId: branchId || null,
       },
       create: {
         businessId,
-        branchId: payload.branchId || null,
+        branchId: branchId || null,
         connectionType: "META_CLOUD_API",
         wabaId: payload.wabaId,
         phoneNumberId: payload.phoneNumberId,
@@ -43,6 +49,11 @@ export const WhatsappService = {
   },
 
   connectQrAccount: async (businessId, branchId = null) => {
+    if (!branchId) {
+      const branches = await prisma.branch.findMany({ where: { businessId } });
+      if (branches.length > 0) branchId = branches[0].id;
+    }
+
     const cleanBiz = businessId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16);
     const cleanBranch = branchId ? branchId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8) : "main";
     const instanceName = `biz_${cleanBiz}_${cleanBranch}`;

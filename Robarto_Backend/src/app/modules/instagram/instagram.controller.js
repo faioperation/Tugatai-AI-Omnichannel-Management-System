@@ -16,7 +16,11 @@ export const authFacebook = async (req, res, next) => {
       throw new AppError(404, "Business not found for this user");
     }
     const businessId = business.id;
-    const branchId = req.query.branchId || null;
+    let branchId = req.query.branchId || null;
+    if (!branchId) {
+      const branches = await prisma.branch.findMany({ where: { businessId } });
+      if (branches.length > 0) branchId = branches[0].id;
+    }
 
     const redirectUri = envVars.INSTAGRAM_REDIRECT_URI;
     const appId = envVars.META_APP_ID;
@@ -54,7 +58,11 @@ export const authFacebookCallback = async (req, res, next) => {
 
     const parsedState = JSON.parse(state);
     const businessId = parsedState.businessId;
-    const branchId = parsedState.branchId || null;
+    let branchId = parsedState.branchId || null;
+    if (!branchId) {
+      const branches = await prisma.branch.findMany({ where: { businessId } });
+      if (branches.length > 0) branchId = branches[0].id;
+    }
     const redirectUri = envVars.INSTAGRAM_REDIRECT_URI;
     const graphVersion = envVars.META_GRAPH_VERSION || "v23.0";
 
