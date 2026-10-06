@@ -48,28 +48,25 @@ export const WhatsappService = {
     const instanceName = `biz_${cleanBiz}_${cleanBranch}`;
     const webhookUrl = envVars.EVOLUTION_WEBHOOK_URL || "http://backend:8001/api/v1/whatsapp/webhook/evolution";
 
-    // Clean up any old dangling/timestamped inactive instances for this business
+    // Clean up all old/timestamped instances for this business in Evolution API and DB
     try {
-      const oldAccounts = await prisma.whatsappAccount.findMany({
-        where: {
-          businessId,
-          connectionType: "QR_CODE",
-          instanceName: { not: instanceName },
-          status: "INACTIVE",
-        },
-      });
-
-      for (const oldAcc of oldAccounts) {
-        if (oldAcc.instanceName) {
-          EvolutionAPI.deleteInstance(oldAcc.instanceName).catch(() => {});
+      const allInstances = await EvolutionAPI.fetchInstances();
+      const prefix = `biz_${cleanBiz}_`;
+      if (Array.isArray(allInstances)) {
+        for (const inst of allInstances) {
+          const name = inst.name || inst.instance?.instanceName || inst.instanceName;
+          if (name && name.startsWith(prefix) && name !== instanceName) {
+            console.log(`[EvolutionAPI] Cleaning up stale instance from Evolution API: ${name}`);
+            await EvolutionAPI.deleteInstance(name).catch(() => {});
+          }
         }
       }
+
       await prisma.whatsappAccount.deleteMany({
         where: {
           businessId,
           connectionType: "QR_CODE",
           instanceName: { not: instanceName },
-          status: "INACTIVE",
         },
       });
     } catch (cleanErr) {
@@ -280,8 +277,32 @@ export const WhatsappService = {
     let metaMsgId = null;
 
     if (account.connectionType === "QR_CODE") {
+      let targetInstance = account.instanceName;
+      let state = await EvolutionAPI.getConnectionState(targetInstance);
+
+      if (state !== "open") {
+        const activeAccounts = await prisma.whatsappAccount.findMany({
+          where: { businessId, connectionType: "QR_CODE" },
+          orderBy: { updatedAt: "desc" },
+        });
+        for (const candidate of activeAccounts) {
+          if (candidate.instanceName && candidate.instanceName !== targetInstance) {
+            const candState = await EvolutionAPI.getConnectionState(candidate.instanceName);
+            if (candState === "open") {
+              targetInstance = candidate.instanceName;
+              account = candidate;
+              await prisma.whatsappConversation.update({
+                where: { id: conversationId },
+                data: { whatsappAccountId: candidate.id },
+              }).catch(() => {});
+              break;
+            }
+          }
+        }
+      }
+
       const evoRes = await EvolutionAPI.sendMessage(
-        account.instanceName,
+        targetInstance,
         contact.phoneNumber,
         messageText
       );
@@ -374,8 +395,32 @@ export const WhatsappService = {
     let metaMsgId = null;
 
     if (account.connectionType === "QR_CODE") {
+      let targetInstance = account.instanceName;
+      let state = await EvolutionAPI.getConnectionState(targetInstance);
+
+      if (state !== "open") {
+        const activeAccounts = await prisma.whatsappAccount.findMany({
+          where: { businessId, connectionType: "QR_CODE" },
+          orderBy: { updatedAt: "desc" },
+        });
+        for (const candidate of activeAccounts) {
+          if (candidate.instanceName && candidate.instanceName !== targetInstance) {
+            const candState = await EvolutionAPI.getConnectionState(candidate.instanceName);
+            if (candState === "open") {
+              targetInstance = candidate.instanceName;
+              account = candidate;
+              await prisma.whatsappConversation.update({
+                where: { id: conversationId },
+                data: { whatsappAccountId: candidate.id },
+              }).catch(() => {});
+              break;
+            }
+          }
+        }
+      }
+
       const evoRes = await EvolutionAPI.sendMedia(
-        account.instanceName,
+        targetInstance,
         contact.phoneNumber,
         type,
         mediaUrl

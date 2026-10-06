@@ -153,6 +153,17 @@ export const EvolutionAPI = {
     }
   },
 
+  fetchInstances: async () => {
+    const client = getClient();
+    try {
+      const response = await client.get("/instance/fetchInstances");
+      return response.data || [];
+    } catch (error) {
+      console.warn("[EvolutionAPI] Failed to fetch instances:", error.message);
+      return [];
+    }
+  },
+
   deleteInstance: async (instanceName) => {
     const client = getClient();
     try {
