@@ -230,12 +230,35 @@ export const handleEvolutionWebhookEvent = async (body) => {
     });
   }
 
-  // Fallback by sender phone if instanceName lookup fails
+  // Fallback 1: Lookup by business prefix if instance has timestamp or branch variation
+  if (!account && instanceName && instanceName.startsWith("biz_")) {
+    const parts = instanceName.split("_");
+    const bizPrefix = parts[1];
+    if (bizPrefix) {
+      account = await prisma.whatsappAccount.findFirst({
+        where: {
+          businessId: { startsWith: bizPrefix },
+          connectionType: "QR_CODE",
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+    }
+  }
+
+  // Fallback 2: by sender phone if instanceName lookup fails
   if (!account && (body.sender || body.data?.wuid)) {
     const rawSender = body.sender || body.data?.wuid;
     const phone = rawSender.replace("@s.whatsapp.net", "").replace(/\D/g, "");
     account = await prisma.whatsappAccount.findFirst({
       where: { phoneNumber: phone, status: "ACTIVE" },
+    });
+  }
+
+  // Fallback 3: any active QR account if single business setup
+  if (!account) {
+    account = await prisma.whatsappAccount.findFirst({
+      where: { connectionType: "QR_CODE", status: "ACTIVE" },
+      orderBy: { updatedAt: "desc" },
     });
   }
 

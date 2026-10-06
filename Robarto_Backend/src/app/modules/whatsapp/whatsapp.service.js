@@ -199,7 +199,10 @@ export const WhatsappService = {
   getConversations: async (businessId, branchId) => {
     const whereClause = { businessId };
     if (branchId) {
-      whereClause.whatsappAccount = { branchId };
+      whereClause.OR = [
+        { whatsappAccount: { branchId } },
+        { whatsappAccount: { branchId: null } },
+      ];
     }
 
     const conversations = await prisma.whatsappConversation.findMany({
