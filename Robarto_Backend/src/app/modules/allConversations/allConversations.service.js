@@ -2,6 +2,24 @@ import prisma from "../../prisma/client.js";
 
 export const AllConversationsService = {
   getAllConversations: async (businessId, branchId) => {
+    // If branchId is passed, sync any orphaned null-branch conversations & connections
+    if (branchId) {
+      await prisma.conversation.updateMany({
+        where: { businessId, branchId: null },
+        data: { branchId },
+      }).catch(() => {});
+
+      await prisma.socialConnection.updateMany({
+        where: { businessId, branchId: null },
+        data: { branchId },
+      }).catch(() => {});
+
+      await prisma.whatsappAccount.updateMany({
+        where: { businessId, branchId: null },
+        data: { branchId },
+      }).catch(() => {});
+    }
+
     // 1. Fetch Messenger & Instagram Conversations
     const convWhereClause = { businessId };
     if (branchId) {
@@ -55,7 +73,7 @@ export const AllConversationsService = {
       return {
         id: c.id,
         businessId: c.businessId,
-        branchId: c.branchId || effectiveBranchId || null,
+        branchId: c.branchId || branchId || null,
         platform: c.platform, // 'messenger' or 'instagram'
         customerId: c.customerId,
         customerName: c.customerName || "Social Customer",

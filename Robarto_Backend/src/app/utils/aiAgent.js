@@ -52,6 +52,49 @@ export const notifyAiAgent = async ({
           branchId = conv.branchId;
         }
       }
+
+      // If branchId is null, resolve from active connection or branch and persist
+      if (!branchId) {
+        if (channel === "messenger" || channel === "instagram") {
+          const conn = await prisma.socialConnection.findFirst({
+            where: { businessId, provider: channel === "messenger" ? "facebook" : "instagram", isActive: true },
+            orderBy: { updatedAt: "desc" },
+          });
+          if (conn?.branchId) {
+            branchId = conn.branchId;
+          }
+        } else if (channel === "whatsapp") {
+          const acc = await prisma.whatsappAccount.findFirst({
+            where: { businessId, status: "ACTIVE" },
+            orderBy: { updatedAt: "desc" },
+          });
+          if (acc?.branchId) {
+            branchId = acc.branchId;
+          }
+        }
+
+        if (!branchId) {
+          const br = await prisma.branch.findFirst({ where: { businessId } });
+          if (br) branchId = br.id;
+        }
+
+        if (branchId) {
+          if (channel === "whatsapp") {
+            const waConv = await prisma.whatsappConversation.findUnique({ where: { id: conversationId } });
+            if (waConv?.whatsappAccountId) {
+              await prisma.whatsappAccount.update({
+                where: { id: waConv.whatsappAccountId },
+                data: { branchId },
+              }).catch(() => {});
+            }
+          } else {
+            await prisma.conversation.update({
+              where: { id: conversationId },
+              data: { branchId },
+            }).catch(() => {});
+          }
+        }
+      }
     } catch (e) {
       console.error("[AI Agent] Error resolving branchId or aiReply for conversation:", e);
     }

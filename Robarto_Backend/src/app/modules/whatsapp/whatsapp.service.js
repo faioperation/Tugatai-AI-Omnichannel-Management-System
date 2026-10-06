@@ -199,6 +199,13 @@ export const WhatsappService = {
   },
 
   getConversations: async (businessId, branchId) => {
+    if (branchId) {
+      await prisma.whatsappAccount.updateMany({
+        where: { businessId, branchId: null },
+        data: { branchId },
+      }).catch(() => {});
+    }
+
     const whereClause = { businessId };
     if (branchId) {
       whereClause.whatsappAccount = { branchId };

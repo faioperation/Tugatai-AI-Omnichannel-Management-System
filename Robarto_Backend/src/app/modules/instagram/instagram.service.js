@@ -80,7 +80,7 @@ export const handleIncomingMessage = async (instagramAccountId, webhookEvent) =>
   }
 
   const businessId = connection.businessId;
-  const branchId = connection.branchId || null;
+  let branchId = connection.branchId || null;
 
   // Fetch customerName if conversation doesn't exist or is missing name
   const existingConv = await prisma.conversation.findUnique({
@@ -92,6 +92,26 @@ export const handleIncomingMessage = async (instagramAccountId, webhookEvent) =>
       },
     },
   });
+
+  if (!branchId) {
+    if (existingConv?.branchId) {
+      branchId = existingConv.branchId;
+    } else {
+      const firstBranch = await prisma.branch.findFirst({
+        where: { businessId },
+        orderBy: { createdAt: "asc" },
+      });
+      if (firstBranch) {
+        branchId = firstBranch.id;
+      }
+    }
+    if (branchId) {
+      await prisma.socialConnection.update({
+        where: { id: connection.id },
+        data: { branchId },
+      }).catch(() => {});
+    }
+  }
 
   if (!existingConv) {
     const limitReached = await isConversationLimitReached(businessId);
@@ -370,15 +390,15 @@ export const sendMediaMessageToUser = async (businessId, recipientId, type, medi
 
 export const getConversations = async (businessId, branchId) => {
   if (branchId) {
-    const activeConnection = await prisma.socialConnection.findFirst({
-      where: { businessId, provider: "instagram", branchId, isActive: true },
-    });
-    if (activeConnection) {
-      await prisma.conversation.updateMany({
-        where: { businessId, platform: "instagram", branchId: null },
-        data: { branchId },
-      }).catch(() => {});
-    }
+    await prisma.conversation.updateMany({
+      where: { businessId, platform: "instagram", branchId: null },
+      data: { branchId },
+    }).catch(() => {});
+
+    await prisma.socialConnection.updateMany({
+      where: { businessId, provider: "instagram", branchId: null },
+      data: { branchId },
+    }).catch(() => {});
   }
 
   const whereClause = { businessId, platform: "instagram" };
