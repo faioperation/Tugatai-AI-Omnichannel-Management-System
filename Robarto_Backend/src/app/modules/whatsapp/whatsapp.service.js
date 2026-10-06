@@ -207,7 +207,7 @@ export const WhatsappService = {
 
     const conversations = await prisma.whatsappConversation.findMany({
       where: whereClause,
-      include: { contact: true },
+      include: { contact: true, whatsappAccount: true },
       orderBy: { lastMessageAt: 'desc' },
     });
 
@@ -220,6 +220,7 @@ export const WhatsappService = {
       const summary = summaries.find((s) => s.conversationId === c.id);
       return {
         ...c,
+        branchId: c.whatsappAccount?.branchId || null,
         chatSummary: summary || null,
       };
     });

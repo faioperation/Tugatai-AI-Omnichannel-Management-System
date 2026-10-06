@@ -55,7 +55,7 @@ export const WhatsappController = {
       const { businessId, branchId: userBranchId, isOwner } = await getBusinessAndBranchForUser(req.user);
       if (!businessId) return res.status(404).json({ success: false, message: "Business not found for this user" });
 
-      const branchId = isOwner ? (req.body.branchId || null) : userBranchId;
+      const branchId = isOwner ? (req.body.branchId || req.query.branchId || null) : userBranchId;
       const data = await WhatsappService.connectQrAccount(businessId, branchId);
       res.json({ success: true, data });
     } catch (error) {

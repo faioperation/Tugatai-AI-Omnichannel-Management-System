@@ -336,6 +336,18 @@ export const sendMediaMessageToUser = async (businessId, recipientId, type, medi
 };
 
 export const getConversations = async (businessId, branchId) => {
+  // If active connection has a branchId, sync any null branch conversations for this business
+  const activeConnection = await prisma.socialConnection.findFirst({
+    where: { businessId, provider: "facebook", isActive: true },
+  });
+
+  if (activeConnection?.branchId) {
+    await prisma.conversation.updateMany({
+      where: { businessId, platform: "messenger", branchId: null },
+      data: { branchId: activeConnection.branchId },
+    }).catch(() => {});
+  }
+
   const whereClause = { businessId, platform: "messenger" };
   if (branchId) {
     whereClause.OR = [
