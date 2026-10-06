@@ -194,7 +194,7 @@ export const getPageTokens = async (userAccessToken) => {
   return pages;
 };
 
-export const subscribeAppToPage = async (pageId, pageAccessToken) => {
+export const subscribeAppToPage = async (pageId, pageAccessToken, igAccountId = null) => {
   try {
     // Subscribe the app to the page's webhook events
     const response = await axios.post(
@@ -203,14 +203,30 @@ export const subscribeAppToPage = async (pageId, pageAccessToken) => {
       {
         params: {
           access_token: pageAccessToken,
-          subscribed_fields: "messages,messaging_postbacks,messaging_optins",
+          subscribed_fields: "messages,messaging_postbacks,messaging_optins,standby",
         },
       }
     );
     console.log(`✅ [Instagram] Successfully subscribed app to page ${pageId}:`, response.data);
-    return response.data;
   } catch (error) {
     console.error(`❌ [Instagram] Error subscribing app to page ${pageId}:`, error.response?.data || error.message);
-    return null;
+  }
+
+  if (igAccountId) {
+    try {
+      const igSubRes = await axios.post(
+        `${getGraphUrl()}/${igAccountId}/subscribed_apps`,
+        null,
+        {
+          params: {
+            access_token: pageAccessToken,
+            subscribed_fields: "messages,messaging_postbacks,messaging_optins",
+          },
+        }
+      );
+      console.log(`✅ [Instagram] Successfully subscribed app to Instagram Account ${igAccountId}:`, igSubRes.data);
+    } catch (igSubErr) {
+      console.warn(`⚠️ [Instagram] Note on subscribing direct igAccountId ${igAccountId}:`, igSubErr.response?.data?.error?.message || igSubErr.message);
+    }
   }
 };

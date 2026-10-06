@@ -134,8 +134,8 @@ export const authFacebookCallback = async (req, res, next) => {
         
         connectedInstagramAccounts.push({ id: igAccountId, name: page.name + " (Instagram)" });
 
-        // Automatically subscribe app to page webhook (which handles IG webhooks)
-        await subscribeAppToPage(page.id, page.access_token);
+        // Automatically subscribe app to page and instagram webhooks
+        await subscribeAppToPage(page.id, page.access_token, igAccountId);
       }
     }
 
