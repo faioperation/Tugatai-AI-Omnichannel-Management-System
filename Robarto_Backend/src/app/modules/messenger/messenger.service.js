@@ -338,7 +338,10 @@ export const sendMediaMessageToUser = async (businessId, recipientId, type, medi
 export const getConversations = async (businessId, branchId) => {
   const whereClause = { businessId, platform: "messenger" };
   if (branchId) {
-    whereClause.branchId = branchId;
+    whereClause.OR = [
+      { branchId: branchId },
+      { branchId: null },
+    ];
   }
 
   const conversations = await prisma.conversation.findMany({

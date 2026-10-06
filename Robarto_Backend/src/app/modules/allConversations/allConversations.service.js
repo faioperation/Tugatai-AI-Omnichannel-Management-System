@@ -5,7 +5,10 @@ export const AllConversationsService = {
     // 1. Fetch Messenger & Instagram Conversations
     const convWhereClause = { businessId };
     if (branchId) {
-      convWhereClause.branchId = branchId;
+      convWhereClause.OR = [
+        { branchId },
+        { branchId: null },
+      ];
     }
 
     const standardConversations = await prisma.conversation.findMany({
@@ -16,7 +19,10 @@ export const AllConversationsService = {
     // 2. Fetch WhatsApp Conversations
     const waWhereClause = { businessId };
     if (branchId) {
-      waWhereClause.whatsappAccount = { branchId };
+      waWhereClause.OR = [
+        { whatsappAccount: { branchId } },
+        { whatsappAccount: { branchId: null } },
+      ];
     }
 
     const whatsappConversations = await prisma.whatsappConversation.findMany({
