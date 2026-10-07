@@ -11,9 +11,9 @@ def _booking_candidates():
     return build_candidates(
         bases=[ROBERTO_API_BASE, ROBERTO_API_BASE_PUBLIC],
         suffixes=[
-            "/bookings/create",
             "/public/bookings/create",
             "/v1/public/bookings/create",
+            "/bookings/create",
         ],
     )
 
