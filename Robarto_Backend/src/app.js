@@ -161,8 +161,10 @@ app.use("/api/v1", WhatsappRoutes);
 
 // Routes
 app.use("/api", router);
-app.use("/uploads", uploadAuthMiddleware, express.static(uploadsPath));
-app.use("/api/uploads", uploadAuthMiddleware, express.static(uploadsPath));
+
+// Public static files
+app.use("/uploads", express.static(uploadsPath));
+app.use("/api/uploads", express.static(uploadsPath));
 
 // Health check (Liveness / Readiness)
 app.get("/health", (req, res) => {
