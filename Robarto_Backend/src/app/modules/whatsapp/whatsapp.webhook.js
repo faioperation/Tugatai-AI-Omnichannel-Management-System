@@ -181,7 +181,8 @@ const processIncomingMessages = async (value) => {
       if (type === "text") {
         aiMessage = text || "";
       } else if (type === "location" && location) {
-        aiMessage = `[Location: latitude ${location.latitude}, longitude ${location.longitude}]`;
+        const mapsUrl = `https://www.google.com/maps?q=${location.latitude},${location.longitude}`;
+        aiMessage = `[Location: ${mapsUrl}] Google Maps link: ${mapsUrl}`;
       } else if (mediaUrl) {
         const urlToSend = localMediaUrl || `${envVars.BACKEND_URL}/v1/whatsapp/media/${mediaUrl}`;
         aiMessage = `[Media ${type}: ${urlToSend}]`;
@@ -342,6 +343,7 @@ export const handleEvolutionWebhookEvent = async (body) => {
       let type = "text";
       let mediaUrl = null;
       let localMediaUrl = null;
+      let location = null;
 
       const rawMsg = item.message || {};
       if (rawMsg.conversation) {
@@ -366,6 +368,22 @@ export const handleEvolutionWebhookEvent = async (body) => {
       } else if (rawMsg.stickerMessage) {
         type = "sticker";
         mediaUrl = rawMsg.stickerMessage.url || null;
+      } else if (rawMsg.locationMessage) {
+        type = "location";
+        const lat = rawMsg.locationMessage.degreesLatitude;
+        const lng = rawMsg.locationMessage.degreesLongitude;
+        const name = rawMsg.locationMessage.name || "";
+        const address = rawMsg.locationMessage.address || "";
+        const mapsUrl = rawMsg.locationMessage.url || `https://www.google.com/maps?q=${lat},${lng}`;
+        location = { latitude: lat, longitude: lng, name, address, url: mapsUrl };
+        text = mapsUrl;
+      } else if (rawMsg.liveLocationMessage) {
+        type = "location";
+        const lat = rawMsg.liveLocationMessage.degreesLatitude;
+        const lng = rawMsg.liveLocationMessage.degreesLongitude;
+        const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+        location = { latitude: lat, longitude: lng, url: mapsUrl };
+        text = mapsUrl;
       }
 
       if (["image", "video", "audio", "document", "sticker"].includes(type)) {
@@ -407,7 +425,7 @@ export const handleEvolutionWebhookEvent = async (body) => {
       }
 
       const resolvedMediaUrl = localMediaUrl || mediaUrl || null;
-      if (!text && !resolvedMediaUrl) continue;
+      if (!text && !resolvedMediaUrl && !location) continue;
 
       // Check conversation limit
       const existingContact = await prisma.whatsappContact.findUnique({
@@ -505,6 +523,7 @@ export const handleEvolutionWebhookEvent = async (body) => {
           type,
           text,
           mediaUrl: resolvedMediaUrl,
+          location,
           rawPayload: cleanRawPayload,
           status: "DELIVERED",
         },
@@ -516,7 +535,7 @@ export const handleEvolutionWebhookEvent = async (body) => {
         data: { lastMessageId: msgId },
       });
 
-      console.log(`[Evolution Webhook] Saved incoming WhatsApp message from ${phoneNumber}: "${text}"`);
+      console.log(`[Evolution Webhook] Saved incoming WhatsApp message from ${phoneNumber}: "${text || type}"`);
 
       // Send notifications
       NotificationService.shouldSendMessageNotification(conversation.id, "whatsapp").then((shouldNotify) => {
@@ -532,13 +551,26 @@ export const handleEvolutionWebhookEvent = async (body) => {
         }
       }).catch(err => console.error("Error checking throttling:", err));
 
+      // Construct AI message payload with full media URL and Google Maps location URL
+      let aiMessage = "";
+      if (type === "text") {
+        aiMessage = text || "";
+      } else if (type === "location" && location) {
+        const mapsUrl = location.url || `https://www.google.com/maps?q=${location.latitude},${location.longitude}`;
+        aiMessage = `[Location: ${mapsUrl}] Google Maps link: ${mapsUrl}`;
+      } else if (resolvedMediaUrl) {
+        aiMessage = `[Media ${type}: ${resolvedMediaUrl}]`;
+      } else {
+        aiMessage = text || `[Media ${type}]`;
+      }
+
       // Notify AI Agent
       notifyAiAgent({
         businessId,
         recipientId: waUserId,
         conversationId: conversation.id,
         channel: "whatsapp",
-        message: text || `[Media ${type}]`,
+        message: aiMessage,
       });
     }
   }
