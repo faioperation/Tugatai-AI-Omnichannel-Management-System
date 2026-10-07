@@ -487,7 +487,7 @@ export const syncInstagramConversationsFromMeta = async (businessId, branchId = 
       params: {
         access_token: connection.accessToken,
         platform: "instagram",
-        fields: "id,updated_time,participants,messages{id,message,from,created_time}",
+        fields: "id,updated_time,participants,messages{id,message,from,created_time,attachments{id,image_data,video_data,file_url,mime_type,name,payload},shares,story_share}",
       },
     });
 
@@ -515,6 +515,12 @@ export const syncInstagramConversationsFromMeta = async (businessId, branchId = 
       const messagesList = metaConv.messages?.data || [];
       const latestMsg = messagesList[0];
 
+      let latestContent = latestMsg?.message;
+      if (!latestContent && latestMsg) {
+        const { hasMedia, mediaType } = extractMediaInfo(latestMsg);
+        latestContent = hasMedia ? `[Media: ${mediaType || "image"}]` : "Message on Instagram";
+      }
+
       if (!conversation) {
         conversation = await prisma.conversation.create({
           data: {
@@ -523,7 +529,7 @@ export const syncInstagramConversationsFromMeta = async (businessId, branchId = 
             platform: "instagram",
             customerId,
             customerName,
-            lastMessage: latestMsg?.message || "Message on Instagram",
+            lastMessage: latestContent || "Message on Instagram",
             lastMessageAt: latestMsg ? new Date(latestMsg.created_time) : new Date(),
             seen: false,
           },
@@ -546,10 +552,40 @@ export const syncInstagramConversationsFromMeta = async (businessId, branchId = 
           },
         });
 
+        let { mediaUrl, mediaType, hasMedia } = extractMediaInfo(msg);
+
+        // If no media in list payload and text is empty, query message endpoint
+        if (!mediaUrl && !msg.message && platformMessageId) {
+          const fetched = await fetchMediaFromMetaGraph(platformMessageId, connection.accessToken);
+          if (fetched && fetched.hasMedia) {
+            mediaUrl = fetched.mediaUrl;
+            mediaType = fetched.mediaType;
+            hasMedia = true;
+          }
+        }
+
+        let localMediaUrl = null;
+        if (mediaUrl && (!exists || !exists.mediaUrl)) {
+          try {
+            const downloadRes = await downloadAndSaveMedia(mediaUrl, "instagram", "ig", {
+              Authorization: `Bearer ${connection.accessToken}`,
+            });
+            if (downloadRes.success) {
+              localMediaUrl = downloadRes.publicUrl;
+            }
+          } catch (downloadErr) {
+            console.error("[Instagram Sync] Error downloading media:", downloadErr.message);
+          }
+        }
+
+        const resolvedMediaUrl = localMediaUrl || mediaUrl || null;
+        const isMediaType = hasMedia || !!resolvedMediaUrl;
+        const finalType = isMediaType ? (mediaType || "image") : "text";
+
         if (!exists) {
           const isCustomer = msg.from?.id === customerId;
           const senderType = isCustomer ? "customer" : "business";
-          const messageText = msg.message || "";
+          const messageText = msg.message || (isMediaType ? "" : "");
 
           await prisma.message.create({
             data: {
@@ -558,7 +594,8 @@ export const syncInstagramConversationsFromMeta = async (businessId, branchId = 
               senderId: msg.from?.id || customerId,
               messageText,
               platformMessageId,
-              type: "text",
+              type: finalType,
+              mediaUrl: resolvedMediaUrl,
               createdAt: new Date(msg.created_time),
             },
           });
@@ -566,22 +603,37 @@ export const syncInstagramConversationsFromMeta = async (businessId, branchId = 
           await prisma.conversation.update({
             where: { id: conversation.id },
             data: {
-              lastMessage: messageText,
+              lastMessage: messageText || (isMediaType ? `[Media: ${finalType}]` : "Message on Instagram"),
               lastMessageAt: new Date(msg.created_time),
             },
           });
 
           // Trigger AI Agent reply if incoming customer message is recent
           const msgAgeMs = Date.now() - new Date(msg.created_time).getTime();
-          if (isCustomer && msgAgeMs < 300000 && messageText) {
-            notifyAiAgent({
-              businessId,
-              recipientId: customerId,
-              conversationId: conversation.id,
-              channel: "instagram",
-              message: messageText,
-            });
+          if (isCustomer && msgAgeMs < 300000) {
+            let aiMessage = messageText || "";
+            if (!aiMessage && isMediaType) {
+              aiMessage = `[Media ${finalType}: ${resolvedMediaUrl || ""}]`;
+            }
+            if (aiMessage) {
+              notifyAiAgent({
+                businessId,
+                recipientId: customerId,
+                conversationId: conversation.id,
+                channel: "instagram",
+                message: aiMessage,
+              });
+            }
           }
+        } else if ((!exists.mediaUrl || exists.type === "text") && isMediaType) {
+          // Fix previously saved broken records
+          await prisma.message.update({
+            where: { id: exists.id },
+            data: {
+              type: finalType,
+              mediaUrl: resolvedMediaUrl || exists.mediaUrl,
+            },
+          });
         }
       }
     }
