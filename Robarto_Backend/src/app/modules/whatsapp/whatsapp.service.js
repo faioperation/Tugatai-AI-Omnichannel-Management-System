@@ -3,6 +3,7 @@ import { MetaGraphAPI } from "./whatsapp.meta.js";
 import { EvolutionAPI } from "./whatsapp.evolution.js";
 import { envVars } from "../../config/env.js";
 import { NotificationService } from "../notification/notification.service.js";
+import { saveBase64Media } from "../../utils/mediaDownloader.js";
 
 export const WhatsappService = {
   connectAccount: async (businessId, payload) => {
@@ -238,16 +239,53 @@ export const WhatsappService = {
       orderBy: { createdAt: "asc" },
     });
 
-    return messages.map(msg => {
+    const updatedMessages = [];
+    for (const msg of messages) {
+      // If mediaUrl is still an encrypted mmg.whatsapp.net URL, fetch decrypted base64 and save locally
+      if (
+        msg.mediaUrl &&
+        msg.mediaUrl.includes("mmg.whatsapp.net") &&
+        msg.rawPayload &&
+        msg.rawPayload.key
+      ) {
+        try {
+          const account = await prisma.whatsappAccount.findUnique({
+            where: { id: msg.whatsappAccountId },
+          });
+          if (account && account.instanceName) {
+            const mediaRes = await EvolutionAPI.getBase64FromMediaMessage(account.instanceName, msg.rawPayload.key);
+            if (mediaRes && mediaRes.base64) {
+              const mime = mediaRes.mimetype || "image/jpeg";
+              const saveRes = saveBase64Media(mediaRes.base64, mime, "whatsapp", "wa");
+              if (saveRes.success) {
+                msg.mediaUrl = saveRes.publicUrl;
+                await prisma.whatsappMessage.update({
+                  where: { id: msg.id },
+                  data: { mediaUrl: saveRes.publicUrl },
+                });
+              }
+            }
+          }
+        } catch (e) {
+          // ignore transient error
+        }
+      }
+
       if (
         msg.mediaUrl && 
         !msg.mediaUrl.startsWith("http://") && 
         !msg.mediaUrl.startsWith("https://")
       ) {
-        msg.mediaUrl = `${envVars.BACKEND_URL}/v1/whatsapp/media/${msg.mediaUrl}`;
+        if (msg.mediaUrl.startsWith("uploads/")) {
+          msg.mediaUrl = `${envVars.BACKEND_URL}/${msg.mediaUrl}`;
+        } else {
+          msg.mediaUrl = `${envVars.BACKEND_URL}/v1/whatsapp/media/${msg.mediaUrl}`;
+        }
       }
-      return msg;
-    });
+      updatedMessages.push(msg);
+    }
+
+    return updatedMessages;
   },
 
   sendTextMessage: async (businessId, conversationId, messageText, continueAi = undefined) => {

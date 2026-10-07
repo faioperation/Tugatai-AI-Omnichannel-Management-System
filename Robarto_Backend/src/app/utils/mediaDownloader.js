@@ -85,3 +85,54 @@ export const downloadAndSaveMedia = async (url, folderName, prefix, headers = {}
     };
   }
 };
+
+export const saveBase64Media = (base64Data, mimeType, folderName, prefix) => {
+  try {
+    if (!base64Data) return { success: false, error: "Empty base64 data" };
+
+    let cleanBase64 = base64Data;
+    let detectedMime = mimeType;
+
+    if (typeof base64Data === "string" && base64Data.startsWith("data:")) {
+      const parts = base64Data.split(",");
+      const mimeMatch = parts[0].match(/:(.*?);/);
+      if (mimeMatch) {
+        detectedMime = mimeMatch[1];
+      }
+      cleanBase64 = parts[1];
+    }
+
+    const buffer = Buffer.from(cleanBase64, "base64");
+    const ext = getExtensionFromMimeType(detectedMime) || ".jpg";
+
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const filename = `${prefix}-${uniqueSuffix}${ext}`;
+
+    const uploadPath = path.join("uploads", folderName);
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+
+    const filePath = path.join(uploadPath, filename);
+    fs.writeFileSync(filePath, buffer);
+
+    let backendUrl = envVars.BACKEND_URL || "";
+    if (backendUrl.endsWith("/")) {
+      backendUrl = backendUrl.slice(0, -1);
+    }
+    const publicUrl = `${backendUrl}/uploads/${folderName}/${filename}`;
+
+    return {
+      success: true,
+      filename,
+      filePath,
+      publicUrl,
+    };
+  } catch (error) {
+    console.error(`[mediaDownloader] Error saving base64 media:`, error.message);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};

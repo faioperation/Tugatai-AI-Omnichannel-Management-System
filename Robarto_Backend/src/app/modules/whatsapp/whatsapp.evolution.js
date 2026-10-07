@@ -185,4 +185,20 @@ export const EvolutionAPI = {
       return null;
     }
   },
+
+  getBase64FromMediaMessage: async (instanceName, messageKey, convertToMp4 = false) => {
+    const client = getClient();
+    try {
+      const response = await client.post(`/chat/getBase64FromMediaMessage/${instanceName}`, {
+        message: {
+          key: messageKey,
+        },
+        convertToMp4,
+      });
+      return response.data; // { base64: "...", mimetype: "..." }
+    } catch (error) {
+      console.warn(`[EvolutionAPI] Failed to get base64 media for ${instanceName}:`, error.response?.data || error.message);
+      return null;
+    }
+  },
 };

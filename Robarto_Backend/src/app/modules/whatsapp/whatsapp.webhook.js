@@ -4,7 +4,8 @@ import { NotificationService } from "../notification/notification.service.js";
 import { isConversationLimitReached } from "../../utils/limitChecker.js";
 import { envVars } from "../../config/env.js";
 import { MetaGraphAPI } from "./whatsapp.meta.js";
-import { downloadAndSaveMedia } from "../../utils/mediaDownloader.js";
+import { EvolutionAPI } from "./whatsapp.evolution.js";
+import { downloadAndSaveMedia, saveBase64Media } from "../../utils/mediaDownloader.js";
 
 export const handleWebhookEvent = async (body) => {
   if (body.object === "whatsapp_business_account") {
@@ -340,6 +341,7 @@ export const handleEvolutionWebhookEvent = async (body) => {
       let text = null;
       let type = "text";
       let mediaUrl = null;
+      let localMediaUrl = null;
 
       const rawMsg = item.message || {};
       if (rawMsg.conversation) {
@@ -361,9 +363,51 @@ export const handleEvolutionWebhookEvent = async (body) => {
         type = "document";
         text = rawMsg.documentMessage.fileName || "document";
         mediaUrl = rawMsg.documentMessage.url || null;
+      } else if (rawMsg.stickerMessage) {
+        type = "sticker";
+        mediaUrl = rawMsg.stickerMessage.url || null;
       }
 
-      if (!text && !mediaUrl) continue;
+      if (["image", "video", "audio", "document", "sticker"].includes(type)) {
+        // 1. Check if Evolution API passed base64 directly in item
+        if (item.base64 || rawMsg.imageMessage?.jpegThumbnail) {
+          const directBase64 = item.base64 || rawMsg.imageMessage?.jpegThumbnail;
+          const mime = rawMsg.imageMessage?.mimetype || "image/jpeg";
+          const saveRes = saveBase64Media(directBase64, mime, "whatsapp", "wa");
+          if (saveRes.success) {
+            localMediaUrl = saveRes.publicUrl;
+          }
+        }
+
+        // 2. Fetch decrypted media base64 from Evolution API instance
+        if (!localMediaUrl && account.instanceName) {
+          try {
+            const mediaRes = await EvolutionAPI.getBase64FromMediaMessage(account.instanceName, key);
+            if (mediaRes && mediaRes.base64) {
+              const mime = mediaRes.mimetype || rawMsg.imageMessage?.mimetype || "image/jpeg";
+              const saveRes = saveBase64Media(mediaRes.base64, mime, "whatsapp", "wa");
+              if (saveRes.success) {
+                localMediaUrl = saveRes.publicUrl;
+              }
+            }
+          } catch (mediaErr) {
+            console.error("[Evolution Webhook] Error fetching decrypted media base64:", mediaErr.message);
+          }
+        }
+
+        // 3. Fallback: try download if standard HTTP link
+        if (!localMediaUrl && mediaUrl && (mediaUrl.startsWith("http://") || mediaUrl.startsWith("https://"))) {
+          try {
+            const dlRes = await downloadAndSaveMedia(mediaUrl, "whatsapp", "wa");
+            if (dlRes.success) {
+              localMediaUrl = dlRes.publicUrl;
+            }
+          } catch (dlErr) {}
+        }
+      }
+
+      const resolvedMediaUrl = localMediaUrl || mediaUrl || null;
+      if (!text && !resolvedMediaUrl) continue;
 
       // Check conversation limit
       const existingContact = await prisma.whatsappContact.findUnique({
@@ -442,7 +486,7 @@ export const handleEvolutionWebhookEvent = async (body) => {
           direction: "INCOMING",
           type,
           text,
-          mediaUrl,
+          mediaUrl: resolvedMediaUrl,
           rawPayload: item,
           status: "DELIVERED",
         },
