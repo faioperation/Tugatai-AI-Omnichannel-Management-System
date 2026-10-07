@@ -291,6 +291,9 @@ WHEN THE CUSTOMER SHARES A GOOGLE MAPS LINK OR LOCATION — STRICT RULES:
        but still need deliveryLocationUrl, or vice versa), ask for the other one.
      * If all required details are gathered, proceed to lead collection or booking
        confirmation.
+- Both pickupLocationUrl and deliveryLocationUrl MUST be actual URLs (starting with http:// or https://).
+  NEVER use placeholder phrases like "The link you shared", "Provided earlier", or "Maps link".
+  If the customer refers to a link (e.g. "The link I shared earlier") but the actual URL is not present in the current message or conversation history, politely ask them to re-share or paste the Google Maps link.
 """
 
     # ── Universal workflow ────────────────────────────────────────────
