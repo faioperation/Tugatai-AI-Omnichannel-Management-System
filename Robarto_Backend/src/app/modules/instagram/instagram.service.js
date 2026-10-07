@@ -39,19 +39,65 @@ const getInstagramUserProfile = async (igsid, pageAccessToken) => {
   }
 };
 
+const extractMediaInfo = (messageObj) => {
+  if (!messageObj) return { mediaUrl: null, mediaType: null, hasMedia: false };
+
+  // 1. message.attachments (Array or Graph API { data: [...] })
+  const atts = Array.isArray(messageObj.attachments)
+    ? messageObj.attachments
+    : (messageObj.attachments?.data || (messageObj.attachment ? [messageObj.attachment] : null));
+
+  if (atts && atts.length > 0) {
+    const first = atts[0];
+    const url = first.payload?.url || first.image_data?.url || first.video_data?.url || first.file_url || first.url || null;
+    const type = first.type || (first.image_data ? "image" : (first.video_data ? "video" : "media"));
+    return { mediaUrl: url, mediaType: type, hasMedia: true };
+  }
+
+  // 2. Direct media object
+  if (messageObj.media) {
+    const url = typeof messageObj.media === "string" ? messageObj.media : (messageObj.media.url || messageObj.media.link);
+    const type = messageObj.media.type || "image";
+    return { mediaUrl: url, mediaType: type, hasMedia: true };
+  }
+
+  // 3. shares / story_share
+  const shares = Array.isArray(messageObj.shares) ? messageObj.shares : (messageObj.shares?.data || null);
+  if (shares && shares.length > 0) {
+    const share = shares[0];
+    const url = share.link || share.url || null;
+    return { mediaUrl: url, mediaType: "image", hasMedia: true };
+  }
+
+  if (messageObj.story_share) {
+    const url = messageObj.story_share.link || messageObj.story_share.url || null;
+    return { mediaUrl: url, mediaType: "image", hasMedia: true };
+  }
+
+  return { mediaUrl: null, mediaType: null, hasMedia: false };
+};
+
+const fetchMediaFromMetaGraph = async (mid, accessToken) => {
+  if (!mid || !accessToken) return null;
+  try {
+    const res = await axios.get(`${getGraphUrl()}/${mid}`, {
+      params: {
+        fields: "id,message,attachments,shares,story_share",
+        access_token: accessToken,
+      },
+      timeout: 8000,
+    });
+    return extractMediaInfo(res.data);
+  } catch (err) {
+    return null;
+  }
+};
+
 export const handleIncomingMessage = async (instagramAccountId, webhookEvent) => {
   const senderId = webhookEvent.sender.id;
-  const messageText = webhookEvent.message?.text;
-  const platformMessageId = webhookEvent.message?.mid;
+  const messageText = webhookEvent.message?.text || null;
+  const platformMessageId = webhookEvent.message?.mid || null;
   
-  // Could be an image or other attachment
-  const attachments = webhookEvent.message?.attachments;
-  let lastMessageContent = messageText;
-  if (!lastMessageContent && attachments && attachments.length > 0) {
-      lastMessageContent = `[Media: ${attachments[0].type}]`;
-  }
-  if (!lastMessageContent) lastMessageContent = "Attachment/Other";
-
   // Find the social connection for this instagram account to identify the business
   let connection = await prisma.socialConnection.findFirst({
     where: { pageId: instagramAccountId, provider: "instagram", isActive: true },
@@ -86,6 +132,25 @@ export const handleIncomingMessage = async (instagramAccountId, webhookEvent) =>
     console.warn(`Received message for unconnected instagram account: ${instagramAccountId}`);
     return;
   }
+
+  // Extract media info from incoming payload
+  let { mediaUrl, mediaType, hasMedia } = extractMediaInfo(webhookEvent.message);
+
+  // If no mediaUrl in webhook payload and text is empty, query Meta Graph API for attachment details
+  if (!mediaUrl && !messageText && platformMessageId && connection.accessToken) {
+    const fetched = await fetchMediaFromMetaGraph(platformMessageId, connection.accessToken);
+    if (fetched && fetched.hasMedia) {
+      mediaUrl = fetched.mediaUrl;
+      mediaType = fetched.mediaType;
+      hasMedia = true;
+    }
+  }
+
+  let lastMessageContent = messageText;
+  if (!lastMessageContent && hasMedia) {
+    lastMessageContent = `[Media: ${mediaType || "image"}]`;
+  }
+  if (!lastMessageContent) lastMessageContent = "Attachment/Other";
 
   const businessId = connection.businessId;
   let branchId = connection.branchId || null;
@@ -164,19 +229,21 @@ export const handleIncomingMessage = async (instagramAccountId, webhookEvent) =>
   });
 
   let localMediaUrl = null;
-  if (attachments && attachments.length > 0) {
-    const attachmentUrl = attachments[0].payload?.url;
-    if (attachmentUrl) {
-      try {
-        const downloadRes = await downloadAndSaveMedia(attachmentUrl, "instagram", "ig");
-        if (downloadRes.success) {
-          localMediaUrl = downloadRes.publicUrl;
-        }
-      } catch (downloadErr) {
-        console.error("[Instagram Service] Error downloading instagram media:", downloadErr);
+  if (mediaUrl) {
+    try {
+      const downloadRes = await downloadAndSaveMedia(mediaUrl, "instagram", "ig", {
+        Authorization: `Bearer ${connection.accessToken}`,
+      });
+      if (downloadRes.success) {
+        localMediaUrl = downloadRes.publicUrl;
       }
+    } catch (downloadErr) {
+      console.error("[Instagram Service] Error downloading instagram media:", downloadErr);
     }
   }
+
+  const resolvedMediaUrl = localMediaUrl || mediaUrl || null;
+  const isMediaType = hasMedia || !!resolvedMediaUrl;
 
   // Save the message
   await prisma.message.create({
@@ -184,11 +251,11 @@ export const handleIncomingMessage = async (instagramAccountId, webhookEvent) =>
       conversationId: conversation.id,
       senderType: "customer",
       senderId: senderId,
-      messageText: messageText,
+      messageText: messageText || (isMediaType ? "" : null),
       platformMessageId: platformMessageId,
       rawPayload: webhookEvent,
-      type: attachments ? "media" : "text",
-      mediaUrl: localMediaUrl || (attachments ? attachments[0].payload?.url : null),
+      type: isMediaType ? (mediaType || "image") : "text",
+      mediaUrl: resolvedMediaUrl,
     },
   });
 
@@ -197,7 +264,7 @@ export const handleIncomingMessage = async (instagramAccountId, webhookEvent) =>
     if (shouldNotify) {
       NotificationService.createAndSendNotification({
         title: "New Instagram Message",
-        message: `Message: "${messageText || "Attachment/Other"}"`,
+        message: `Message: "${messageText || lastMessageContent}"`,
         type: "NEW_MESSAGE",
         businessId: businessId,
         branchId: connection.branchId || null,
@@ -208,9 +275,9 @@ export const handleIncomingMessage = async (instagramAccountId, webhookEvent) =>
 
   // Construct AI message body (if text, send text; if media, send media URL)
   let aiMessage = messageText || "";
-  if (!aiMessage && attachments && attachments.length > 0) {
-    const attachmentUrl = localMediaUrl || attachments[0].payload?.url || "";
-    aiMessage = `[Media ${attachments[0].type}: ${attachmentUrl}]`;
+  if (!aiMessage && isMediaType) {
+    const urlToSend = resolvedMediaUrl || "";
+    aiMessage = `[Media ${mediaType || "image"}: ${urlToSend}]`;
   }
 
   // Notify AI Agent of incoming Instagram message

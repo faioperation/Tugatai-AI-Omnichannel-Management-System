@@ -18,10 +18,20 @@ export const processWebhookEvent = async (body) => {
         for (const change of entry.changes) {
           if (change.field === "messages" && change.value) {
             const val = change.value;
+            const msgObj = val.message && typeof val.message === "object"
+              ? val.message
+              : {
+                  mid: val.mid || val.id || val.message_id,
+                  text: val.text || (typeof val.message === "string" ? val.message : undefined),
+                  attachments: val.attachments || (val.attachment ? [val.attachment] : (val.media ? [{ type: "image", payload: { url: val.media.url || val.media } }] : undefined)),
+                  shares: val.shares,
+                  story_share: val.story_share,
+                };
+
             const webhookEvent = {
               sender: val.sender || { id: val.from?.id || val.sender_id },
               recipient: val.recipient || { id: val.to?.id || val.recipient_id || accountId },
-              message: val.message || { mid: val.mid || val.id, text: val.text || val.message },
+              message: msgObj,
               timestamp: val.timestamp || Date.now(),
             };
             if (webhookEvent.sender?.id && webhookEvent.message && !webhookEvent.message.is_echo) {
