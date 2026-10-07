@@ -475,6 +475,24 @@ export const handleEvolutionWebhookEvent = async (body) => {
 
       const msgId = key.id || `evo_${Date.now()}`;
 
+      let cleanRawPayload = item;
+      try {
+        const clone = JSON.parse(JSON.stringify(item));
+        delete clone.messageContextInfo;
+        if (clone.message && typeof clone.message === "object") {
+          delete clone.message.messageContextInfo;
+          for (const k of Object.keys(clone.message)) {
+            if (clone.message[k] && typeof clone.message[k] === "object") {
+              delete clone.message[k].messageContextInfo;
+              if (clone.message[k].contextInfo) {
+                delete clone.message[k].contextInfo.messageContextInfo;
+              }
+            }
+          }
+        }
+        cleanRawPayload = clone;
+      } catch (e) {}
+
       // Create incoming message record
       await prisma.whatsappMessage.create({
         data: {
@@ -487,7 +505,7 @@ export const handleEvolutionWebhookEvent = async (body) => {
           type,
           text,
           mediaUrl: resolvedMediaUrl,
-          rawPayload: item,
+          rawPayload: cleanRawPayload,
           status: "DELIVERED",
         },
       });

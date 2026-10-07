@@ -5,6 +5,29 @@ import { envVars } from "../../config/env.js";
 import { NotificationService } from "../notification/notification.service.js";
 import { saveBase64Media } from "../../utils/mediaDownloader.js";
 
+const stripMessageContextInfo = (raw) => {
+  if (!raw || typeof raw !== "object") return raw;
+  try {
+    const clone = JSON.parse(JSON.stringify(raw));
+    delete clone.messageContextInfo;
+
+    if (clone.message && typeof clone.message === "object") {
+      delete clone.message.messageContextInfo;
+      for (const k of Object.keys(clone.message)) {
+        if (clone.message[k] && typeof clone.message[k] === "object") {
+          delete clone.message[k].messageContextInfo;
+          if (clone.message[k].contextInfo) {
+            delete clone.message[k].contextInfo.messageContextInfo;
+          }
+        }
+      }
+    }
+    return clone;
+  } catch (err) {
+    return raw;
+  }
+};
+
 export const WhatsappService = {
   connectAccount: async (businessId, payload) => {
     const branchId = payload.branchId || null;
@@ -282,6 +305,11 @@ export const WhatsappService = {
           msg.mediaUrl = `${envVars.BACKEND_URL}/v1/whatsapp/media/${msg.mediaUrl}`;
         }
       }
+
+      if (msg.rawPayload) {
+        msg.rawPayload = stripMessageContextInfo(msg.rawPayload);
+      }
+
       updatedMessages.push(msg);
     }
 
