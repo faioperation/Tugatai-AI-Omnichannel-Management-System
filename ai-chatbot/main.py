@@ -1,6 +1,12 @@
 import asyncio
+import sys
 import uvicorn
 from fastapi import FastAPI
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 from routes.agent_routes import router as agent_router
 from routes.summary_routes import router as summary_router
 from summary_agent.scheduler import start_scheduler

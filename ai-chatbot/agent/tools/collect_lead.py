@@ -8,9 +8,9 @@ def _lead_candidates():
     return build_candidates(
         bases=[ROBERTO_API_BASE, ROBERTO_API_BASE_PUBLIC],
         suffixes=[
-            "/leads/create",
             "/public/leads/create",
             "/v1/public/leads/create",
+            "/leads/create",
         ],
     )
 
