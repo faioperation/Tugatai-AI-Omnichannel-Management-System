@@ -130,10 +130,13 @@ class SocialMediaRepository {
     return {'connected': false, 'id': null, 'connectionType': null};
   }
 
-  Future<bool> disconnectWhatsApp(String accountId) async {
+  Future<bool> disconnectWhatsApp(String accountId, {String? branchId}) async {
     final response = await networkClient.postRequest(
       ApiConstants.whatsappDisconnect,
-      body: {'accountId': accountId},
+      body: {
+        if (accountId.isNotEmpty) 'accountId': accountId,
+        if (branchId != null && branchId.isNotEmpty) 'branchId': branchId,
+      },
     );
     return response.isSuccess && (response.responseData?['success'] == true);
   }

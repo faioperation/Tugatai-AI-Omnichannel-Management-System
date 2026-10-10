@@ -120,7 +120,7 @@ class SocialMediaBloc extends Bloc<SocialMediaEvent, SocialMediaState> {
   Future<void> _onDisconnectWhatsApp(DisconnectWhatsApp event, Emitter<SocialMediaState> emit) async {
     emit(state.copyWith(isLoading: true, clearError: true));
     try {
-      final success = await repository.disconnectWhatsApp(event.accountId);
+      final success = await repository.disconnectWhatsApp(event.accountId, branchId: event.branchId);
       if (success) {
         add(CheckSocialMediaStatus(event.branchId));
       } else {

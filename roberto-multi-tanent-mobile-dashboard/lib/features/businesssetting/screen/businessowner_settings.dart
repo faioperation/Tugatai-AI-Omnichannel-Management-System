@@ -183,11 +183,11 @@ class _BusinessownerSettingsState extends State<BusinessownerSettings> {
                                 onActionPressed: () {
                                   if (state.isWhatsAppConnected) {
                                     if (state.whatsappConnectionType == 'QR_CODE') {
-                                      _showWhatsAppQrDisconnectDialog(context);
+                                      _showWhatsAppQrDisconnectDialog(context, state.whatsappAccountId);
                                     } else if (state.whatsappAccountId != null) {
                                       _showWhatsAppMetaDisconnectDialog(context, state.whatsappAccountId!);
                                     } else {
-                                      _showWhatsAppQrDisconnectDialog(context);
+                                      _showWhatsAppQrDisconnectDialog(context, state.whatsappAccountId);
                                     }
                                   } else {
                                     showDialog(
@@ -324,7 +324,7 @@ class _BusinessownerSettingsState extends State<BusinessownerSettings> {
     );
   }
 
-  void _showWhatsAppQrDisconnectDialog(BuildContext context) {
+  void _showWhatsAppQrDisconnectDialog(BuildContext context, [String? accountId]) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
@@ -457,7 +457,13 @@ class _BusinessownerSettingsState extends State<BusinessownerSettings> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pop(dialogContext),
+                        onPressed: () {
+                          Navigator.pop(dialogContext);
+                          final id = accountId ?? context.read<SocialMediaBloc>().state.whatsappAccountId ?? "";
+                          context.read<SocialMediaBloc>().add(
+                            DisconnectWhatsApp(id, widget.branchId),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColor.primary,
                           padding: const EdgeInsets.symmetric(vertical: 14),

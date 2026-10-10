@@ -185,9 +185,22 @@ export const WhatsappController = {
       const { businessId } = await getBusinessAndBranchForUser(req.user);
       if (!businessId) return res.status(404).json({ success: false, message: "Business not found for this user" });
 
-      const { accountId } = req.body;
+      let { accountId, branchId } = req.body;
       if (!accountId) {
-        return res.status(400).json({ success: false, message: "Account ID is required" });
+        const activeAcc = await prisma.whatsappAccount.findFirst({
+          where: {
+            businessId,
+            ...(branchId ? { branchId } : {}),
+            status: "ACTIVE",
+          },
+        });
+        if (activeAcc) {
+          accountId = activeAcc.id;
+        }
+      }
+
+      if (!accountId) {
+        return res.status(400).json({ success: false, message: "No active WhatsApp account found to disconnect" });
       }
 
       await WhatsappService.disconnectAccount(businessId, accountId);
