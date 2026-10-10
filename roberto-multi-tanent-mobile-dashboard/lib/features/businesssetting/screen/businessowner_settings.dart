@@ -181,8 +181,14 @@ class _BusinessownerSettingsState extends State<BusinessownerSettings> {
                                 isConnected: state.isWhatsAppConnected,
                                 isLoading: state.isLoading && !state.isFacebookConnected && !state.isInstagramConnected && !state.isWhatsAppConnected && !state.isGoogleCalendarConnected,
                                 onActionPressed: () {
-                                  if (state.isWhatsAppConnected && state.whatsappAccountId != null) {
-                                    context.read<SocialMediaBloc>().add(DisconnectWhatsApp(state.whatsappAccountId!, widget.branchId));
+                                  if (state.isWhatsAppConnected) {
+                                    if (state.whatsappConnectionType == 'QR_CODE') {
+                                      _showWhatsAppQrDisconnectDialog(context);
+                                    } else if (state.whatsappAccountId != null) {
+                                      _showWhatsAppMetaDisconnectDialog(context, state.whatsappAccountId!);
+                                    } else {
+                                      _showWhatsAppQrDisconnectDialog(context);
+                                    }
                                   } else {
                                     showDialog(
                                       context: context,
@@ -315,6 +321,237 @@ class _BusinessownerSettingsState extends State<BusinessownerSettings> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showWhatsAppQrDisconnectDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: Theme.of(context).cardColor,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 440),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: const Color(0xff25D366).withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: SvgPicture.asset(
+                      'assets/whatsapp.svg',
+                      width: 34,
+                      height: 34,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  "Disconnect WhatsApp",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "To disconnect WhatsApp, please log out directly from your phone's WhatsApp app:",
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withOpacity(0.04) : const Color(0xffF8FAFC),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Theme.of(context).dividerColor.withOpacity(0.08),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildInstructionStep(
+                        number: "1",
+                        text: "Open WhatsApp on your mobile phone",
+                        context: context,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildInstructionStep(
+                        number: "2",
+                        text: "Go to Settings (or Menu ⋮) > Linked Devices",
+                        context: context,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildInstructionStep(
+                        number: "3",
+                        text: "Select this active session and tap 'Log Out'",
+                        context: context,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 16,
+                      color: isDark ? Colors.blue.shade300 : const Color(0xff2563EB),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "Once disconnected from your phone, this dashboard will automatically update.",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.blue.shade200 : const Color(0xff1D4ED8),
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(dialogContext);
+                          context.read<SocialMediaBloc>().add(CheckSocialMediaStatus(widget.branchId));
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.2)),
+                        ),
+                        child: Text(
+                          "Check Status",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColor.primary,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          "Got It",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInstructionStep({
+    required String number,
+    required String text,
+    required BuildContext context,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: AppColor.primary.withOpacity(0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              number,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColor.primary,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showWhatsAppMetaDisconnectDialog(BuildContext context, String accountId) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text("Disconnect WhatsApp"),
+          content: const Text("Are you sure you want to disconnect your WhatsApp Cloud API account?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                context.read<SocialMediaBloc>().add(DisconnectWhatsApp(accountId, widget.branchId));
+              },
+              child: const Text("Disconnect"),
+            ),
+          ],
+        );
+      },
     );
   }
 }

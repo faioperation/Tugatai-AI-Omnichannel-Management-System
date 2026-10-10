@@ -36,6 +36,7 @@ class SocialMediaBloc extends Bloc<SocialMediaEvent, SocialMediaState> {
         instagramConnectionId: results[1]['id'],
         isWhatsAppConnected: results[2]['connected'],
         whatsappAccountId: results[2]['id'],
+        whatsappConnectionType: results[2]['connectionType'],
         isGoogleCalendarConnected: results[3]['connected'],
         googleCalendarEmail: results[3]['email'],
       ));

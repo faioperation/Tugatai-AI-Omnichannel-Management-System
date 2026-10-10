@@ -112,19 +112,22 @@ class SocialMediaRepository {
       if (response.responseData['success'] == true) {
         final connected = response.responseData['connected'] ?? false;
         String? id;
+        String? connectionType;
         if (connected && response.responseData['data'] != null) {
           final data = response.responseData['data'];
           if (data is List && data.isNotEmpty) {
             final dataObj = data[0];
             id = dataObj['id'] ?? dataObj['accountId'] ?? dataObj['connectionId'];
+            connectionType = dataObj['connectionType'];
           } else if (data is Map) {
             id = data['id'] ?? data['accountId'] ?? data['connectionId'];
+            connectionType = data['connectionType'];
           }
         }
-        return {'connected': connected, 'id': id};
+        return {'connected': connected, 'id': id, 'connectionType': connectionType};
       }
     }
-    return {'connected': false, 'id': null};
+    return {'connected': false, 'id': null, 'connectionType': null};
   }
 
   Future<bool> disconnectWhatsApp(String accountId) async {
