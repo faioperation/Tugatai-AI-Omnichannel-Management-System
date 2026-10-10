@@ -475,7 +475,16 @@ export const sendMediaMessageToUser = async (businessId, recipientId, type, medi
   }
 };
 
+const lastInstagramSyncTimes = new Map();
+
 export const syncInstagramConversationsFromMeta = async (businessId, branchId = null) => {
+  const syncKey = `${businessId}_${branchId || "all"}`;
+  const now = Date.now();
+  if (lastInstagramSyncTimes.has(syncKey) && now - lastInstagramSyncTimes.get(syncKey) < 25000) {
+    return; // Debounce sync calls within 25s to avoid Meta rate and query limits
+  }
+  lastInstagramSyncTimes.set(syncKey, now);
+
   try {
     const connection = await prisma.socialConnection.findFirst({
       where: { businessId, provider: "instagram", isActive: true },
@@ -487,7 +496,8 @@ export const syncInstagramConversationsFromMeta = async (businessId, branchId = 
       params: {
         access_token: connection.accessToken,
         platform: "instagram",
-        fields: "id,updated_time,participants,messages{id,message,from,created_time,attachments{id,image_data,video_data,file_url,mime_type,name,payload},shares,story_share}",
+        limit: 15,
+        fields: "id,updated_time,participants,messages.limit(5){id,message,from,created_time,attachments}",
       },
     });
 
@@ -638,7 +648,10 @@ export const syncInstagramConversationsFromMeta = async (businessId, branchId = 
       }
     }
   } catch (error) {
-    console.warn("[Instagram Sync] Notice syncing conversations from Meta Graph API:", error.response?.data?.error?.message || error.message);
+    const errMsg = error.response?.data?.error?.message || error.message;
+    if (!errMsg?.includes("reduce the amount of data")) {
+      console.warn("[Instagram Sync] Notice syncing conversations from Meta Graph API:", errMsg);
+    }
   }
 };
 
