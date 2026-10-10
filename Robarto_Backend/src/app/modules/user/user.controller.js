@@ -234,4 +234,33 @@ const uploadAvatar = async (req, res, next) => {
   }
 };
 
-export const UserController = { registerUser, userDetails, getAllUsersWithProfile, updateUser, getUserInfo, uploadAvatar, updateProfile };
+const deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      throw new DevBuildError("User ID is required", StatusCodes.BAD_REQUEST);
+    }
+
+    if (req.user?.id === id) {
+      throw new DevBuildError("You cannot delete your own account", StatusCodes.BAD_REQUEST);
+    }
+
+    const existingUser = await UserService.findById(prisma, id);
+    if (!existingUser) {
+      throw new DevBuildError("User not found", StatusCodes.NOT_FOUND);
+    }
+
+    await UserService.deleteUser(prisma, id);
+
+    sendResponse(res, {
+      success: true,
+      message: "User deleted successfully",
+      statusCode: StatusCodes.OK,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const UserController = { registerUser, userDetails, getAllUsersWithProfile, updateUser, getUserInfo, uploadAvatar, updateProfile, deleteUser };

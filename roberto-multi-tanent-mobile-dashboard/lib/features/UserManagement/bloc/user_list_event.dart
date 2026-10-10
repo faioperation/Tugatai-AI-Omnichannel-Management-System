@@ -8,3 +8,9 @@ class UpdateUserStatus extends UserListEvent {
 
   UpdateUserStatus({required this.userId, required this.status});
 }
+
+class DeleteUserEvent extends UserListEvent {
+  final String userId;
+
+  DeleteUserEvent({required this.userId});
+}

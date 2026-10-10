@@ -22,6 +22,61 @@ class _UserListScreenState extends State<UserListScreen> {
     context.read<UserListBloc>().add(FetchAllUsers());
   }
 
+  void _showDeleteConfirmation(UserModel user) {
+    final name = '${user.firstName} ${user.lastName ?? ""}'.trim();
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.delete_forever, color: Colors.red, size: 24),
+              ),
+              const SizedBox(width: 12),
+              const Text("Delete User"),
+            ],
+          ),
+          content: Text(
+            "Are you sure you want to delete user \"$name\" (${user.email})? This action cannot be undone.",
+            style: const TextStyle(fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                context.read<UserListBloc>().add(DeleteUserEvent(userId: user.id));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Deleting user "$name"...'),
+                    backgroundColor: Colors.red.shade700,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text("Delete"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -112,6 +167,7 @@ class _UserListScreenState extends State<UserListScreen> {
           Expanded(flex: 1, child: CustomHeadder(label: 'Status')),
           Expanded(flex: 1, child: CustomHeadder(label: 'Verified', textAlign: TextAlign.center)),
           Expanded(flex: 1, child: CustomHeadder(label: 'Created At', textAlign: TextAlign.center)),
+          Expanded(flex: 1, child: CustomHeadder(label: 'Action', textAlign: TextAlign.center)),
         ],
       ),
     );
@@ -182,6 +238,17 @@ class _UserListScreenState extends State<UserListScreen> {
               formattedDate, 
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: theme.textTheme.bodySmall?.color),
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Center(
+              child: IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                tooltip: 'Delete User',
+                splashRadius: 18,
+                onPressed: () => _showDeleteConfirmation(user),
+              ),
             ),
           ),
         ],

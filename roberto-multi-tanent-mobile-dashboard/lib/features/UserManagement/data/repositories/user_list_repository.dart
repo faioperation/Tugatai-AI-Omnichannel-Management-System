@@ -31,4 +31,15 @@ class UserListRepository {
       return false;
     }
   }
+
+  Future<bool> deleteUser(String userId) async {
+    try {
+      final response = await networkClient.deleteRequest(
+        '${ApiConstants.baseUrl}/user/$userId',
+      );
+      return response.isSuccess && (response.responseData?['success'] == true);
+    } catch (e) {
+      return false;
+    }
+  }
 }
