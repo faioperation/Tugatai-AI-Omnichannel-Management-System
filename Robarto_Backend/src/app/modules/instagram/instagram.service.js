@@ -496,9 +496,10 @@ export const syncInstagramConversationsFromMeta = async (businessId, branchId = 
       params: {
         access_token: connection.accessToken,
         platform: "instagram",
-        limit: 15,
-        fields: "id,updated_time,participants,messages.limit(5){id,message,from,created_time,attachments}",
+        limit: 10,
+        fields: "id,updated_time,participants,messages.limit(3){id,message,from,created_time,attachments}",
       },
+      timeout: 8000,
     });
 
     const metaConversations = response.data?.data || [];
@@ -649,15 +650,15 @@ export const syncInstagramConversationsFromMeta = async (businessId, branchId = 
     }
   } catch (error) {
     const errMsg = error.response?.data?.error?.message || error.message;
-    if (!errMsg?.includes("reduce the amount of data")) {
+    if (!errMsg?.includes("reduce the amount of data") && !errMsg?.includes("Timeout") && error.code !== "ECONNABORTED") {
       console.warn("[Instagram Sync] Notice syncing conversations from Meta Graph API:", errMsg);
     }
   }
 };
 
 export const getConversations = async (businessId, branchId) => {
-  // Sync live conversations directly from Meta Graph API
-  await syncInstagramConversationsFromMeta(businessId, branchId);
+  // Sync live conversations in the background without blocking DB response
+  syncInstagramConversationsFromMeta(businessId, branchId).catch(() => {});
 
   if (branchId) {
     await prisma.conversation.updateMany({

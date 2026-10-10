@@ -3,8 +3,8 @@ import { syncInstagramConversationsFromMeta } from "../instagram/instagram.servi
 
 export const AllConversationsService = {
   getAllConversations: async (businessId, branchId) => {
-    // Live sync Instagram messages directly from Meta Graph API
-    await syncInstagramConversationsFromMeta(businessId, branchId).catch(() => {});
+    // Live sync Instagram messages in background without blocking DB response
+    syncInstagramConversationsFromMeta(businessId, branchId).catch(() => {});
 
     // If branchId is passed, sync any orphaned null-branch conversations & connections
     if (branchId) {
