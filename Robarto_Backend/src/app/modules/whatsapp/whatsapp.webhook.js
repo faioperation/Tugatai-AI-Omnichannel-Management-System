@@ -493,6 +493,15 @@ export const handleEvolutionWebhookEvent = async (body) => {
 
       const msgId = key.id || `evo_${Date.now()}`;
 
+      // Prevent duplicate message processing if Evolution webhook sends duplicate events
+      const existingMessage = await prisma.whatsappMessage.findUnique({
+        where: { metaMessageId: msgId },
+      });
+      if (existingMessage) {
+        console.log(`[Evolution Webhook] Duplicate message ${msgId} skipped.`);
+        continue;
+      }
+
       let cleanRawPayload = item;
       try {
         const clone = JSON.parse(JSON.stringify(item));
@@ -511,29 +520,37 @@ export const handleEvolutionWebhookEvent = async (body) => {
         cleanRawPayload = clone;
       } catch (e) {}
 
-      // Create incoming message record
-      await prisma.whatsappMessage.create({
-        data: {
-          businessId,
-          whatsappAccountId: account.id,
-          conversationId: conversation.id,
-          contactId: dbContact.id,
-          metaMessageId: msgId,
-          direction: "INCOMING",
-          type,
-          text,
-          mediaUrl: resolvedMediaUrl,
-          location,
-          rawPayload: cleanRawPayload,
-          status: "DELIVERED",
-        },
-      });
+      // Create incoming message record safely
+      try {
+        await prisma.whatsappMessage.create({
+          data: {
+            businessId,
+            whatsappAccountId: account.id,
+            conversationId: conversation.id,
+            contactId: dbContact.id,
+            metaMessageId: msgId,
+            direction: "INCOMING",
+            type,
+            text,
+            mediaUrl: resolvedMediaUrl,
+            location,
+            rawPayload: cleanRawPayload,
+            status: "DELIVERED",
+          },
+        });
 
-      // Update conversation last message ID
-      await prisma.whatsappConversation.update({
-        where: { id: conversation.id },
-        data: { lastMessageId: msgId },
-      });
+        // Update conversation last message ID
+        await prisma.whatsappConversation.update({
+          where: { id: conversation.id },
+          data: { lastMessageId: msgId },
+        });
+      } catch (err) {
+        if (err.code === "P2002" || err.message?.includes("Unique constraint")) {
+          console.log(`[Evolution Webhook] Duplicate meta_message_id ${msgId} detected during create. Skipping.`);
+          continue;
+        }
+        throw err;
+      }
 
       console.log(`[Evolution Webhook] Saved incoming WhatsApp message from ${phoneNumber}: "${text || type}"`);
 
