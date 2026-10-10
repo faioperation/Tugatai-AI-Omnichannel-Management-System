@@ -331,6 +331,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   // Calendar State
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
+  String _parcelCalendarMode = 'pickup'; // 'pickup' or 'delivery'
 
   @override
   void initState() {
@@ -1565,12 +1566,42 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     );
   }
 
+  bool _isParcelDelivery(String? bType) {
+    if (bType == null) return false;
+    final normalized = bType.toUpperCase().replaceAll(' ', '_');
+    return normalized == 'PERCEL_BOOKING' ||
+        normalized == 'PARCEL_BOOKING' ||
+        normalized == 'PARCEL_DELIVERY';
+  }
+
+  List<OrderMod> _getOrdersForDay(DateTime day, String? bType) {
+    final isParcel = _isParcelDelivery(bType);
+    return _orders.where((o) {
+      DateTime? orderDate;
+      if (isParcel) {
+        if (_parcelCalendarMode == 'pickup') {
+          orderDate = _parseDateString(o.pickupDate);
+        } else {
+          orderDate = _parseDateString(o.deliveryDate);
+        }
+      } else {
+        orderDate = _parseDateString(o.calenderDate) ??
+            _parseDateString(o.deliveryDate) ??
+            _parseDateString(o.appointmentDate);
+      }
+      return orderDate != null &&
+          orderDate.year == day.year &&
+          orderDate.month == day.month &&
+          orderDate.day == day.day;
+    }).toList();
+  }
+
   // ─── CALENDAR VIEW ──────────────────────────────────────────────────
   Widget _buildCalendarContent(bool isMobile, ThemeData theme, bool isDark, String title, String? bType) {
     if (isMobile) {
       return Column(
         children: [
-          _buildCalendarPane(theme, isDark, title),
+          _buildCalendarPane(theme, isDark, title, bType),
           const SizedBox(height: 16),
           _buildCalendarSidebar(theme, isDark, bType),
         ],
@@ -1580,14 +1611,14 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(flex: 7, child: _buildCalendarPane(theme, isDark, title)),
+        Expanded(flex: 7, child: _buildCalendarPane(theme, isDark, title, bType)),
         const SizedBox(width: 24),
         Expanded(flex: 3, child: _buildCalendarSidebar(theme, isDark, bType)),
       ],
     );
   }
 
-  Widget _buildCalendarPane(ThemeData theme, bool isDark, String title) {
+  Widget _buildCalendarPane(ThemeData theme, bool isDark, String title, String? bType) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -1664,13 +1695,13 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
             ),
             calendarBuilders: CalendarBuilders(
               defaultBuilder: (context, day, focusedDay) {
-                return _buildCalendarCell(day, theme, isDark);
+                return _buildCalendarCell(day, theme, isDark, bType);
               },
               selectedBuilder: (context, day, focusedDay) {
-                return _buildCalendarCell(day, theme, isDark, isSelected: true);
+                return _buildCalendarCell(day, theme, isDark, bType, isSelected: true);
               },
               todayBuilder: (context, day, focusedDay) {
-                return _buildCalendarCell(day, theme, isDark, isToday: true);
+                return _buildCalendarCell(day, theme, isDark, bType, isToday: true);
               },
             ),
           ),
@@ -1679,13 +1710,10 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     );
   }
 
-  Widget _buildCalendarCell(DateTime day, ThemeData theme, bool isDark,
+  Widget _buildCalendarCell(DateTime day, ThemeData theme, bool isDark, String? bType,
       {bool isSelected = false, bool isToday = false}) {
-    // Count orders dynamically for this day
-    final dayOrders = _orders.where((o) {
-      final orderDate = _parseDateString(o.calenderDate) ?? _parseDateString(o.deliveryDate) ?? _parseDateString(o.appointmentDate);
-      return orderDate != null && orderDate.year == day.year && orderDate.month == day.month && orderDate.day == day.day;
-    }).toList();
+    // Count orders dynamically for this day based on active mode
+    final dayOrders = _getOrdersForDay(day, bType);
     
     int eventCount = dayOrders.length;
     final hasEvent = eventCount > 0;
@@ -1814,16 +1842,22 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     return '${months[date.month - 1]} ${date.year}';
   }
 
-  DateTime _getOrderComparableDateTime(OrderMod o) {
+  DateTime _getOrderComparableDateTime(OrderMod o, String? bType) {
     DateTime? date;
     String? timeStr;
+    final isParcel = _isParcelDelivery(bType);
     
     if (o.calenderDate != null && o.calenderDate!.isNotEmpty) {
       date = _parseDateString(o.calenderDate);
       timeStr = o.calenderTime;
-    } else if (o.bookingType == 'Parcel Delivery') {
-      date = _parseDateString(o.pickupDate);
-      timeStr = o.pickupTime;
+    } else if (isParcel) {
+      if (_parcelCalendarMode == 'pickup') {
+        date = _parseDateString(o.pickupDate);
+        timeStr = o.pickupTime;
+      } else {
+        date = _parseDateString(o.deliveryDate);
+        timeStr = o.deliveryTime;
+      }
     } else if (o.bookingType == 'Appointment Booking') {
       date = _parseDateString(o.appointmentDate);
       timeStr = o.appointmentTime;
@@ -1864,14 +1898,92 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     return DateTime(date.year, date.month, date.day).add(Duration(minutes: minutes));
   }
 
+  Widget _buildParcelModeToggle(ThemeData theme, bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? theme.colorScheme.surface : const Color(0xffF1F5F9),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
+      ),
+      padding: const EdgeInsets.all(3),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildToggleOption(
+            label: 'Pickup',
+            isSelected: _parcelCalendarMode == 'pickup',
+            onTap: () {
+              if (_parcelCalendarMode != 'pickup') {
+                setState(() {
+                  _parcelCalendarMode = 'pickup';
+                });
+              }
+            },
+            theme: theme,
+          ),
+          const SizedBox(width: 4),
+          _buildToggleOption(
+            label: 'Delivery',
+            isSelected: _parcelCalendarMode == 'delivery',
+            onTap: () {
+              if (_parcelCalendarMode != 'delivery') {
+                setState(() {
+                  _parcelCalendarMode = 'delivery';
+                });
+              }
+            },
+            theme: theme,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggleOption({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required ThemeData theme,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(7),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColor.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(7),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColor.primary.withOpacity(0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  )
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            color: isSelected
+                ? Colors.white
+                : theme.textTheme.bodyMedium?.color ?? const Color(0xff6B7280),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCalendarSidebar(ThemeData theme, bool isDark, String? bType) {
     final selectedDay = _selectedDay ?? DateTime.now();
     final dayStr = '${_getMonthYear(selectedDay).split(' ')[0]} ${selectedDay.day}';
+    final isParcel = _isParcelDelivery(bType);
 
-    final filteredOrders = _orders.where((o) {
-      final orderDate = _parseDateString(o.calenderDate) ?? _parseDateString(o.deliveryDate) ?? _parseDateString(o.appointmentDate);
-      return orderDate != null && orderDate.year == selectedDay.year && orderDate.month == selectedDay.month && orderDate.day == selectedDay.day;
-    }).toList();
+    final filteredOrders = _getOrdersForDay(selectedDay, bType);
 
     filteredOrders.sort((a, b) {
       final aHasTime = (a.calenderTime != null && a.calenderTime!.isNotEmpty) ||
@@ -1883,24 +1995,44 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       if (aHasTime && !bHasTime) return -1;
       if (!aHasTime && bHasTime) return 1;
       
-      final aDt = _getOrderComparableDateTime(a);
-      final bDt = _getOrderComparableDateTime(b);
+      final aDt = _getOrderComparableDateTime(a, bType);
+      final bDt = _getOrderComparableDateTime(b, bType);
       return aDt.compareTo(bDt);
     });
 
     final totalEvents = filteredOrders.length;
+    final scheduledText = isParcel
+        ? '$totalEvents scheduled ${_parcelCalendarMode == 'pickup' ? 'pickups' : 'deliveries'}'
+        : '$totalEvents scheduled items';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Orders & Events for $dayStr',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface)),
-        const SizedBox(height: 4),
-        Text('$totalEvents scheduled items',
-            style: TextStyle(fontSize: 13, color: theme.textTheme.bodySmall?.color ?? const Color(0xff6B7280))),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Orders & Events for $dayStr',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface)),
+                  const SizedBox(height: 4),
+                  Text(scheduledText,
+                      style: TextStyle(fontSize: 13, color: theme.textTheme.bodySmall?.color ?? const Color(0xff6B7280))),
+                ],
+              ),
+            ),
+            if (isParcel) ...[
+              const SizedBox(width: 8),
+              _buildParcelModeToggle(theme, isDark),
+            ],
+          ],
+        ),
         const SizedBox(height: 16),
         
         if (totalEvents == 0)
@@ -1916,9 +2048,13 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                 children: [
                   Icon(Icons.calendar_today_outlined, size: 40, color: theme.hintColor.withOpacity(0.3)),
                   const SizedBox(height: 12),
-                  Text('No orders or events scheduled for this date',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: theme.hintColor, fontSize: 13)),
+                  Text(
+                    isParcel
+                        ? 'No ${_parcelCalendarMode == 'pickup' ? 'pickups' : 'deliveries'} scheduled for this date'
+                        : 'No orders or events scheduled for this date',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: theme.hintColor, fontSize: 13),
+                  ),
                 ],
               ),
             ),
@@ -2003,6 +2139,20 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     final name = order.customerName;
     final items = '${order.note ?? "Booking"} x1';
     final actionText = status == OrderStatus.pending ? 'Mark as Confirmed' : 'Mark as Delivered';
+    final isParcel = _isParcelDelivery(bType);
+
+    String timeDisplay = time;
+    if (order.calenderTime != null && order.calenderTime!.isNotEmpty) {
+      timeDisplay = order.calenderTime!;
+    } else if (isParcel) {
+      if (_parcelCalendarMode == 'pickup') {
+        timeDisplay = 'Pickup: ${order.pickupDate ?? ""} ${order.pickupTime ?? ""}'.trim();
+        if (timeDisplay == 'Pickup:') timeDisplay = 'Pickup: N/A';
+      } else {
+        timeDisplay = 'Delivery: ${order.deliveryDate ?? ""} ${order.deliveryTime ?? ""}'.trim();
+        if (timeDisplay == 'Delivery:') timeDisplay = 'Delivery: N/A';
+      }
+    }
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -2026,11 +2176,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                           color: theme.colorScheme.onSurface,
                           fontSize: 14)),
                   Text(
-                    order.calenderTime != null && order.calenderTime!.isNotEmpty
-                        ? '${order.calenderTime}'
-                        : order.bookingType == 'Parcel Delivery' && order.pickupTime != null && order.pickupTime!.isNotEmpty 
-                            ? '$time (Pickup: ${order.pickupTime})' 
-                            : time,
+                    timeDisplay,
                     style: TextStyle(
                         fontSize: 12, color: theme.textTheme.bodySmall?.color ?? const Color(0xff6B7280))),
                 ],
