@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/Orderbooking/widget/order_mod.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CustomViewdetails extends StatelessWidget {
   final OrderMod order;
@@ -77,58 +79,112 @@ class CustomViewdetails extends StatelessWidget {
           displayValue = displayValue.toUpperCase();
         }
 
-        final isLongValue = displayValue.length > 30;
+        final isUrl = displayValue.startsWith('http://') ||
+            displayValue.startsWith('https://') ||
+            displayValue.startsWith('www.') ||
+            displayValue.contains('maps.app.goo.gl') ||
+            displayValue.contains('google.com/maps');
+        final effectiveUrl =
+            displayValue.startsWith('www.') ? 'https://$displayValue' : displayValue;
 
         customFieldRows.add(
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: isLongValue
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        formatKeyName(key),
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
-                          fontSize: 13,
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      formatKeyName(key),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (displayValue.isNotEmpty)
+                      InkWell(
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: displayValue));
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Copied '${formatKeyName(key)}' to clipboard"),
+                              duration: const Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                              width: 320,
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(4),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.copy_rounded,
+                                size: 13,
+                                color: theme.colorScheme.primary.withOpacity(0.85),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                "Copy",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.colorScheme.primary.withOpacity(0.85),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
+                  ],
+                ),
+                const SizedBox(height: 4),
+                isUrl
+                    ? InkWell(
+                        onTap: () async {
+                          final uri = Uri.parse(effectiveUrl);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(4),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.open_in_new_rounded,
+                              size: 14,
+                              color: Color(0xff3B82F6),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                displayValue,
+                                style: const TextStyle(
+                                  color: Color(0xff3B82F6),
+                                  fontSize: 13,
+                                  decoration: TextDecoration.underline,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : SelectableText(
                         displayValue,
                         style: TextStyle(
                           color: theme.colorScheme.onSurface,
                           fontSize: 13,
                         ),
                       ),
-                    ],
-                  )
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        formatKeyName(key),
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          displayValue,
-                          textAlign: TextAlign.end,
-                          style: TextStyle(
-                            color: theme.colorScheme.onSurface,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+              ],
+            ),
           ),
         );
       }

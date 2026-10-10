@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:roberto/app/app_color.dart';
 import 'package:roberto/features/Inbox/data/models/inbox_models.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:roberto/features/businesssubscription/bloc/business_subscription_bloc.dart';
 import 'package:roberto/features/businesssubscription/bloc/business_subscription_state.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 class ChatDetails extends StatelessWidget {
   final ConversationMod? conversation;
 
@@ -67,12 +70,41 @@ class ChatDetails extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        conv.customerPhone ?? "No Phone Number",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: theme.textTheme.bodySmall?.color,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              conv.customerPhone ?? "No Phone Number",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: theme.textTheme.bodySmall?.color,
+                              ),
+                            ),
+                          ),
+                          if (conv.customerPhone != null && conv.customerPhone!.isNotEmpty)
+                            InkWell(
+                              onTap: () {
+                                Clipboard.setData(ClipboardData(text: conv.customerPhone!));
+                                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Phone number copied"),
+                                    duration: Duration(seconds: 2),
+                                    behavior: SnackBarBehavior.floating,
+                                    width: 220,
+                                  ),
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                child: Icon(
+                                  Icons.copy_rounded,
+                                  size: 14,
+                                  color: theme.colorScheme.primary.withOpacity(0.8),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
@@ -172,7 +204,7 @@ class ChatDetails extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                     decoration: const BoxDecoration(
                                       color: AppColor.primary,
                                       borderRadius: BorderRadius.only(
@@ -180,17 +212,55 @@ class ChatDetails extends StatelessWidget {
                                         topRight: Radius.circular(11),
                                       ),
                                     ),
-                                    child: const Text(
-                                      "Chat summary",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text(
+                                          "Chat summary",
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        InkWell(
+                                          onTap: () {
+                                            Clipboard.setData(ClipboardData(text: summary!.summary!));
+                                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text("Chat summary copied"),
+                                                duration: Duration(seconds: 2),
+                                                behavior: SnackBarBehavior.floating,
+                                                width: 240,
+                                              ),
+                                            );
+                                          },
+                                          borderRadius: BorderRadius.circular(4),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: const [
+                                                Icon(Icons.copy_rounded, size: 13, color: Colors.white),
+                                                SizedBox(width: 4),
+                                                Text(
+                                                  "Copy",
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.all(16),
-                                    child: Text(
+                                    child: SelectableText(
                                       summary!.summary!,
                                       style: TextStyle(
                                         color: theme.colorScheme.onSurface.withOpacity(0.8),
@@ -276,16 +346,67 @@ class ChatDetails extends StatelessWidget {
 
   Widget _buildFormField(BuildContext context, String label, String value) {
     final theme = Theme.of(context);
+    final isUrl = value.startsWith('http://') || 
+                  value.startsWith('https://') || 
+                  value.startsWith('www.') ||
+                  value.contains('maps.app.goo.gl') ||
+                  value.contains('google.com/maps');
+    final effectiveUrl = value.startsWith('www.') ? 'https://$value' : value;
+    final canCopy = value.isNotEmpty && value != "Not specified";
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: theme.colorScheme.onSurface,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            if (canCopy)
+              InkWell(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: value));
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Copied '$label' to clipboard"),
+                      duration: const Duration(seconds: 2),
+                      behavior: SnackBarBehavior.floating,
+                      width: 280,
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.copy_rounded,
+                        size: 13,
+                        color: theme.colorScheme.primary.withOpacity(0.85),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        "Copy",
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.primary.withOpacity(0.85),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 8),
         Container(
@@ -296,15 +417,47 @@ class ChatDetails extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             color: theme.cardTheme.color,
           ),
-          child: Text(
-            value,
-            style: TextStyle(
-              fontSize: 14,
-              color: theme.textTheme.bodySmall?.color,
-            ),
-          ),
+          child: isUrl
+              ? InkWell(
+                  onTap: () async {
+                    final uri = Uri.parse(effectiveUrl);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(4),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.open_in_new_rounded,
+                        size: 14,
+                        color: Color(0xff3B82F6),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          value,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xff3B82F6),
+                            decoration: TextDecoration.underline,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : SelectableText(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: theme.textTheme.bodySmall?.color,
+                  ),
+                ),
         ),
       ],
     );
   }
 }
+
