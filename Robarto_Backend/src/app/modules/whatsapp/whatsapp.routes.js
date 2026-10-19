@@ -35,6 +35,8 @@ WhatsappRoutes.get("/whatsapp/qr/status", WhatsappController.getQrCodeStatus);
 
 WhatsappRoutes.get("/whatsapp/auth", WhatsappController.authWhatsApp);
 WhatsappRoutes.get("/whatsapp/status", WhatsappController.checkConnectionStatus);
+WhatsappRoutes.post("/whatsapp/resubscribe", WhatsappController.resubscribeWaba);
+WhatsappRoutes.get("/whatsapp/resubscribe", WhatsappController.resubscribeWaba);
 
 WhatsappRoutes.get("/whatsapp/media/:mediaId", WhatsappController.getMedia);
 

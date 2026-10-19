@@ -9,32 +9,47 @@ import { downloadAndSaveMedia, saveBase64Media } from "../../utils/mediaDownload
 
 export const handleWebhookEvent = async (body) => {
   if (body.object === "whatsapp_business_account") {
+    console.log(`📡 [WhatsApp Webhook] Processing event for whatsapp_business_account. Entries: ${body.entry?.length || 0}`);
     for (const entry of body.entry) {
       for (const change of entry.changes) {
         if (change.value && change.value.messages) {
+          console.log(`📩 [WhatsApp Webhook] Incoming message event detected for field: ${change.field}`);
           await processIncomingMessages(change.value);
         }
         if (change.value && change.value.statuses) {
+          console.log(`📊 [WhatsApp Webhook] Incoming status update event detected for field: ${change.field}`);
           await processMessageStatuses(change.value);
         }
       }
     }
+  } else {
+    console.log(`ℹ️ [WhatsApp Webhook] Received webhook for non-WABA object: ${body?.object}`);
   }
 };
 
 const processIncomingMessages = async (value) => {
-  const phoneNumberId = value.metadata.phone_number_id;
+  const phoneNumberId = value.metadata?.phone_number_id;
   const contacts = value.contacts;
   const messages = value.messages;
 
-  if (!contacts || !messages) return;
+  console.log(`🔍 [WhatsApp Webhook] Processing incoming message. Phone Number ID: ${phoneNumberId}, Messages count: ${messages?.length || 0}`);
+
+  if (!contacts || !messages) {
+    console.warn(`⚠️ [WhatsApp Webhook] Missing contacts or messages array in payload.`);
+    return;
+  }
 
   // Find the WhatsApp Account by phone_number_id
   const account = await prisma.whatsappAccount.findFirst({
     where: { phoneNumberId, status: "ACTIVE" },
   });
 
-  if (!account) return;
+  if (!account) {
+    console.warn(`⚠️ [WhatsApp Webhook] No ACTIVE WhatsApp account found for phoneNumberId: ${phoneNumberId}. Skipping message.`);
+    return;
+  }
+
+  console.log(`✅ [WhatsApp Webhook] Matched account ${account.id} (Business: ${account.businessId}, Branch: ${account.branchId || "None"})`);
 
   const businessId = account.businessId;
 
@@ -189,6 +204,7 @@ const processIncomingMessages = async (value) => {
       }
 
       // Notify AI Agent of incoming WhatsApp message
+      console.log(`🤖 [WhatsApp Webhook] Notifying AI agent for user: ${waUserId}, message: "${aiMessage}"`);
       notifyAiAgent({
         businessId,
         recipientId: waUserId,

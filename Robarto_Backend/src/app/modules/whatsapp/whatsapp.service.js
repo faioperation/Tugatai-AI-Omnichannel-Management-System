@@ -32,6 +32,16 @@ export const WhatsappService = {
   connectAccount: async (businessId, payload) => {
     const branchId = payload.branchId || null;
 
+    // Automatically subscribe Meta App to WABA so incoming webhooks are routed immediately
+    if (payload.wabaId && payload.accessToken) {
+      try {
+        const subRes = await MetaGraphAPI.subscribeAppToWaba(payload.wabaId, payload.accessToken);
+        console.log(`✅ [WhatsApp Cloud API] Subscribed app to WABA ${payload.wabaId}:`, subRes);
+      } catch (subErr) {
+        console.warn(`⚠️ [WhatsApp Cloud API] Notice while subscribing WABA ${payload.wabaId}:`, subErr.response?.data || subErr.message);
+      }
+    }
+
     // Clean up any existing connection for this WhatsApp phone number under a DIFFERENT business
     await prisma.whatsappAccount.deleteMany({
       where: {
@@ -66,6 +76,20 @@ export const WhatsappService = {
         status: "ACTIVE",
       },
     });
+  },
+
+  ensureWabaSubscribed: async (account) => {
+    if (!account?.wabaId || !account?.accessToken || account?.connectionType !== "META_CLOUD_API") {
+      return false;
+    }
+    try {
+      const res = await MetaGraphAPI.subscribeAppToWaba(account.wabaId, account.accessToken);
+      console.log(`✅ [WhatsApp Auto-Subscribe] Successfully verified/subscribed WABA ${account.wabaId}:`, res);
+      return true;
+    } catch (err) {
+      console.warn(`⚠️ [WhatsApp Auto-Subscribe] Notice subscribing WABA ${account.wabaId}:`, err.response?.data || err.message);
+      return false;
+    }
   },
 
   connectQrAccount: async (businessId, branchId = null) => {
@@ -587,6 +611,15 @@ export const WhatsappService = {
     // 3. For each shared WABA, fetch phone numbers and save
     for (const waba of wabas) {
       const wabaId = waba.id;
+
+      // Automatically subscribe Meta App to shared WABA
+      try {
+        const subRes = await MetaGraphAPI.subscribeAppToWaba(wabaId, userAccessToken);
+        console.log(`✅ [WhatsApp Embedded Signup] Subscribed app to WABA ${wabaId}:`, subRes);
+      } catch (subErr) {
+        console.warn(`⚠️ [WhatsApp Embedded Signup] Notice while subscribing WABA ${wabaId}:`, subErr.response?.data || subErr.message);
+      }
+
       const phoneNumbers = await MetaGraphAPI.getWabaPhoneNumbers(wabaId, userAccessToken);
       
       if (phoneNumbers && phoneNumbers.length > 0) {

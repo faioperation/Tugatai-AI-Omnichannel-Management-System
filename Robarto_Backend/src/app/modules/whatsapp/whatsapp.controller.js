@@ -19,11 +19,12 @@ export const WhatsappController = {
 
   receiveWebhook: async (req, res) => {
     const body = req.body;
+    console.log("📥 [WhatsApp Webhook] Received webhook POST event. Object:", body?.object);
     try {
       await handleWebhookEvent(body);
       res.status(200).send("EVENT_RECEIVED");
     } catch (error) {
-      console.error("Webhook processing error:", error);
+      console.error("❌ [WhatsApp Webhook] Webhook processing error:", error);
       res.status(200).send("EVENT_RECEIVED"); // Always return 200 to Meta
     }
   },
@@ -95,10 +96,40 @@ export const WhatsappController = {
       });
 
       if (account) {
+        // Self-heal: ensure WABA is subscribed to Meta App in background
+        if (account.connectionType === "META_CLOUD_API" && account.wabaId && account.accessToken) {
+          WhatsappService.ensureWabaSubscribed(account).catch(() => {});
+        }
+
         const { accessToken, ...safeAccount } = account;
         res.json({ success: true, connected: true, data: safeAccount });
       } else {
         res.json({ success: true, connected: false });
+      }
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  resubscribeWaba: async (req, res) => {
+    try {
+      const { businessId, branchId: userBranchId, isOwner } = await getBusinessAndBranchForUser(req.user);
+      if (!businessId) return res.status(404).json({ success: false, message: "Business not found for this user" });
+      const branchId = isOwner ? (req.query.branchId || req.body.branchId || null) : userBranchId;
+
+      const whereClause = { businessId, status: "ACTIVE", connectionType: "META_CLOUD_API" };
+      if (branchId) whereClause.branchId = branchId;
+
+      const account = await prisma.whatsappAccount.findFirst({ where: whereClause });
+      if (!account || !account.wabaId || !account.accessToken) {
+        return res.status(400).json({ success: false, message: "No active WhatsApp Cloud API account found for this branch." });
+      }
+
+      const subscribed = await WhatsappService.ensureWabaSubscribed(account);
+      if (subscribed) {
+        res.json({ success: true, message: `Successfully subscribed app to WABA ${account.wabaId}` });
+      } else {
+        res.status(500).json({ success: false, message: `Failed to subscribe app to WABA ${account.wabaId}. Check Meta App permissions.` });
       }
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });

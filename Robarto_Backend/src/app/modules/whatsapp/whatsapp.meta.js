@@ -123,5 +123,13 @@ export const MetaGraphAPI = {
       headers,
       responseType: "stream",
     });
+  },
+
+  subscribeAppToWaba: async (wabaId, accessToken) => {
+    const url = `https://graph.facebook.com/${envVars.META_GRAPH_VERSION || "v23.0"}/${wabaId}/subscribed_apps`;
+    const response = await axios.post(url, null, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return response.data;
   }
 };
