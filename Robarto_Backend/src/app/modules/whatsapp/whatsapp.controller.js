@@ -295,6 +295,14 @@ export const WhatsappController = {
         data: { accounts },
       });
     } catch (error) {
+      const fbErrorMsg = error.response?.data?.error?.message || error.message || "";
+      if (fbErrorMsg.includes("code has been used") || fbErrorMsg.includes("invalid_code")) {
+        console.warn("⚠️ [WhatsApp OAuth] Duplicate callback hit ignored: authorization code was already used.");
+        return res.json({
+          success: true,
+          message: "WhatsApp account authorization code already processed.",
+        });
+      }
       next(error);
     }
   },
