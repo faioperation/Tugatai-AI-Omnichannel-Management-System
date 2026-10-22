@@ -50,6 +50,23 @@ export const UserService = {
       where: { id },
     }),
 
+  deleteUser: async (prisma, id) => {
+    try {
+      await prisma.userRole.deleteMany({ where: { userId: id } }).catch(() => {});
+      await prisma.userPermission.deleteMany({ where: { userId: id } }).catch(() => {});
+      await prisma.fCMToken.deleteMany({ where: { userId: id } }).catch(() => {});
+      await prisma.notification.deleteMany({ where: { userId: id } }).catch(() => {});
+      return await prisma.user.delete({ where: { id } });
+    } catch (e) {
+      return await prisma.user.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+          status: "INACTIVE",
+        },
+      });
+    }
+  },
 
   // USER + FULL PROFILE
 
@@ -59,7 +76,12 @@ export const UserService = {
     }),
 
   findAllWithProfile: async (prisma) =>
-    prisma.user.findMany({}),
+    prisma.user.findMany({
+      where: {
+        deletedAt: null,
+      },
+      orderBy: { createdAt: "desc" },
+    }),
 
   updateAvatar: async (prisma, id, profilePicture) =>
     prisma.user.update({

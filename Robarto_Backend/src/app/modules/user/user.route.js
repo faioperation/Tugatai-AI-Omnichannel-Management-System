@@ -17,9 +17,11 @@ router.get("/profile/me", checkAuthMiddleware(...Object.values(Role)), UserContr
 
 router.get("/user-details/:id", checkAuthMiddleware(...Object.values(Role)), UserController.userDetails);
 
-router.get("/all", checkAuthMiddleware(Role.SYSTEM_OWNER), UserController.getAllUsersWithProfile);
+router.get("/all", checkAuthMiddleware(Role.SYSTEM_OWNER, Role.SYSTEM_STAFF), UserController.getAllUsersWithProfile);
 
 router.post("/update-user", checkAuthMiddleware(Role.SYSTEM_OWNER), UserController.updateUser);
+
+router.delete("/:id", checkAuthMiddleware(Role.SYSTEM_OWNER, Role.SYSTEM_STAFF), UserController.deleteUser);
 
 router.patch(
     "/update-profile",

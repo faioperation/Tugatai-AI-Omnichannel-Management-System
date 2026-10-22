@@ -36,6 +36,7 @@ class SocialMediaBloc extends Bloc<SocialMediaEvent, SocialMediaState> {
         instagramConnectionId: results[1]['id'],
         isWhatsAppConnected: results[2]['connected'],
         whatsappAccountId: results[2]['id'],
+        whatsappConnectionType: results[2]['connectionType'],
         isGoogleCalendarConnected: results[3]['connected'],
         googleCalendarEmail: results[3]['email'],
       ));
@@ -119,7 +120,7 @@ class SocialMediaBloc extends Bloc<SocialMediaEvent, SocialMediaState> {
   Future<void> _onDisconnectWhatsApp(DisconnectWhatsApp event, Emitter<SocialMediaState> emit) async {
     emit(state.copyWith(isLoading: true, clearError: true));
     try {
-      final success = await repository.disconnectWhatsApp(event.accountId);
+      final success = await repository.disconnectWhatsApp(event.accountId, branchId: event.branchId);
       if (success) {
         add(CheckSocialMediaStatus(event.branchId));
       } else {

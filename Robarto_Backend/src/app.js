@@ -67,9 +67,15 @@ const uploadsPath = path.join(__dirname, "..", "uploads");
 // Debug logger for all incoming requests
 app.use((req, res, next) => {
   if (req.originalUrl.includes("webhook") || req.originalUrl.includes("callback") || req.originalUrl.includes("messenger") || req.originalUrl.includes("instagram")) {
-    console.log(`📡 [Incoming Meta/Webhook Request] ${req.method} ${req.originalUrl}`);
-    if (req.method === "POST") {
-      console.log("📦 Payload:", JSON.stringify(req.body, null, 2));
+    console.log(`📡 [Incoming Webhook Request] ${req.method} ${req.originalUrl}`);
+    if (req.method === "POST" && req.body) {
+      // Don't dump huge binary sync payloads
+      if (req.body.event?.includes("messages.edited") || req.body.event?.includes("chats.set") || req.body.event?.includes("contacts.")) {
+        console.log(`📦 [Evolution Event] ${req.body.event} for instance ${req.body.instance || "default"}`);
+      } else {
+        const preview = JSON.stringify(req.body);
+        console.log("📦 Payload:", preview.length > 500 ? `${preview.substring(0, 500)}... (truncated)` : preview);
+      }
     }
   }
   next();
@@ -78,19 +84,87 @@ app.use((req, res, next) => {
 import { MessengerRoutes } from "./app/modules/messenger/messenger.route.js";
 import { InstagramRoutes } from "./app/modules/instagram/instagram.route.js";
 import { WhatsappRoutes } from "./app/modules/whatsapp/whatsapp.routes.js";
+import { verifyWebhook as verifyIgWebhook, handleWebhookEvent as handleIgWebhookEvent, authFacebookCallback as igOAuthCallback } from "./app/modules/instagram/instagram.controller.js";
+import { verifyWebhook as verifyFbWebhook, handleWebhookEvent as handleFbWebhookEvent, authFacebookCallback as fbOAuthCallback } from "./app/modules/messenger/messenger.controller.js";
+import { WhatsappController } from "./app/modules/whatsapp/whatsapp.controller.js";
 
-// Root-level Webhook fallbacks in case Meta is configured without /api or /v1 prefix
-app.use("/webhook", MessengerRoutes);
-app.use("/webhook", InstagramRoutes);
-app.use("/webhook", WhatsappRoutes);
+// Dedicated top-level Webhook endpoints (Accessible publicly without auth)
+const igWebhookPaths = [
+  "/webhook/instagram",
+  "/instagram/webhook",
+  "/api/webhook/instagram",
+  "/api/instagram/webhook",
+  "/api/v1/webhook/instagram",
+  "/api/v1/instagram/webhook",
+];
+
+const fbWebhookPaths = [
+  "/webhook/facebook",
+  "/facebook/webhook",
+  "/webhook/messenger",
+  "/messenger/webhook",
+  "/api/webhook/facebook",
+  "/api/facebook/webhook",
+  "/api/webhook/messenger",
+  "/api/messenger/webhook",
+  "/api/v1/webhook/facebook",
+  "/api/v1/facebook/webhook",
+  "/api/v1/webhook/messenger",
+  "/api/v1/messenger/webhook",
+];
+
+const waWebhookPaths = [
+  "/webhook/whatsapp",
+  "/whatsapp/webhook",
+  "/webhooks/whatsapp",
+  "/api/webhook/whatsapp",
+  "/api/whatsapp/webhook",
+  "/api/v1/webhook/whatsapp",
+  "/api/v1/whatsapp/webhook",
+];
+
+const evoWebhookPaths = [
+  "/webhook/evolution",
+  "/webhooks/evolution",
+  "/whatsapp/webhook/evolution",
+  "/api/webhook/evolution",
+  "/api/v1/webhook/evolution",
+];
+
+igWebhookPaths.forEach((p) => {
+  app.get(p, verifyIgWebhook);
+  app.post(p, handleIgWebhookEvent);
+});
+
+fbWebhookPaths.forEach((p) => {
+  app.get(p, verifyFbWebhook);
+  app.post(p, handleFbWebhookEvent);
+});
+
+waWebhookPaths.forEach((p) => {
+  app.get(p, WhatsappController.verifyWebhook);
+  app.post(p, WhatsappController.receiveWebhook);
+});
+
+evoWebhookPaths.forEach((p) => {
+  app.post(p, WhatsappController.receiveEvolutionWebhook);
+});
+
+// Top-level Public OAuth Callback paths
+app.get(["/auth/instagram/callback", "/api/v1/auth/instagram/callback", "/api/auth/instagram/callback"], igOAuthCallback);
+app.get(["/auth/facebook/callback", "/api/v1/auth/facebook/callback", "/api/auth/facebook/callback"], fbOAuthCallback);
+app.get(["/auth/whatsapp/callback", "/api/v1/auth/whatsapp/callback", "/api/auth/whatsapp/callback"], WhatsappController.authWhatsAppCallback);
+
 app.use("/api/v1", MessengerRoutes);
 app.use("/api/v1", InstagramRoutes);
 app.use("/api/v1", WhatsappRoutes);
 
 // Routes
 app.use("/api", router);
-app.use("/uploads", uploadAuthMiddleware, express.static(uploadsPath));
-app.use("/api/uploads", uploadAuthMiddleware, express.static(uploadsPath));
+
+// Public static files
+app.use("/uploads", express.static(uploadsPath));
+app.use("/api/uploads", express.static(uploadsPath));
 
 // Health check (Liveness / Readiness)
 app.get("/health", (req, res) => {

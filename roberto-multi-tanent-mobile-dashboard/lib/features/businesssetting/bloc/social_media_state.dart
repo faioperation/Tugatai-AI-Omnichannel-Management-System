@@ -8,6 +8,7 @@ class SocialMediaState extends Equatable {
   final String? instagramConnectionId;
   final bool isWhatsAppConnected;
   final String? whatsappAccountId;
+  final String? whatsappConnectionType;
   final bool isGoogleCalendarConnected;
   final String? googleCalendarEmail;
   final String? error;
@@ -21,6 +22,7 @@ class SocialMediaState extends Equatable {
     this.instagramConnectionId,
     this.isWhatsAppConnected = false,
     this.whatsappAccountId,
+    this.whatsappConnectionType,
     this.isGoogleCalendarConnected = false,
     this.googleCalendarEmail,
     this.error,
@@ -35,6 +37,7 @@ class SocialMediaState extends Equatable {
     String? instagramConnectionId,
     bool? isWhatsAppConnected,
     String? whatsappAccountId,
+    String? whatsappConnectionType,
     bool? isGoogleCalendarConnected,
     String? googleCalendarEmail,
     String? error,
@@ -50,6 +53,7 @@ class SocialMediaState extends Equatable {
       instagramConnectionId: instagramConnectionId ?? this.instagramConnectionId,
       isWhatsAppConnected: isWhatsAppConnected ?? this.isWhatsAppConnected,
       whatsappAccountId: whatsappAccountId ?? this.whatsappAccountId,
+      whatsappConnectionType: whatsappConnectionType ?? this.whatsappConnectionType,
       isGoogleCalendarConnected: isGoogleCalendarConnected ?? this.isGoogleCalendarConnected,
       googleCalendarEmail: googleCalendarEmail ?? this.googleCalendarEmail,
       error: clearError ? null : (error ?? this.error),
@@ -66,6 +70,7 @@ class SocialMediaState extends Equatable {
         instagramConnectionId,
         isWhatsAppConnected,
         whatsappAccountId,
+        whatsappConnectionType,
         isGoogleCalendarConnected,
         googleCalendarEmail,
         error,

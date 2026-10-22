@@ -52,11 +52,37 @@ def build_candidates(bases: list, suffixes: list) -> list:
     return out
 
 
+def _is_route_not_found(resp: httpx.Response) -> bool:
+    """
+    Checks if a 404 response means the route doesn't exist on the server (safe to fall back),
+    or if the route DOES exist and handled the request (e.g. 'Business not found' in DB).
+    """
+    if resp.status_code != 404:
+        return False
+    try:
+        data = resp.json()
+        msg = str(data.get("message", "")).strip().lower()
+        # Express router 404 handler returns exactly {"success": false, "message": "Route Not Found"}
+        if msg == "route not found":
+            return True
+        # If the controller executed and returned another message (e.g. "Business ... not found"),
+        # the route exists and the controller handled it!
+        return False
+    except Exception:
+        pass
+
+    # HTML 404 page from proxy or web server
+    if "<html" in resp.text.lower():
+        return True
+
+    return False
+
+
 async def post_with_fallback(candidates: list, json: dict, headers: dict,
                              timeout: float = 10.0, log_tag: str = "HTTP"):
     """
     POST to each candidate in order. Stop on the first one that the server
-    actually handles. Only fall through on 404 or transport-level errors.
+    actually handles. Only fall through on true route-not-found (404) or transport-level errors.
 
     Returns the httpx.Response of the handling route, or None if every candidate
     was a 404 / unreachable.
@@ -67,12 +93,12 @@ async def post_with_fallback(candidates: list, json: dict, headers: dict,
             try:
                 resp = await client.post(url, json=json, headers=headers, timeout=timeout)
                 print(f"[{log_tag}] POST {url} -> {resp.status_code}")
-                if resp.status_code == 404:
+                if _is_route_not_found(resp):
                     # Route not found here — safe to try the next candidate.
                     last_resp = resp
                     continue
-                # Any other status means this route handled it (success or a real
-                # error). Do NOT retry elsewhere — that could duplicate data.
+                # Any other status (including 400, 422, 500, or a controller's 404
+                # such as 'Business not found') means this route handled it.
                 return resp
             except Exception as e:
                 # Never reached the server — safe to try the next candidate.
@@ -85,8 +111,7 @@ async def post_with_fallback(candidates: list, json: dict, headers: dict,
 async def get_with_fallback(candidates: list, headers: dict,
                             timeout: float = 10.0, log_tag: str = "HTTP"):
     """
-    GET variant. GETs are read-only and idempotent, so retrying is always safe;
-    we still stop at the first non-404 response.
+    GET variant. GETs are read-only and idempotent.
     Returns the handling response, or None if all were 404 / unreachable.
     """
     last_resp = None
@@ -95,7 +120,7 @@ async def get_with_fallback(candidates: list, headers: dict,
             try:
                 resp = await client.get(url, headers=headers, timeout=timeout)
                 print(f"[{log_tag}] GET {url} -> {resp.status_code}")
-                if resp.status_code == 404:
+                if _is_route_not_found(resp):
                     last_resp = resp
                     continue
                 return resp
@@ -103,4 +128,4 @@ async def get_with_fallback(candidates: list, headers: dict,
                 print(f"[{log_tag}] GET {url} failed transport: "
                       f"{type(e).__name__}: {e}")
                 continue
-    return last_resp
+    return last_resp

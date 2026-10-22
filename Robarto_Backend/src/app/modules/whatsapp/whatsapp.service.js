@@ -3,9 +3,45 @@ import { MetaGraphAPI } from "./whatsapp.meta.js";
 import { EvolutionAPI } from "./whatsapp.evolution.js";
 import { envVars } from "../../config/env.js";
 import { NotificationService } from "../notification/notification.service.js";
+import { saveBase64Media } from "../../utils/mediaDownloader.js";
+
+const stripMessageContextInfo = (raw) => {
+  if (!raw || typeof raw !== "object") return raw;
+  try {
+    const clone = JSON.parse(JSON.stringify(raw));
+    delete clone.messageContextInfo;
+
+    if (clone.message && typeof clone.message === "object") {
+      delete clone.message.messageContextInfo;
+      for (const k of Object.keys(clone.message)) {
+        if (clone.message[k] && typeof clone.message[k] === "object") {
+          delete clone.message[k].messageContextInfo;
+          if (clone.message[k].contextInfo) {
+            delete clone.message[k].contextInfo.messageContextInfo;
+          }
+        }
+      }
+    }
+    return clone;
+  } catch (err) {
+    return raw;
+  }
+};
 
 export const WhatsappService = {
   connectAccount: async (businessId, payload) => {
+    const branchId = payload.branchId || null;
+
+    // Automatically subscribe Meta App to WABA so incoming webhooks are routed immediately
+    if (payload.wabaId && payload.accessToken) {
+      try {
+        const subRes = await MetaGraphAPI.subscribeAppToWaba(payload.wabaId, payload.accessToken);
+        console.log(`✅ [WhatsApp Cloud API] Subscribed app to WABA ${payload.wabaId}:`, subRes);
+      } catch (subErr) {
+        console.warn(`⚠️ [WhatsApp Cloud API] Notice while subscribing WABA ${payload.wabaId}:`, subErr.response?.data || subErr.message);
+      }
+    }
+
     // Clean up any existing connection for this WhatsApp phone number under a DIFFERENT business
     await prisma.whatsappAccount.deleteMany({
       where: {
@@ -27,11 +63,11 @@ export const WhatsappService = {
         phoneNumber: payload.phoneNumber,
         accessToken: payload.accessToken,
         status: "ACTIVE",
-        branchId: payload.branchId || null,
+        branchId: branchId || null,
       },
       create: {
         businessId,
-        branchId: payload.branchId || null,
+        branchId: branchId || null,
         connectionType: "META_CLOUD_API",
         wabaId: payload.wabaId,
         phoneNumberId: payload.phoneNumberId,
@@ -42,9 +78,50 @@ export const WhatsappService = {
     });
   },
 
+  ensureWabaSubscribed: async (account) => {
+    if (!account?.wabaId || !account?.accessToken || account?.connectionType !== "META_CLOUD_API") {
+      return false;
+    }
+    try {
+      const res = await MetaGraphAPI.subscribeAppToWaba(account.wabaId, account.accessToken);
+      console.log(`✅ [WhatsApp Auto-Subscribe] Successfully verified/subscribed WABA ${account.wabaId}:`, res);
+      return true;
+    } catch (err) {
+      console.warn(`⚠️ [WhatsApp Auto-Subscribe] Notice subscribing WABA ${account.wabaId}:`, err.response?.data || err.message);
+      return false;
+    }
+  },
+
   connectQrAccount: async (businessId, branchId = null) => {
-    const instanceName = `biz_${businessId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16)}_${Date.now()}`;
+    const cleanBiz = businessId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16);
+    const cleanBranch = branchId ? branchId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8) : "main";
+    const instanceName = `biz_${cleanBiz}_${cleanBranch}`;
     const webhookUrl = envVars.EVOLUTION_WEBHOOK_URL || "http://backend:8001/api/v1/whatsapp/webhook/evolution";
+
+    // Clean up all old/timestamped instances for this business in Evolution API and DB
+    try {
+      const allInstances = await EvolutionAPI.fetchInstances();
+      const prefix = `biz_${cleanBiz}_`;
+      if (Array.isArray(allInstances)) {
+        for (const inst of allInstances) {
+          const name = inst.name || inst.instance?.instanceName || inst.instanceName;
+          if (name && name.startsWith(prefix) && name !== instanceName) {
+            console.log(`[EvolutionAPI] Cleaning up stale instance from Evolution API: ${name}`);
+            await EvolutionAPI.deleteInstance(name).catch(() => {});
+          }
+        }
+      }
+
+      await prisma.whatsappAccount.deleteMany({
+        where: {
+          businessId,
+          connectionType: "QR_CODE",
+          instanceName: { not: instanceName },
+        },
+      });
+    } catch (cleanErr) {
+      console.warn("[Evolution API] Error cleaning old instances:", cleanErr.message);
+    }
 
     // 1. Create or get instance from Evolution API
     const instanceData = await EvolutionAPI.createInstance(instanceName, webhookUrl);
@@ -72,7 +149,6 @@ export const WhatsappService = {
       update: {
         connectionType: "QR_CODE",
         branchId: branchId || null,
-        status: "INACTIVE",
         qrCode: qrCode || null,
       },
       create: {
@@ -94,18 +170,29 @@ export const WhatsappService = {
   },
 
   getQrCodeStatus: async (businessId, instanceName) => {
-    const account = await prisma.whatsappAccount.findFirst({
-      where: { businessId, instanceName },
-    });
+    let account = null;
+    if (instanceName) {
+      account = await prisma.whatsappAccount.findFirst({
+        where: { businessId, instanceName },
+      });
+    }
+
+    if (!account) {
+      account = await prisma.whatsappAccount.findFirst({
+        where: { businessId, connectionType: "QR_CODE" },
+        orderBy: { updatedAt: "desc" },
+      });
+    }
 
     if (!account) throw new Error("WhatsApp QR instance not found");
 
-    const state = await EvolutionAPI.getConnectionState(instanceName);
+    const targetInstance = account.instanceName || instanceName;
+    const state = await EvolutionAPI.getConnectionState(targetInstance);
 
     let qrCode = account.qrCode;
     if (state !== "open") {
       try {
-        const connectData = await EvolutionAPI.connectInstance(instanceName);
+        const connectData = await EvolutionAPI.connectInstance(targetInstance);
         qrCode = connectData.base64 || connectData.code || qrCode;
         if (qrCode !== account.qrCode) {
           await prisma.whatsappAccount.update({
@@ -127,6 +214,7 @@ export const WhatsappService = {
       connected: state === "open",
       state,
       qrCode: state === "open" ? null : qrCode,
+      instanceName: targetInstance,
     };
   },
 
@@ -159,6 +247,13 @@ export const WhatsappService = {
   },
 
   getConversations: async (businessId, branchId) => {
+    if (branchId) {
+      await prisma.whatsappAccount.updateMany({
+        where: { businessId, branchId: null },
+        data: { branchId },
+      }).catch(() => {});
+    }
+
     const whereClause = { businessId };
     if (branchId) {
       whereClause.whatsappAccount = { branchId };
@@ -166,7 +261,7 @@ export const WhatsappService = {
 
     const conversations = await prisma.whatsappConversation.findMany({
       where: whereClause,
-      include: { contact: true },
+      include: { contact: true, whatsappAccount: true },
       orderBy: { lastMessageAt: 'desc' },
     });
 
@@ -179,6 +274,7 @@ export const WhatsappService = {
       const summary = summaries.find((s) => s.conversationId === c.id);
       return {
         ...c,
+        branchId: c.whatsappAccount?.branchId || null,
         chatSummary: summary || null,
       };
     });
@@ -190,16 +286,58 @@ export const WhatsappService = {
       orderBy: { createdAt: "asc" },
     });
 
-    return messages.map(msg => {
+    const updatedMessages = [];
+    for (const msg of messages) {
+      // If mediaUrl is still an encrypted mmg.whatsapp.net URL, fetch decrypted base64 and save locally
+      if (
+        msg.mediaUrl &&
+        msg.mediaUrl.includes("mmg.whatsapp.net") &&
+        msg.rawPayload &&
+        msg.rawPayload.key
+      ) {
+        try {
+          const account = await prisma.whatsappAccount.findUnique({
+            where: { id: msg.whatsappAccountId },
+          });
+          if (account && account.instanceName) {
+            const mediaRes = await EvolutionAPI.getBase64FromMediaMessage(account.instanceName, msg.rawPayload.key);
+            if (mediaRes && mediaRes.base64) {
+              const mime = mediaRes.mimetype || "image/jpeg";
+              const saveRes = saveBase64Media(mediaRes.base64, mime, "whatsapp", "wa");
+              if (saveRes.success) {
+                msg.mediaUrl = saveRes.publicUrl;
+                await prisma.whatsappMessage.update({
+                  where: { id: msg.id },
+                  data: { mediaUrl: saveRes.publicUrl },
+                });
+              }
+            }
+          }
+        } catch (e) {
+          // ignore transient error
+        }
+      }
+
       if (
         msg.mediaUrl && 
         !msg.mediaUrl.startsWith("http://") && 
         !msg.mediaUrl.startsWith("https://")
       ) {
-        msg.mediaUrl = `${envVars.BACKEND_URL}/v1/whatsapp/media/${msg.mediaUrl}`;
+        if (msg.mediaUrl.startsWith("uploads/")) {
+          msg.mediaUrl = `${envVars.BACKEND_URL}/${msg.mediaUrl}`;
+        } else {
+          msg.mediaUrl = `${envVars.BACKEND_URL}/v1/whatsapp/media/${msg.mediaUrl}`;
+        }
       }
-      return msg;
-    });
+
+      if (msg.rawPayload) {
+        msg.rawPayload = stripMessageContextInfo(msg.rawPayload);
+      }
+
+      updatedMessages.push(msg);
+    }
+
+    return updatedMessages;
   },
 
   sendTextMessage: async (businessId, conversationId, messageText, continueAi = undefined) => {
@@ -210,14 +348,61 @@ export const WhatsappService = {
 
     if (!conversation) throw new Error("Conversation not found");
 
-    const account = conversation.whatsappAccount;
+    let account = conversation.whatsappAccount;
     const contact = conversation.contact;
+
+    if (!contact) throw new Error("Contact not found for this conversation");
+
+    // If conversation's linked account is inactive or disconnected, find the current ACTIVE account for this business
+    if (!account || account.status !== "ACTIVE") {
+      const activeAccount = await prisma.whatsappAccount.findFirst({
+        where: {
+          businessId,
+          status: "ACTIVE",
+          ...(account?.branchId ? { branchId: account.branchId } : {}),
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+      if (activeAccount) {
+        account = activeAccount;
+        await prisma.whatsappConversation.update({
+          where: { id: conversationId },
+          data: { whatsappAccountId: activeAccount.id },
+        });
+      }
+    }
+
+    if (!account) throw new Error("No active WhatsApp account found for this business. Please connect WhatsApp.");
 
     let metaMsgId = null;
 
     if (account.connectionType === "QR_CODE") {
+      let targetInstance = account.instanceName;
+      let state = await EvolutionAPI.getConnectionState(targetInstance);
+
+      if (state !== "open") {
+        const activeAccounts = await prisma.whatsappAccount.findMany({
+          where: { businessId, connectionType: "QR_CODE" },
+          orderBy: { updatedAt: "desc" },
+        });
+        for (const candidate of activeAccounts) {
+          if (candidate.instanceName && candidate.instanceName !== targetInstance) {
+            const candState = await EvolutionAPI.getConnectionState(candidate.instanceName);
+            if (candState === "open") {
+              targetInstance = candidate.instanceName;
+              account = candidate;
+              await prisma.whatsappConversation.update({
+                where: { id: conversationId },
+                data: { whatsappAccountId: candidate.id },
+              }).catch(() => {});
+              break;
+            }
+          }
+        }
+      }
+
       const evoRes = await EvolutionAPI.sendMessage(
-        account.instanceName,
+        targetInstance,
         contact.phoneNumber,
         messageText
       );
@@ -282,14 +467,60 @@ export const WhatsappService = {
 
     if (!conversation) throw new Error("Conversation not found");
 
-    const account = conversation.whatsappAccount;
+    let account = conversation.whatsappAccount;
     const contact = conversation.contact;
+
+    if (!contact) throw new Error("Contact not found for this conversation");
+
+    if (!account || account.status !== "ACTIVE") {
+      const activeAccount = await prisma.whatsappAccount.findFirst({
+        where: {
+          businessId,
+          status: "ACTIVE",
+          ...(account?.branchId ? { branchId: account.branchId } : {}),
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+      if (activeAccount) {
+        account = activeAccount;
+        await prisma.whatsappConversation.update({
+          where: { id: conversationId },
+          data: { whatsappAccountId: activeAccount.id },
+        });
+      }
+    }
+
+    if (!account) throw new Error("No active WhatsApp account found for this business. Please connect WhatsApp.");
 
     let metaMsgId = null;
 
     if (account.connectionType === "QR_CODE") {
+      let targetInstance = account.instanceName;
+      let state = await EvolutionAPI.getConnectionState(targetInstance);
+
+      if (state !== "open") {
+        const activeAccounts = await prisma.whatsappAccount.findMany({
+          where: { businessId, connectionType: "QR_CODE" },
+          orderBy: { updatedAt: "desc" },
+        });
+        for (const candidate of activeAccounts) {
+          if (candidate.instanceName && candidate.instanceName !== targetInstance) {
+            const candState = await EvolutionAPI.getConnectionState(candidate.instanceName);
+            if (candState === "open") {
+              targetInstance = candidate.instanceName;
+              account = candidate;
+              await prisma.whatsappConversation.update({
+                where: { id: conversationId },
+                data: { whatsappAccountId: candidate.id },
+              }).catch(() => {});
+              break;
+            }
+          }
+        }
+      }
+
       const evoRes = await EvolutionAPI.sendMedia(
-        account.instanceName,
+        targetInstance,
         contact.phoneNumber,
         type,
         mediaUrl
@@ -380,6 +611,15 @@ export const WhatsappService = {
     // 3. For each shared WABA, fetch phone numbers and save
     for (const waba of wabas) {
       const wabaId = waba.id;
+
+      // Automatically subscribe Meta App to shared WABA
+      try {
+        const subRes = await MetaGraphAPI.subscribeAppToWaba(wabaId, userAccessToken);
+        console.log(`✅ [WhatsApp Embedded Signup] Subscribed app to WABA ${wabaId}:`, subRes);
+      } catch (subErr) {
+        console.warn(`⚠️ [WhatsApp Embedded Signup] Notice while subscribing WABA ${wabaId}:`, subErr.response?.data || subErr.message);
+      }
+
       const phoneNumbers = await MetaGraphAPI.getWabaPhoneNumbers(wabaId, userAccessToken);
       
       if (phoneNumbers && phoneNumbers.length > 0) {

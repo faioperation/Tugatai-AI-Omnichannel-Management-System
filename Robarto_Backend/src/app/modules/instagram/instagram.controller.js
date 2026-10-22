@@ -21,7 +21,7 @@ export const authFacebook = async (req, res, next) => {
     const redirectUri = envVars.INSTAGRAM_REDIRECT_URI;
     const appId = envVars.META_APP_ID;
     // Scopes needed for Instagram Messaging via Facebook Page
-    const permissions = "pages_show_list,pages_messaging,pages_manage_metadata,instagram_manage_messages,business_management";
+    const permissions = "pages_show_list,pages_messaging,pages_manage_metadata,instagram_manage_messages,instagram_basic,business_management";
     
     // Using state to pass businessId and branchId to callback
     const state = JSON.stringify({ businessId, branchId });
@@ -93,18 +93,19 @@ export const authFacebookCallback = async (req, res, next) => {
           },
         });
 
-        // Check if connection exists for this instagram account and branch under the SAME business
+        // Check if connection exists for this instagram account under the SAME business
         const connection = await prisma.socialConnection.findFirst({
-          where: { businessId, pageId: igAccountId, provider: "instagram", branchId: branchId || null },
+          where: { businessId, pageId: igAccountId, provider: "instagram" },
         });
 
         if (connection) {
-          // Update existing connection
+          // Update existing connection with latest token and branchId
           await prisma.socialConnection.update({
             where: { id: connection.id },
             data: {
               accessToken: page.access_token, // We use the Facebook Page Token to interact with IG Graph API
               pageName: page.name + " (Instagram)",
+              branchId: branchId || connection.branchId || null,
               isActive: true,
             },
           });
@@ -113,19 +114,28 @@ export const authFacebookCallback = async (req, res, next) => {
           await prisma.socialConnection.create({
             data: {
               businessId,
-              branchId,
+              branchId: branchId || null,
               provider: "instagram",
               pageId: igAccountId,
               pageName: page.name + " (Instagram)",
               accessToken: page.access_token,
+              isActive: true,
             },
           });
+        }
+
+        // Sync any existing conversations for this business/platform to the branch
+        if (branchId) {
+          await prisma.conversation.updateMany({
+            where: { businessId, platform: "instagram" },
+            data: { branchId },
+          }).catch(() => {});
         }
         
         connectedInstagramAccounts.push({ id: igAccountId, name: page.name + " (Instagram)" });
 
-        // Automatically subscribe app to page webhook (which handles IG webhooks)
-        await subscribeAppToPage(page.id, page.access_token);
+        // Automatically subscribe app to page and instagram webhooks
+        await subscribeAppToPage(page.id, page.access_token, igAccountId);
       }
     }
 
@@ -308,6 +318,15 @@ export const checkConnectionStatus = async (req, res, next) => {
     });
 
     if (connections.length > 0) {
+      // Auto-refresh Meta webhook subscriptions in the background to ensure webhooks are active
+      connections.forEach((conn) => {
+        if (conn.accessToken && conn.pageId) {
+          subscribeAppToPage(conn.pageId, conn.accessToken, conn.pageId).catch((err) => {
+            console.warn(`[Instagram Auto-Sub] Warning for page ${conn.pageId}:`, err.message);
+          });
+        }
+      });
+
       const safeConnections = connections.map(({ accessToken, ...safe }) => safe);
       res.json({ success: true, connected: true, data: safeConnections });
     } else {

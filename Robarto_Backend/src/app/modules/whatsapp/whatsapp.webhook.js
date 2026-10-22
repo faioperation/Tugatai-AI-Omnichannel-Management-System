@@ -4,36 +4,52 @@ import { NotificationService } from "../notification/notification.service.js";
 import { isConversationLimitReached } from "../../utils/limitChecker.js";
 import { envVars } from "../../config/env.js";
 import { MetaGraphAPI } from "./whatsapp.meta.js";
-import { downloadAndSaveMedia } from "../../utils/mediaDownloader.js";
+import { EvolutionAPI } from "./whatsapp.evolution.js";
+import { downloadAndSaveMedia, saveBase64Media } from "../../utils/mediaDownloader.js";
 
 export const handleWebhookEvent = async (body) => {
   if (body.object === "whatsapp_business_account") {
+    console.log(`📡 [WhatsApp Webhook] Processing event for whatsapp_business_account. Entries: ${body.entry?.length || 0}`);
     for (const entry of body.entry) {
       for (const change of entry.changes) {
         if (change.value && change.value.messages) {
+          console.log(`📩 [WhatsApp Webhook] Incoming message event detected for field: ${change.field}`);
           await processIncomingMessages(change.value);
         }
         if (change.value && change.value.statuses) {
+          console.log(`📊 [WhatsApp Webhook] Incoming status update event detected for field: ${change.field}`);
           await processMessageStatuses(change.value);
         }
       }
     }
+  } else {
+    console.log(`ℹ️ [WhatsApp Webhook] Received webhook for non-WABA object: ${body?.object}`);
   }
 };
 
 const processIncomingMessages = async (value) => {
-  const phoneNumberId = value.metadata.phone_number_id;
+  const phoneNumberId = value.metadata?.phone_number_id;
   const contacts = value.contacts;
   const messages = value.messages;
 
-  if (!contacts || !messages) return;
+  console.log(`🔍 [WhatsApp Webhook] Processing incoming message. Phone Number ID: ${phoneNumberId}, Messages count: ${messages?.length || 0}`);
+
+  if (!contacts || !messages) {
+    console.warn(`⚠️ [WhatsApp Webhook] Missing contacts or messages array in payload.`);
+    return;
+  }
 
   // Find the WhatsApp Account by phone_number_id
   const account = await prisma.whatsappAccount.findFirst({
     where: { phoneNumberId, status: "ACTIVE" },
   });
 
-  if (!account) return;
+  if (!account) {
+    console.warn(`⚠️ [WhatsApp Webhook] No ACTIVE WhatsApp account found for phoneNumberId: ${phoneNumberId}. Skipping message.`);
+    return;
+  }
+
+  console.log(`✅ [WhatsApp Webhook] Matched account ${account.id} (Business: ${account.businessId}, Branch: ${account.branchId || "None"})`);
 
   const businessId = account.businessId;
 
@@ -180,13 +196,15 @@ const processIncomingMessages = async (value) => {
       if (type === "text") {
         aiMessage = text || "";
       } else if (type === "location" && location) {
-        aiMessage = `[Location: latitude ${location.latitude}, longitude ${location.longitude}]`;
+        const mapsUrl = `https://www.google.com/maps?q=${location.latitude},${location.longitude}`;
+        aiMessage = `[Location: ${mapsUrl}] Google Maps link: ${mapsUrl}`;
       } else if (mediaUrl) {
         const urlToSend = localMediaUrl || `${envVars.BACKEND_URL}/v1/whatsapp/media/${mediaUrl}`;
         aiMessage = `[Media ${type}: ${urlToSend}]`;
       }
 
       // Notify AI Agent of incoming WhatsApp message
+      console.log(`🤖 [WhatsApp Webhook] Notifying AI agent for user: ${waUserId}, message: "${aiMessage}"`);
       notifyAiAgent({
         businessId,
         recipientId: waUserId,
@@ -230,12 +248,35 @@ export const handleEvolutionWebhookEvent = async (body) => {
     });
   }
 
-  // Fallback by sender phone if instanceName lookup fails
+  // Fallback 1: Lookup by business prefix if instance has timestamp or branch variation
+  if (!account && instanceName && instanceName.startsWith("biz_")) {
+    const parts = instanceName.split("_");
+    const bizPrefix = parts[1];
+    if (bizPrefix) {
+      account = await prisma.whatsappAccount.findFirst({
+        where: {
+          businessId: { startsWith: bizPrefix },
+          connectionType: "QR_CODE",
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+    }
+  }
+
+  // Fallback 2: by sender phone if instanceName lookup fails
   if (!account && (body.sender || body.data?.wuid)) {
     const rawSender = body.sender || body.data?.wuid;
     const phone = rawSender.replace("@s.whatsapp.net", "").replace(/\D/g, "");
     account = await prisma.whatsappAccount.findFirst({
       where: { phoneNumber: phone, status: "ACTIVE" },
+    });
+  }
+
+  // Fallback 3: any active QR account if single business setup
+  if (!account) {
+    account = await prisma.whatsappAccount.findFirst({
+      where: { connectionType: "QR_CODE", status: "ACTIVE" },
+      orderBy: { updatedAt: "desc" },
     });
   }
 
@@ -317,6 +358,8 @@ export const handleEvolutionWebhookEvent = async (body) => {
       let text = null;
       let type = "text";
       let mediaUrl = null;
+      let localMediaUrl = null;
+      let location = null;
 
       const rawMsg = item.message || {};
       if (rawMsg.conversation) {
@@ -338,9 +381,67 @@ export const handleEvolutionWebhookEvent = async (body) => {
         type = "document";
         text = rawMsg.documentMessage.fileName || "document";
         mediaUrl = rawMsg.documentMessage.url || null;
+      } else if (rawMsg.stickerMessage) {
+        type = "sticker";
+        mediaUrl = rawMsg.stickerMessage.url || null;
+      } else if (rawMsg.locationMessage) {
+        type = "location";
+        const lat = rawMsg.locationMessage.degreesLatitude;
+        const lng = rawMsg.locationMessage.degreesLongitude;
+        const name = rawMsg.locationMessage.name || "";
+        const address = rawMsg.locationMessage.address || "";
+        const mapsUrl = rawMsg.locationMessage.url || `https://www.google.com/maps?q=${lat},${lng}`;
+        location = { latitude: lat, longitude: lng, name, address, url: mapsUrl };
+        text = mapsUrl;
+      } else if (rawMsg.liveLocationMessage) {
+        type = "location";
+        const lat = rawMsg.liveLocationMessage.degreesLatitude;
+        const lng = rawMsg.liveLocationMessage.degreesLongitude;
+        const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+        location = { latitude: lat, longitude: lng, url: mapsUrl };
+        text = mapsUrl;
       }
 
-      if (!text && !mediaUrl) continue;
+      if (["image", "video", "audio", "document", "sticker"].includes(type)) {
+        // 1. Check if Evolution API passed base64 directly in item
+        if (item.base64 || rawMsg.imageMessage?.jpegThumbnail) {
+          const directBase64 = item.base64 || rawMsg.imageMessage?.jpegThumbnail;
+          const mime = rawMsg.imageMessage?.mimetype || "image/jpeg";
+          const saveRes = saveBase64Media(directBase64, mime, "whatsapp", "wa");
+          if (saveRes.success) {
+            localMediaUrl = saveRes.publicUrl;
+          }
+        }
+
+        // 2. Fetch decrypted media base64 from Evolution API instance
+        if (!localMediaUrl && account.instanceName) {
+          try {
+            const mediaRes = await EvolutionAPI.getBase64FromMediaMessage(account.instanceName, key);
+            if (mediaRes && mediaRes.base64) {
+              const mime = mediaRes.mimetype || rawMsg.imageMessage?.mimetype || "image/jpeg";
+              const saveRes = saveBase64Media(mediaRes.base64, mime, "whatsapp", "wa");
+              if (saveRes.success) {
+                localMediaUrl = saveRes.publicUrl;
+              }
+            }
+          } catch (mediaErr) {
+            console.error("[Evolution Webhook] Error fetching decrypted media base64:", mediaErr.message);
+          }
+        }
+
+        // 3. Fallback: try download if standard HTTP link
+        if (!localMediaUrl && mediaUrl && (mediaUrl.startsWith("http://") || mediaUrl.startsWith("https://"))) {
+          try {
+            const dlRes = await downloadAndSaveMedia(mediaUrl, "whatsapp", "wa");
+            if (dlRes.success) {
+              localMediaUrl = dlRes.publicUrl;
+            }
+          } catch (dlErr) {}
+        }
+      }
+
+      const resolvedMediaUrl = localMediaUrl || mediaUrl || null;
+      if (!text && !resolvedMediaUrl && !location) continue;
 
       // Check conversation limit
       const existingContact = await prisma.whatsappContact.findUnique({
@@ -408,30 +509,66 @@ export const handleEvolutionWebhookEvent = async (body) => {
 
       const msgId = key.id || `evo_${Date.now()}`;
 
-      // Create incoming message record
-      await prisma.whatsappMessage.create({
-        data: {
-          businessId,
-          whatsappAccountId: account.id,
-          conversationId: conversation.id,
-          contactId: dbContact.id,
-          metaMessageId: msgId,
-          direction: "INCOMING",
-          type,
-          text,
-          mediaUrl,
-          rawPayload: item,
-          status: "DELIVERED",
-        },
+      // Prevent duplicate message processing if Evolution webhook sends duplicate events
+      const existingMessage = await prisma.whatsappMessage.findUnique({
+        where: { metaMessageId: msgId },
       });
+      if (existingMessage) {
+        console.log(`[Evolution Webhook] Duplicate message ${msgId} skipped.`);
+        continue;
+      }
 
-      // Update conversation last message ID
-      await prisma.whatsappConversation.update({
-        where: { id: conversation.id },
-        data: { lastMessageId: msgId },
-      });
+      let cleanRawPayload = item;
+      try {
+        const clone = JSON.parse(JSON.stringify(item));
+        delete clone.messageContextInfo;
+        if (clone.message && typeof clone.message === "object") {
+          delete clone.message.messageContextInfo;
+          for (const k of Object.keys(clone.message)) {
+            if (clone.message[k] && typeof clone.message[k] === "object") {
+              delete clone.message[k].messageContextInfo;
+              if (clone.message[k].contextInfo) {
+                delete clone.message[k].contextInfo.messageContextInfo;
+              }
+            }
+          }
+        }
+        cleanRawPayload = clone;
+      } catch (e) {}
 
-      console.log(`[Evolution Webhook] Saved incoming WhatsApp message from ${phoneNumber}: "${text}"`);
+      // Create incoming message record safely
+      try {
+        await prisma.whatsappMessage.create({
+          data: {
+            businessId,
+            whatsappAccountId: account.id,
+            conversationId: conversation.id,
+            contactId: dbContact.id,
+            metaMessageId: msgId,
+            direction: "INCOMING",
+            type,
+            text,
+            mediaUrl: resolvedMediaUrl,
+            location,
+            rawPayload: cleanRawPayload,
+            status: "DELIVERED",
+          },
+        });
+
+        // Update conversation last message ID
+        await prisma.whatsappConversation.update({
+          where: { id: conversation.id },
+          data: { lastMessageId: msgId },
+        });
+      } catch (err) {
+        if (err.code === "P2002" || err.message?.includes("Unique constraint")) {
+          console.log(`[Evolution Webhook] Duplicate meta_message_id ${msgId} detected during create. Skipping.`);
+          continue;
+        }
+        throw err;
+      }
+
+      console.log(`[Evolution Webhook] Saved incoming WhatsApp message from ${phoneNumber}: "${text || type}"`);
 
       // Send notifications
       NotificationService.shouldSendMessageNotification(conversation.id, "whatsapp").then((shouldNotify) => {
@@ -447,13 +584,26 @@ export const handleEvolutionWebhookEvent = async (body) => {
         }
       }).catch(err => console.error("Error checking throttling:", err));
 
+      // Construct AI message payload with full media URL and Google Maps location URL
+      let aiMessage = "";
+      if (type === "text") {
+        aiMessage = text || "";
+      } else if (type === "location" && location) {
+        const mapsUrl = location.url || `https://www.google.com/maps?q=${location.latitude},${location.longitude}`;
+        aiMessage = `[Location: ${mapsUrl}] Google Maps link: ${mapsUrl}`;
+      } else if (resolvedMediaUrl) {
+        aiMessage = `[Media ${type}: ${resolvedMediaUrl}]`;
+      } else {
+        aiMessage = text || `[Media ${type}]`;
+      }
+
       // Notify AI Agent
       notifyAiAgent({
         businessId,
         recipientId: waUserId,
         conversationId: conversation.id,
         channel: "whatsapp",
-        message: text || `[Media ${type}]`,
+        message: aiMessage,
       });
     }
   }

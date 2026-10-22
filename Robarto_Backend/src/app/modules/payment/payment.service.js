@@ -192,7 +192,7 @@ const processStripeWebhook = async (event) => {
         try {
           await sendEmail({
             to:           business.owner.email,
-            subject:      "Subscription Activated - Welcome to Robarto!",
+            subject:      "Subscription Activated - Welcome to Omnirra Ai!",
             templateName: "subscriptionSuccess",
             templateData: {
               name:         `${business.owner.firstName || ""} ${business.owner.lastName || ""}`.trim() || "Business Owner",

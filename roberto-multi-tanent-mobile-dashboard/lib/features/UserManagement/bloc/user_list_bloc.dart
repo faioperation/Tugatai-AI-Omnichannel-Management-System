@@ -27,5 +27,15 @@ class UserListBloc extends Bloc<UserListEvent, UserListState> {
         add(FetchAllUsers());
       }
     });
+
+    on<DeleteUserEvent>((event, emit) async {
+      emit(UserListLoading());
+      try {
+        await repository.deleteUser(event.userId);
+        add(FetchAllUsers());
+      } catch (e) {
+        emit(UserListError(e.toString()));
+      }
+    });
   }
 }

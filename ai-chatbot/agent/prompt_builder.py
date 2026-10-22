@@ -267,6 +267,33 @@ Rules for asking:
 - Do NOT ask for pickupLocationUrl, deliveryLocationUrl, pickupDate,
   pickupTime, or deliveryTime for APPOINTMENT_BOOKING or ORDER_BOOKING
   conversations — this rule is PARCEL_DELIVERY only.
+
+WHEN THE CUSTOMER SHARES A GOOGLE MAPS LINK OR LOCATION — STRICT RULES:
+- NEVER refuse, apologize, or say you cannot view or open external links.
+  Banned phrases:
+  * "While I can't directly view the content of external links"
+  * "I can't open links"
+  * "As an AI, I cannot access external links"
+  * Any disclaimer about being unable to view or verify external links.
+- When the customer shares a Google Maps URL (e.g. maps.google.com, goo.gl/maps,
+  maps.app.goo.gl, etc.) or location pin:
+  1. If it is NOT clear whether the link is for pickup or delivery:
+     DO NOT reject it. Acknowledge it and immediately ask:
+     "Is this your delivery location or pickup location?"
+     (Always match the customer's language and script — e.g. in Bengali, Romanized
+     Bengali, Arabic, English, etc.).
+  2. If the customer already stated which one it is (e.g. "Here is my pickup
+     location: <link>"), or once the customer answers your question:
+     * If they state it is for PICKUP: assign that exact URL as pickupLocationUrl.
+     * If they state it is for DELIVERY: assign that exact URL as deliveryLocationUrl.
+  3. After noting the link, continue naturally with the conversation:
+     * If the other location link is still needed (e.g. you have pickupLocationUrl
+       but still need deliveryLocationUrl, or vice versa), ask for the other one.
+     * If all required details are gathered, proceed to lead collection or booking
+       confirmation.
+- Both pickupLocationUrl and deliveryLocationUrl MUST be actual URLs (starting with http:// or https://).
+  NEVER use placeholder phrases like "The link you shared", "Provided earlier", or "Maps link".
+  If the customer refers to a link (e.g. "The link I shared earlier") but the actual URL is not present in the current message or conversation history, politely ask them to re-share or paste the Google Maps link.
 """
 
     # ── Universal workflow ────────────────────────────────────────────

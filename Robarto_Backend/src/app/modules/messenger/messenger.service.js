@@ -54,6 +54,7 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
   }
 
   const businessId = connection.businessId;
+  let branchId = connection.branchId || null;
 
   // Fetch customerName if conversation doesn't exist or is missing name
   const existingConv = await prisma.conversation.findUnique({
@@ -65,6 +66,26 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
       },
     },
   });
+
+  if (!branchId) {
+    if (existingConv?.branchId) {
+      branchId = existingConv.branchId;
+    } else {
+      const firstBranch = await prisma.branch.findFirst({
+        where: { businessId },
+        orderBy: { createdAt: "asc" },
+      });
+      if (firstBranch) {
+        branchId = firstBranch.id;
+      }
+    }
+    if (branchId) {
+      await prisma.socialConnection.update({
+        where: { id: connection.id },
+        data: { branchId },
+      }).catch(() => {});
+    }
+  }
 
   if (!existingConv) {
     const limitReached = await isConversationLimitReached(businessId);
@@ -100,13 +121,13 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
     update: {
       lastMessage: lastMessageContent,
       lastMessageAt: new Date(),
-      branchId: connection.branchId || null,
+      branchId: branchId || existingConv?.branchId || null,
       customerName: customerName || undefined,
       seen: false,
     },
     create: {
       businessId,
-      branchId: connection.branchId || null,
+      branchId: branchId || null,
       platform: "messenger",
       customerId: senderId,
       customerName: customerName || "Social Customer",
@@ -336,6 +357,18 @@ export const sendMediaMessageToUser = async (businessId, recipientId, type, medi
 };
 
 export const getConversations = async (businessId, branchId) => {
+  if (branchId) {
+    await prisma.conversation.updateMany({
+      where: { businessId, platform: "messenger", branchId: null },
+      data: { branchId },
+    }).catch(() => {});
+
+    await prisma.socialConnection.updateMany({
+      where: { businessId, provider: "facebook", branchId: null },
+      data: { branchId },
+    }).catch(() => {});
+  }
+
   const whereClause = { businessId, platform: "messenger" };
   if (branchId) {
     whereClause.branchId = branchId;
