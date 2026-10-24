@@ -10,6 +10,25 @@ import { downloadAndSaveMedia } from "../../utils/mediaDownloader.js";
 const getGraphUrl = () => `https://graph.facebook.com/${envVars.META_GRAPH_VERSION || "v23.0"}`;
 
 const getInstagramUserProfile = async (igsid, pageAccessToken) => {
+  // Method 1: Direct IGSID query (Official Meta Graph API endpoint for Instagram Messaging profiles)
+  try {
+    const directRes = await axios.get(`${getGraphUrl()}/${igsid}`, {
+      params: {
+        fields: "name,username,profile_pic",
+        access_token: pageAccessToken,
+      },
+      timeout: 6000,
+    });
+    const { name, username } = directRes.data || {};
+    const displayName = name || (username ? `@${username}` : null);
+    if (displayName) {
+      return { name: displayName, username: username || null };
+    }
+  } catch (err) {
+    console.warn("Direct Instagram user profile fetch failed, trying conversation fallback:", err.response?.data?.error?.message || err.message);
+  }
+
+  // Method 2: Fallback via /me/conversations participants
   try {
     const response = await axios.get(
       `${getGraphUrl()}/me/conversations`,
@@ -20,6 +39,7 @@ const getInstagramUserProfile = async (igsid, pageAccessToken) => {
           fields: "participants",
           access_token: pageAccessToken,
         },
+        timeout: 6000,
       }
     );
     const conversations = response.data?.data;
@@ -27,16 +47,17 @@ const getInstagramUserProfile = async (igsid, pageAccessToken) => {
       const participants = conversations[0].participants?.data;
       if (participants) {
         const customer = participants.find((p) => p.id === igsid);
-        if (customer && customer.name) {
-          return { name: customer.name };
+        const displayName = customer?.name || (customer?.username ? `@${customer.username}` : null);
+        if (displayName) {
+          return { name: displayName, username: customer?.username || null };
         }
       }
     }
-    return { name: "Instagram User" };
   } catch (error) {
-    console.error("Error fetching Instagram user profile from conversations:", error.response?.data || error.message);
-    return { name: "Instagram User" };
+    console.error("Error fetching Instagram user profile from conversations:", error.response?.data?.error?.message || error.message);
   }
+
+  return { name: "Instagram User" };
 };
 
 const extractMediaInfo = (messageObj) => {
