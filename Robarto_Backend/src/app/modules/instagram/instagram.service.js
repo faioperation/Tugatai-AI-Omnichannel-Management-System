@@ -567,10 +567,22 @@ export const syncInstagramConversationsFromMeta = async (businessId, branchId = 
           },
         });
       } else {
+        const updateData = {};
         if (!conversation.branchId && resolvedBranchId) {
+          updateData.branchId = resolvedBranchId;
+        }
+        if (
+          (!conversation.customerName || conversation.customerName === "Instagram User") &&
+          customerName &&
+          customerName !== "Instagram User"
+        ) {
+          updateData.customerName = customerName;
+          conversation.customerName = customerName;
+        }
+        if (Object.keys(updateData).length > 0) {
           await prisma.conversation.update({
             where: { id: conversation.id },
-            data: { branchId: resolvedBranchId },
+            data: updateData,
           });
         }
       }
@@ -668,6 +680,33 @@ export const syncInstagramConversationsFromMeta = async (businessId, branchId = 
           });
         }
       }
+    }
+
+    // Self-heal: Automatically update any existing "Instagram User" conversations
+    try {
+      const unnamedConversations = await prisma.conversation.findMany({
+        where: {
+          businessId,
+          platform: "instagram",
+          customerName: "Instagram User",
+        },
+        take: 10,
+      });
+
+      for (const unnamed of unnamedConversations) {
+        if (unnamed.customerId && !unnamed.customerId.startsWith("test_")) {
+          const profile = await getInstagramUserProfile(unnamed.customerId, connection.accessToken);
+          if (profile.name && profile.name !== "Instagram User") {
+            await prisma.conversation.update({
+              where: { id: unnamed.id },
+              data: { customerName: profile.name },
+            });
+            console.log(`[Instagram Sync] Successfully updated customerName for conversation ${unnamed.id} from "Instagram User" to "${profile.name}"`);
+          }
+        }
+      }
+    } catch (healErr) {
+      // Quiet fail if self-heal encounters an issue
     }
   } catch (error) {
     const errMsg = error.response?.data?.error?.message || error.message;
