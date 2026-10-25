@@ -134,7 +134,7 @@ class OrderMod {
     if (str.isEmpty) return null;
 
     // Check if it already matches formatted Qatar string "YYYY-MM-DD HH:mm:ss" without T or Z
-    if (RegExp(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}').test(str)) {
+    if (RegExp(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}').hasMatch(str)) {
       final clean = str.substring(0, 19);
       final parts = clean.split(' ');
       final dateParts = parts[0].split('-').map(int.parse).toList();
@@ -156,7 +156,7 @@ class OrderMod {
     if (str.isEmpty) return null;
 
     // If it is ALREADY formatted as "YYYY-MM-DD HH:mm:ss", return directly
-    if (RegExp(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$').test(str)) {
+    if (RegExp(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$').hasMatch(str)) {
       return str;
     }
 
