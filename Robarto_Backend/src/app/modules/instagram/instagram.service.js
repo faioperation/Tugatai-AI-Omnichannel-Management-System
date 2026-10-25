@@ -267,18 +267,26 @@ export const handleIncomingMessage = async (instagramAccountId, webhookEvent) =>
   const isMediaType = hasMedia || !!resolvedMediaUrl;
 
   // Save the message
-  await prisma.message.create({
-    data: {
-      conversationId: conversation.id,
-      senderType: "customer",
-      senderId: senderId,
-      messageText: messageText || (isMediaType ? "" : null),
-      platformMessageId: platformMessageId,
-      rawPayload: webhookEvent,
-      type: isMediaType ? (mediaType || "image") : "text",
-      mediaUrl: resolvedMediaUrl,
-    },
-  });
+  try {
+    await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        senderType: "customer",
+        senderId: senderId,
+        messageText: messageText || (isMediaType ? "" : null),
+        platformMessageId: platformMessageId,
+        rawPayload: webhookEvent,
+        type: isMediaType ? (mediaType || "image") : "text",
+        mediaUrl: resolvedMediaUrl,
+      },
+    });
+  } catch (err) {
+    if (err.code === "P2002" || err.message?.includes("Unique constraint")) {
+      console.log(`[Instagram Webhook] Duplicate platformMessageId ${platformMessageId} detected. Skipping AI.`);
+      return;
+    }
+    throw err;
+  }
 
   // Trigger notification for incoming Instagram message with throttling
   NotificationService.shouldSendMessageNotification(conversation.id, "instagram").then((shouldNotify) => {
@@ -652,23 +660,8 @@ export const syncInstagramConversationsFromMeta = async (businessId, branchId = 
             },
           });
 
-          // Trigger AI Agent reply if incoming customer message is recent
-          const msgAgeMs = Date.now() - new Date(msg.created_time).getTime();
-          if (isCustomer && msgAgeMs < 300000) {
-            let aiMessage = messageText || "";
-            if (!aiMessage && isMediaType) {
-              aiMessage = `[Media ${finalType}: ${resolvedMediaUrl || ""}]`;
-            }
-            if (aiMessage) {
-              notifyAiAgent({
-                businessId,
-                recipientId: customerId,
-                conversationId: conversation.id,
-                channel: "instagram",
-                message: aiMessage,
-              });
-            }
-          }
+          // Note: Background sync only syncs message records to DB. 
+          // AI reply is NOT triggered here to prevent unexpected/duplicate AI calls during dashboard loading.
         } else if ((!exists.mediaUrl || exists.type === "text") && isMediaType) {
           // Fix previously saved broken records
           await prisma.message.update({

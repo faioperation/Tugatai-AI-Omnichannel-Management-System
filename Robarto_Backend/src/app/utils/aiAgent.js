@@ -2,6 +2,10 @@ import axios from "axios";
 import prisma from "../prisma/client.js";
 import { envVars } from "../config/env.js";
 
+// In-flight request tracking & recent message deduplication to prevent duplicate AI calls
+const inFlightAiRequests = new Set();
+const recentAiMessages = new Map(); // key: `${lockKey}:${messageText}`, value: timestamp
+
 export const notifyAiAgent = async ({
   businessId,
   recipientId,
@@ -9,6 +13,36 @@ export const notifyAiAgent = async ({
   channel,
   message
 }) => {
+  const lockKey = conversationId || `${channel}:${recipientId}`;
+  const normalizedMessage = (message || "").trim();
+  const dedupKey = `${lockKey}:${normalizedMessage}`;
+
+  // 1. In-flight check: if an AI request is already in-progress for this conversation, skip duplicate
+  if (inFlightAiRequests.has(lockKey)) {
+    console.log(`[AI Agent] An AI request for conversation ${lockKey} is already in-flight. Skipping duplicate call.`);
+    return;
+  }
+
+  // 2. Rapid duplicate check: if the exact same message was sent to this conversation in the last 4 seconds, skip
+  if (normalizedMessage) {
+    const lastTime = recentAiMessages.get(dedupKey);
+    if (lastTime && Date.now() - lastTime < 4000) {
+      console.log(`[AI Agent] Duplicate message detected within 4s for conversation ${lockKey}. Skipping AI call.`);
+      return;
+    }
+    recentAiMessages.set(dedupKey, Date.now());
+
+    // Clean up old entries when map grows
+    if (recentAiMessages.size > 500) {
+      const now = Date.now();
+      for (const [k, v] of recentAiMessages.entries()) {
+        if (now - v > 10000) recentAiMessages.delete(k);
+      }
+    }
+  }
+
+  inFlightAiRequests.add(lockKey);
+
   try {
     const apiBaseUrl = envVars.AI_API_TAREQ;
     if (!apiBaseUrl) {
@@ -32,8 +66,8 @@ export const notifyAiAgent = async ({
           include: { whatsappAccount: true }
         });
         if (waConv) {
-          if (!waConv.aiReply) {
-            console.log(`[AI Agent] AI reply is disabled (aiReply is false) for Whatsapp conversation ${conversationId}. Skipping AI notification.`);
+          if (!waConv.aiReply || waConv.continueAi === false) {
+            console.log(`[AI Agent] AI reply is disabled or paused (aiReply: ${waConv.aiReply}, continueAi: ${waConv.continueAi}) for Whatsapp conversation ${conversationId}. Skipping AI notification.`);
             return;
           }
           if (waConv.whatsappAccount) {
@@ -45,8 +79,8 @@ export const notifyAiAgent = async ({
           where: { id: conversationId }
         });
         if (conv) {
-          if (!conv.aiReply) {
-            console.log(`[AI Agent] AI reply is disabled (aiReply is false) for ${channel} conversation ${conversationId}. Skipping AI notification.`);
+          if (!conv.aiReply || conv.continueAi === false) {
+            console.log(`[AI Agent] AI reply is disabled or paused (aiReply: ${conv.aiReply}, continueAi: ${conv.continueAi}) for ${channel} conversation ${conversationId}. Skipping AI notification.`);
             return;
           }
           branchId = conv.branchId;
@@ -203,5 +237,8 @@ export const notifyAiAgent = async ({
       "[AI Agent] Error in notifyAiAgent:",
       error.response?.data ? JSON.stringify(error.response.data, null, 2) : error.message
     );
+  } finally {
+    inFlightAiRequests.delete(lockKey);
   }
 };
+
