@@ -36,11 +36,15 @@ FROM node:20-alpine
 WORKDIR /usr/src/app
 
 ENV NODE_ENV=production
+ENV TZ=Asia/Qatar
 
 RUN apk add --no-cache \
     postgresql-client \
     tini \
-    curl
+    curl \
+    tzdata \
+    && cp /usr/share/zoneinfo/Asia/Qatar /etc/localtime \
+    && echo "Asia/Qatar" > /etc/timezone
 
 COPY --from=builder /usr/src/app ./
 

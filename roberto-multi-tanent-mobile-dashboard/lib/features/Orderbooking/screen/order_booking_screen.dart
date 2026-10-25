@@ -331,7 +331,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   // Calendar State
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  String _parcelCalendarMode = 'pickup'; // 'pickup' or 'delivery'
+  String _parcelCalendarMode = 'all'; // 'all', 'pickup' or 'delivery'
 
   @override
   void initState() {
@@ -399,9 +399,9 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       productType: _selectedProductType == 'All types' ? '' : _selectedProductType,
       search: _searchQuery,
       page: page,
-      limit: _itemsPerPage,
-      startDate: range['startDate'] ?? '',
-      endDate: range['endDate'] ?? '',
+      limit: selectedIndex == 1 ? 500 : _itemsPerPage,
+      startDate: selectedIndex == 1 ? '' : (range['startDate'] ?? ''),
+      endDate: selectedIndex == 1 ? '' : (range['endDate'] ?? ''),
     ));
   }
 
@@ -1441,7 +1441,28 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () => setState(() => selectedIndex = index),
+        onTap: () {
+          if (selectedIndex != index) {
+            setState(() => selectedIndex = index);
+            if (index == 1) {
+              // Load all bookings for calendar view
+              context.read<BookingBloc>().add(GetBookings(
+                branchId: _getBranchId(),
+                status: '',
+                country: '',
+                productType: '',
+                search: '',
+                page: 1,
+                limit: 500,
+                startDate: '',
+                endDate: '',
+              ));
+            } else {
+              // Restore table filters and pagination
+              _fetchPage(_currentPage);
+            }
+          }
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -1577,22 +1598,42 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
   List<OrderMod> _getOrdersForDay(DateTime day, String? bType) {
     final isParcel = _isParcelDelivery(bType);
     return _orders.where((o) {
-      DateTime? orderDate;
       if (isParcel) {
+        final pDate = _parseDateString(o.pickupDate);
+        final dDate = _parseDateString(o.deliveryDate);
+        final cDate = _parseDateString(o.calenderDate);
+
+        final matchesPickup = pDate != null &&
+            pDate.year == day.year &&
+            pDate.month == day.month &&
+            pDate.day == day.day;
+
+        final matchesDelivery = dDate != null &&
+            dDate.year == day.year &&
+            dDate.month == day.month &&
+            dDate.day == day.day;
+
+        final matchesCalendar = cDate != null &&
+            cDate.year == day.year &&
+            cDate.month == day.month &&
+            cDate.day == day.day;
+
         if (_parcelCalendarMode == 'pickup') {
-          orderDate = _parseDateString(o.pickupDate);
+          return matchesPickup || (pDate == null && (matchesDelivery || matchesCalendar));
+        } else if (_parcelCalendarMode == 'delivery') {
+          return matchesDelivery || (dDate == null && (matchesPickup || matchesCalendar));
         } else {
-          orderDate = _parseDateString(o.deliveryDate);
+          return matchesPickup || matchesDelivery || matchesCalendar;
         }
       } else {
-        orderDate = _parseDateString(o.calenderDate) ??
+        final orderDate = _parseDateString(o.calenderDate) ??
             _parseDateString(o.deliveryDate) ??
             _parseDateString(o.appointmentDate);
+        return orderDate != null &&
+            orderDate.year == day.year &&
+            orderDate.month == day.month &&
+            orderDate.day == day.day;
       }
-      return orderDate != null &&
-          orderDate.year == day.year &&
-          orderDate.month == day.month &&
-          orderDate.day == day.day;
     }).toList();
   }
 
@@ -1632,12 +1673,22 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
           // Header
           LayoutBuilder(
             builder: (context, headerConstraints) {
-              final isHeaderStacked = headerConstraints.maxWidth < 450;
+              final isHeaderStacked = headerConstraints.maxWidth < 650;
+              final titleAndToggle = Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  _buildCalendarTitle(theme, title),
+                  if (_isParcelDelivery(bType))
+                    _buildParcelModeToggle(theme, isDark),
+                ],
+              );
               return isHeaderStacked
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildCalendarTitle(theme, title),
+                        titleAndToggle,
                         const SizedBox(height: 16),
                         _buildCalendarNav(theme, isDark),
                       ],
@@ -1645,7 +1696,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildCalendarTitle(theme, title),
+                        titleAndToggle,
                         _buildCalendarNav(theme, isDark),
                       ],
                     );
@@ -1852,11 +1903,14 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       timeStr = o.calenderTime;
     } else if (isParcel) {
       if (_parcelCalendarMode == 'pickup') {
-        date = _parseDateString(o.pickupDate);
-        timeStr = o.pickupTime;
+        date = _parseDateString(o.pickupDate) ?? _parseDateString(o.deliveryDate) ?? _parseDateString(o.calenderDate);
+        timeStr = o.pickupTime ?? o.deliveryTime ?? o.calenderTime;
+      } else if (_parcelCalendarMode == 'delivery') {
+        date = _parseDateString(o.deliveryDate) ?? _parseDateString(o.pickupDate) ?? _parseDateString(o.calenderDate);
+        timeStr = o.deliveryTime ?? o.pickupTime ?? o.calenderTime;
       } else {
-        date = _parseDateString(o.deliveryDate);
-        timeStr = o.deliveryTime;
+        date = _parseDateString(o.deliveryDate) ?? _parseDateString(o.pickupDate) ?? _parseDateString(o.calenderDate);
+        timeStr = o.deliveryTime ?? o.pickupTime ?? o.calenderTime;
       }
     } else if (o.bookingType == 'Appointment Booking') {
       date = _parseDateString(o.appointmentDate);
@@ -1909,6 +1963,19 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          _buildToggleOption(
+            label: 'All',
+            isSelected: _parcelCalendarMode == 'all',
+            onTap: () {
+              if (_parcelCalendarMode != 'all') {
+                setState(() {
+                  _parcelCalendarMode = 'all';
+                });
+              }
+            },
+            theme: theme,
+          ),
+          const SizedBox(width: 4),
           _buildToggleOption(
             label: 'Pickup',
             isSelected: _parcelCalendarMode == 'pickup',
@@ -2002,7 +2069,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
 
     final totalEvents = filteredOrders.length;
     final scheduledText = isParcel
-        ? '$totalEvents scheduled ${_parcelCalendarMode == 'pickup' ? 'pickups' : 'deliveries'}'
+        ? '$totalEvents scheduled (${_parcelCalendarMode == 'pickup' ? 'pickups' : (_parcelCalendarMode == 'delivery' ? 'deliveries' : 'parcels')})'
         : '$totalEvents scheduled items';
 
     return Column(
@@ -2050,7 +2117,7 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
                   const SizedBox(height: 12),
                   Text(
                     isParcel
-                        ? 'No ${_parcelCalendarMode == 'pickup' ? 'pickups' : 'deliveries'} scheduled for this date'
+                        ? 'No ${_parcelCalendarMode == 'pickup' ? 'pickups' : (_parcelCalendarMode == 'delivery' ? 'deliveries' : 'parcels')} scheduled for this date'
                         : 'No orders or events scheduled for this date',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: theme.hintColor, fontSize: 13),
@@ -2145,12 +2212,20 @@ class _OrderBookingScreenState extends State<OrderBookingScreen> {
     if (order.calenderTime != null && order.calenderTime!.isNotEmpty) {
       timeDisplay = order.calenderTime!;
     } else if (isParcel) {
+      final pText = (order.pickupDate != null && order.pickupDate!.isNotEmpty) || (order.pickupTime != null && order.pickupTime!.isNotEmpty)
+          ? 'Pickup: ${order.pickupDate ?? ""} ${order.pickupTime ?? ""}'.trim()
+          : null;
+      final dText = (order.deliveryDate != null && order.deliveryDate!.isNotEmpty) || (order.deliveryTime != null && order.deliveryTime!.isNotEmpty)
+          ? 'Delivery: ${order.deliveryDate ?? ""} ${order.deliveryTime ?? ""}'.trim()
+          : null;
+
       if (_parcelCalendarMode == 'pickup') {
-        timeDisplay = 'Pickup: ${order.pickupDate ?? ""} ${order.pickupTime ?? ""}'.trim();
-        if (timeDisplay == 'Pickup:') timeDisplay = 'Pickup: N/A';
+        timeDisplay = pText ?? dText ?? 'Pickup: N/A';
+      } else if (_parcelCalendarMode == 'delivery') {
+        timeDisplay = dText ?? pText ?? 'Delivery: N/A';
       } else {
-        timeDisplay = 'Delivery: ${order.deliveryDate ?? ""} ${order.deliveryTime ?? ""}'.trim();
-        if (timeDisplay == 'Delivery:') timeDisplay = 'Delivery: N/A';
+        timeDisplay = [pText, dText].where((e) => e != null).join(' | ');
+        if (timeDisplay.isEmpty) timeDisplay = 'N/A';
       }
     }
     return Container(

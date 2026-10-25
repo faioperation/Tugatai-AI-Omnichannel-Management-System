@@ -1,3 +1,4 @@
+process.env.TZ = "Asia/Qatar";
 import { Worker } from "bullmq";
 import { redisConnection } from "./campaign.queue.js";
 import { CampaignService } from "./campaign.service.js";

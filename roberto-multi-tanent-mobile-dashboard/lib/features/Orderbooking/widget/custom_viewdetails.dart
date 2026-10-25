@@ -79,6 +79,19 @@ class CustomViewdetails extends StatelessWidget {
           displayValue = displayValue.toUpperCase();
         }
 
+        // Convert any ISO timestamp (createdAt, updatedAt, deletedAt, etc.) to Qatar Time (UTC+3)
+        if (lowerKey == 'createdat' ||
+            lowerKey == 'updatedat' ||
+            lowerKey == 'deletedat' ||
+            lowerKey.endsWith('at') ||
+            (displayValue.contains('T') && (displayValue.endsWith('Z') || displayValue.contains('+')))) {
+          final dt = DateTime.tryParse(displayValue);
+          if (dt != null) {
+            final qatarDt = dt.toUtc().add(const Duration(hours: 3));
+            displayValue = DateFormat('yyyy-MM-dd HH:mm:ss').format(qatarDt);
+          }
+        }
+
         final isUrl = displayValue.startsWith('http://') ||
             displayValue.startsWith('https://') ||
             displayValue.startsWith('www.') ||
@@ -993,6 +1006,17 @@ class CustomViewdetails extends StatelessWidget {
                                 lowerKey.contains('mode') ||
                                 lowerKey.contains('status')) {
                               valueStr = valueStr.toUpperCase();
+                            }
+                            if (lowerKey == 'createdat' ||
+                                lowerKey == 'updatedat' ||
+                                lowerKey == 'deletedat' ||
+                                lowerKey.endsWith('at') ||
+                                (valueStr.contains('T') && (valueStr.endsWith('Z') || valueStr.contains('+')))) {
+                              final dt = DateTime.tryParse(valueStr);
+                              if (dt != null) {
+                                final qatarDt = dt.toUtc().add(const Duration(hours: 3));
+                                valueStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(qatarDt);
+                              }
                             }
                             return _buildPdfRow(formatKeyName(e.key), valueStr);
                           })

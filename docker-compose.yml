@@ -12,6 +12,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: Asia/Qatar
+      PGTZ: Asia/Qatar
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -57,6 +59,7 @@ services:
       - ./Robarto_Backend/.env.production
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      TZ: Asia/Qatar
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       DB_HOST: postgres
       DB_PORT: 5432
@@ -86,6 +89,7 @@ services:
       - ./Robarto_Backend/.env.production
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      TZ: Asia/Qatar
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
     command:
       - node

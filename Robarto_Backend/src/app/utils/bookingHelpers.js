@@ -376,21 +376,37 @@ export const attachDetails = async (txOrPrisma, bookings) => {
     return isArray ? formatted : formatted[0];
 };
 
+export const getQatarDate = (date = new Date()) => {
+    const d = date instanceof Date ? date : new Date(date);
+    if (isNaN(d.getTime())) return new Date();
+    const qatarStr = d.toLocaleString("en-US", { timeZone: "Asia/Qatar" });
+    return new Date(qatarStr);
+};
+
 export const normalizeDateString = (dateStr) => {
     if (!dateStr) return null;
     const trimmed = dateStr.trim();
     
     // Check if the value is "today" (case insensitive)
     if (trimmed.toLowerCase() === "today") {
-        const today = new Date();
+        const today = getQatarDate();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, "0");
         const day = String(today.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`;
     }
+
+    if (trimmed.toLowerCase() === "tomorrow") {
+        const tomorrow = getQatarDate();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const year = tomorrow.getFullYear();
+        const month = String(tomorrow.getMonth() + 1).padStart(2, "0");
+        const day = String(tomorrow.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    }
     
     if (trimmed.toLowerCase().includes("today")) {
-        const today = new Date();
+        const today = getQatarDate();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, "0");
         const day = String(today.getDate()).padStart(2, "0");
@@ -403,8 +419,8 @@ export const normalizeDateString = (dateStr) => {
         return trimmed;
     }
     
-    // Try to parse using JS Date
-    const parsed = new Date(trimmed);
+    // Try to parse using JS Date in Qatar Time
+    const parsed = getQatarDate(trimmed);
     if (!isNaN(parsed.getTime())) {
         const year = parsed.getFullYear();
         const month = String(parsed.getMonth() + 1).padStart(2, "0");
