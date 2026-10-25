@@ -127,19 +127,41 @@ class OrderMod {
 
   static DateTime? parseToQatarTime(dynamic value) {
     if (value == null) return null;
-    DateTime? dt;
     if (value is DateTime) {
-      dt = value;
-    } else {
-      dt = DateTime.tryParse(value.toString());
+      return value.toUtc().add(const Duration(hours: 3));
     }
+    final str = value.toString().trim();
+    if (str.isEmpty) return null;
+
+    // Check if it already matches formatted Qatar string "YYYY-MM-DD HH:mm:ss" without T or Z
+    if (RegExp(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}').test(str)) {
+      final clean = str.substring(0, 19);
+      final parts = clean.split(' ');
+      final dateParts = parts[0].split('-').map(int.parse).toList();
+      final timeParts = parts[1].split(':').map(int.parse).toList();
+      return DateTime.utc(dateParts[0], dateParts[1], dateParts[2], timeParts[0], timeParts[1], timeParts[2]);
+    }
+
+    // Try parsing ISO string
+    DateTime? dt = DateTime.tryParse(str);
     if (dt == null) return null;
+
+    // Always convert from UTC to Qatar Time (UTC+3)
     return dt.toUtc().add(const Duration(hours: 3));
   }
 
   static String? formatToQatarString(dynamic value) {
+    if (value == null) return null;
+    final str = value.toString().trim();
+    if (str.isEmpty) return null;
+
+    // If it is ALREADY formatted as "YYYY-MM-DD HH:mm:ss", return directly
+    if (RegExp(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$').test(str)) {
+      return str;
+    }
+
     final dt = parseToQatarTime(value);
-    if (dt == null) return null;
+    if (dt == null) return str;
     final y = dt.year.toString().padLeft(4, '0');
     final m = dt.month.toString().padLeft(2, '0');
     final d = dt.day.toString().padLeft(2, '0');

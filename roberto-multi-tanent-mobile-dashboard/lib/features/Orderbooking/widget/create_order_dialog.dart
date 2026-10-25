@@ -819,7 +819,9 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                                   Text('Created At', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface)),
                                   const SizedBox(height: 8),
                                   Text(
-                                    widget.order!.createdAt != null ? DateFormat('yyyy-MM-dd hh:mm a').format(widget.order!.createdAt!) : (widget.order!.rawAdditionalDetails['createdAt']?.toString() ?? 'N/A'),
+                                    widget.order!.createdAt != null
+                                      ? DateFormat('yyyy-MM-dd hh:mm a').format(widget.order!.createdAt!)
+                                      : (OrderMod.formatToQatarString(widget.order!.rawAdditionalDetails['createdAt']) ?? 'N/A'),
                                     style: TextStyle(fontSize: 14, color: theme.hintColor),
                                   ),
                                 ],
@@ -835,11 +837,7 @@ class _CreateOrderDialogState extends State<CreateOrderDialog> {
                                   Text(
                                     widget.order!.updatedAt != null
                                       ? DateFormat('yyyy-MM-dd hh:mm a').format(widget.order!.updatedAt!)
-                                      : (widget.order!.rawAdditionalDetails['updatedAt'] != null 
-                                          ? (DateTime.tryParse(widget.order!.rawAdditionalDetails['updatedAt'].toString()) != null 
-                                              ? DateFormat('yyyy-MM-dd hh:mm a').format(DateTime.tryParse(widget.order!.rawAdditionalDetails['updatedAt'].toString())!.toUtc().add(const Duration(hours: 3)))
-                                              : widget.order!.rawAdditionalDetails['updatedAt'].toString())
-                                          : 'N/A'),
+                                      : (OrderMod.formatToQatarString(widget.order!.rawAdditionalDetails['updatedAt']) ?? 'N/A'),
                                     style: TextStyle(fontSize: 14, color: theme.hintColor),
                                   ),
                                 ],

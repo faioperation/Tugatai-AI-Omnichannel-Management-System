@@ -85,10 +85,9 @@ class CustomViewdetails extends StatelessWidget {
             lowerKey == 'deletedat' ||
             lowerKey.endsWith('at') ||
             (displayValue.contains('T') && (displayValue.endsWith('Z') || displayValue.contains('+')))) {
-          final dt = DateTime.tryParse(displayValue);
-          if (dt != null) {
-            final qatarDt = dt.toUtc().add(const Duration(hours: 3));
-            displayValue = DateFormat('yyyy-MM-dd HH:mm:ss').format(qatarDt);
+          final qatarFormatted = OrderMod.formatToQatarString(displayValue);
+          if (qatarFormatted != null) {
+            displayValue = qatarFormatted;
           }
         }
 
@@ -1012,10 +1011,9 @@ class CustomViewdetails extends StatelessWidget {
                                 lowerKey == 'deletedat' ||
                                 lowerKey.endsWith('at') ||
                                 (valueStr.contains('T') && (valueStr.endsWith('Z') || valueStr.contains('+')))) {
-                              final dt = DateTime.tryParse(valueStr);
-                              if (dt != null) {
-                                final qatarDt = dt.toUtc().add(const Duration(hours: 3));
-                                valueStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(qatarDt);
+                              final qatarFormatted = OrderMod.formatToQatarString(valueStr);
+                              if (qatarFormatted != null) {
+                                valueStr = qatarFormatted;
                               }
                             }
                             return _buildPdfRow(formatKeyName(e.key), valueStr);
