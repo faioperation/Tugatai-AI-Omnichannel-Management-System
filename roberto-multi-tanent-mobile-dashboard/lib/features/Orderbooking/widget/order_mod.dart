@@ -17,6 +17,8 @@ class OrderMod {
   final String? note;
   final OrderStatus status;
   final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
   final String? conversationId;
   
   // Payment Details
@@ -73,6 +75,8 @@ class OrderMod {
     this.note,
     required this.status,
     this.createdAt,
+    this.updatedAt,
+    this.deletedAt,
     this.conversationId,
     this.paymentMethod,
     this.paymentStatus,
@@ -119,6 +123,52 @@ class OrderMod {
     final g = (hash & 0x00FF00) >> 8;
     final b = (hash & 0x0000FF);
     return Color.fromARGB(255, 100 + (r % 155), 100 + (g % 155), 100 + (b % 155));
+  }
+
+  static DateTime? parseToQatarTime(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) {
+      return value.toUtc().add(const Duration(hours: 3));
+    }
+    final str = value.toString().trim();
+    if (str.isEmpty) return null;
+
+    // Check if it already matches formatted Qatar string "YYYY-MM-DD HH:mm:ss" without T or Z
+    if (RegExp(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}').hasMatch(str)) {
+      final clean = str.substring(0, 19);
+      final parts = clean.split(' ');
+      final dateParts = parts[0].split('-').map(int.parse).toList();
+      final timeParts = parts[1].split(':').map(int.parse).toList();
+      return DateTime.utc(dateParts[0], dateParts[1], dateParts[2], timeParts[0], timeParts[1], timeParts[2]);
+    }
+
+    // Try parsing ISO string
+    DateTime? dt = DateTime.tryParse(str);
+    if (dt == null) return null;
+
+    // Always convert from UTC to Qatar Time (UTC+3)
+    return dt.toUtc().add(const Duration(hours: 3));
+  }
+
+  static String? formatToQatarString(dynamic value) {
+    if (value == null) return null;
+    final str = value.toString().trim();
+    if (str.isEmpty) return null;
+
+    // If it is ALREADY formatted as "YYYY-MM-DD HH:mm:ss", return directly
+    if (RegExp(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$').hasMatch(str)) {
+      return str;
+    }
+
+    final dt = parseToQatarTime(value);
+    if (dt == null) return str;
+    final y = dt.year.toString().padLeft(4, '0');
+    final m = dt.month.toString().padLeft(2, '0');
+    final d = dt.day.toString().padLeft(2, '0');
+    final h = dt.hour.toString().padLeft(2, '0');
+    final min = dt.minute.toString().padLeft(2, '0');
+    final s = dt.second.toString().padLeft(2, '0');
+    return '$y-$m-$d $h:$min:$s';
   }
 
   factory OrderMod.fromJson(Map<String, dynamic> json) {
@@ -171,6 +221,25 @@ class OrderMod {
       detailsMap.addAll(orderDetails);
     }
 
+    // Format createdAt, updatedAt, deletedAt in Qatar Time (AST, UTC+3)
+    final qatarCreated = formatToQatarString(json['createdAt'] ?? detailsMap['createdAt']);
+    if (qatarCreated != null) detailsMap['createdAt'] = qatarCreated;
+
+    final qatarUpdated = formatToQatarString(json['updatedAt'] ?? detailsMap['updatedAt']);
+    if (qatarUpdated != null) detailsMap['updatedAt'] = qatarUpdated;
+
+    final qatarDeleted = formatToQatarString(json['deletedAt'] ?? detailsMap['deletedAt']);
+    if (qatarDeleted != null) detailsMap['deletedAt'] = qatarDeleted;
+
+    // Convert any other ISO timestamp in detailsMap to Qatar Time
+    for (final entry in detailsMap.entries.toList()) {
+      final val = entry.value?.toString() ?? '';
+      if (val.contains('T') && (val.endsWith('Z') || val.contains('+'))) {
+        final qVal = formatToQatarString(val);
+        if (qVal != null) detailsMap[entry.key] = qVal;
+      }
+    }
+
     return OrderMod(
       orderId: json['id'] ?? '',
       customerName: json['customerName'] ?? 'Unknown',
@@ -179,7 +248,9 @@ class OrderMod {
       price: json['price']?.toString() ?? '0',
       note: json['note'],
       status: parsedStatus,
-      createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null,
+      createdAt: json['createdAt'] != null ? parseToQatarTime(json['createdAt']) : null,
+      updatedAt: json['updatedAt'] != null ? parseToQatarTime(json['updatedAt']) : null,
+      deletedAt: json['deletedAt'] != null ? parseToQatarTime(json['deletedAt']) : null,
       conversationId: json['conversationId'],
       
       paymentMethod: payment?['paymentMethod'],

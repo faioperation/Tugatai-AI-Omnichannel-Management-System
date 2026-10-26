@@ -3,6 +3,7 @@ import DevBuildError from "../../lib/DevBuildError.js";
 import { StatusCodes } from "http-status-codes";
 import { QueryBuilder } from "../../utils/QueryBuilder.js";
 import { NotificationService } from "../notification/notification.service.js";
+import { formatQatarDateTime } from "../../utils/bookingHelpers.js";
 
 const createDemoBookingService = async (payload) => {
     const result = await prisma.demoBooking.create({
@@ -34,9 +35,15 @@ const getAllDemoBookingsService = async (query = {}) => {
         prisma.demoBooking.count({ where: queryParams.where }),
     ]);
 
+    const formattedResult = result.map(b => ({
+        ...b,
+        createdAt: formatQatarDateTime(b.createdAt),
+        updatedAt: formatQatarDateTime(b.updatedAt),
+    }));
+
     return {
         meta: queryBuilder.getMeta(total),
-        data: result,
+        data: formattedResult,
     };
 };
 
@@ -49,7 +56,11 @@ const getDemoBookingByIdService = async (id) => {
         throw new DevBuildError("Demo Booking not found", StatusCodes.NOT_FOUND);
     }
 
-    return result;
+    return {
+        ...result,
+        createdAt: formatQatarDateTime(result.createdAt),
+        updatedAt: formatQatarDateTime(result.updatedAt),
+    };
 };
 
 const updateDemoBookingService = async (id, payload) => {

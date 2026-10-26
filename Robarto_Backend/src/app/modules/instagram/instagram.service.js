@@ -10,6 +10,25 @@ import { downloadAndSaveMedia } from "../../utils/mediaDownloader.js";
 const getGraphUrl = () => `https://graph.facebook.com/${envVars.META_GRAPH_VERSION || "v23.0"}`;
 
 const getInstagramUserProfile = async (igsid, pageAccessToken) => {
+  // Method 1: Direct IGSID query (Official Meta Graph API endpoint for Instagram Messaging profiles)
+  try {
+    const directRes = await axios.get(`${getGraphUrl()}/${igsid}`, {
+      params: {
+        fields: "name,username,profile_pic",
+        access_token: pageAccessToken,
+      },
+      timeout: 6000,
+    });
+    const { name, username } = directRes.data || {};
+    const displayName = name || (username ? `@${username}` : null);
+    if (displayName) {
+      return { name: displayName, username: username || null };
+    }
+  } catch (err) {
+    console.warn("Direct Instagram user profile fetch failed, trying conversation fallback:", err.response?.data?.error?.message || err.message);
+  }
+
+  // Method 2: Fallback via /me/conversations participants
   try {
     const response = await axios.get(
       `${getGraphUrl()}/me/conversations`,
@@ -20,6 +39,7 @@ const getInstagramUserProfile = async (igsid, pageAccessToken) => {
           fields: "participants",
           access_token: pageAccessToken,
         },
+        timeout: 6000,
       }
     );
     const conversations = response.data?.data;
@@ -27,16 +47,17 @@ const getInstagramUserProfile = async (igsid, pageAccessToken) => {
       const participants = conversations[0].participants?.data;
       if (participants) {
         const customer = participants.find((p) => p.id === igsid);
-        if (customer && customer.name) {
-          return { name: customer.name };
+        const displayName = customer?.name || (customer?.username ? `@${customer.username}` : null);
+        if (displayName) {
+          return { name: displayName, username: customer?.username || null };
         }
       }
     }
-    return { name: "Instagram User" };
   } catch (error) {
-    console.error("Error fetching Instagram user profile from conversations:", error.response?.data || error.message);
-    return { name: "Instagram User" };
+    console.error("Error fetching Instagram user profile from conversations:", error.response?.data?.error?.message || error.message);
   }
+
+  return { name: "Instagram User" };
 };
 
 const extractMediaInfo = (messageObj) => {
@@ -246,18 +267,26 @@ export const handleIncomingMessage = async (instagramAccountId, webhookEvent) =>
   const isMediaType = hasMedia || !!resolvedMediaUrl;
 
   // Save the message
-  await prisma.message.create({
-    data: {
-      conversationId: conversation.id,
-      senderType: "customer",
-      senderId: senderId,
-      messageText: messageText || (isMediaType ? "" : null),
-      platformMessageId: platformMessageId,
-      rawPayload: webhookEvent,
-      type: isMediaType ? (mediaType || "image") : "text",
-      mediaUrl: resolvedMediaUrl,
-    },
-  });
+  try {
+    await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        senderType: "customer",
+        senderId: senderId,
+        messageText: messageText || (isMediaType ? "" : null),
+        platformMessageId: platformMessageId,
+        rawPayload: webhookEvent,
+        type: isMediaType ? (mediaType || "image") : "text",
+        mediaUrl: resolvedMediaUrl,
+      },
+    });
+  } catch (err) {
+    if (err.code === "P2002" || err.message?.includes("Unique constraint")) {
+      console.log(`[Instagram Webhook] Duplicate platformMessageId ${platformMessageId} detected. Skipping AI.`);
+      return;
+    }
+    throw err;
+  }
 
   // Trigger notification for incoming Instagram message with throttling
   NotificationService.shouldSendMessageNotification(conversation.id, "instagram").then((shouldNotify) => {
@@ -546,10 +575,22 @@ export const syncInstagramConversationsFromMeta = async (businessId, branchId = 
           },
         });
       } else {
+        const updateData = {};
         if (!conversation.branchId && resolvedBranchId) {
+          updateData.branchId = resolvedBranchId;
+        }
+        if (
+          (!conversation.customerName || conversation.customerName === "Instagram User") &&
+          customerName &&
+          customerName !== "Instagram User"
+        ) {
+          updateData.customerName = customerName;
+          conversation.customerName = customerName;
+        }
+        if (Object.keys(updateData).length > 0) {
           await prisma.conversation.update({
             where: { id: conversation.id },
-            data: { branchId: resolvedBranchId },
+            data: updateData,
           });
         }
       }
@@ -619,23 +660,8 @@ export const syncInstagramConversationsFromMeta = async (businessId, branchId = 
             },
           });
 
-          // Trigger AI Agent reply if incoming customer message is recent
-          const msgAgeMs = Date.now() - new Date(msg.created_time).getTime();
-          if (isCustomer && msgAgeMs < 300000) {
-            let aiMessage = messageText || "";
-            if (!aiMessage && isMediaType) {
-              aiMessage = `[Media ${finalType}: ${resolvedMediaUrl || ""}]`;
-            }
-            if (aiMessage) {
-              notifyAiAgent({
-                businessId,
-                recipientId: customerId,
-                conversationId: conversation.id,
-                channel: "instagram",
-                message: aiMessage,
-              });
-            }
-          }
+          // Note: Background sync only syncs message records to DB. 
+          // AI reply is NOT triggered here to prevent unexpected/duplicate AI calls during dashboard loading.
         } else if ((!exists.mediaUrl || exists.type === "text") && isMediaType) {
           // Fix previously saved broken records
           await prisma.message.update({
@@ -647,6 +673,33 @@ export const syncInstagramConversationsFromMeta = async (businessId, branchId = 
           });
         }
       }
+    }
+
+    // Self-heal: Automatically update any existing "Instagram User" conversations
+    try {
+      const unnamedConversations = await prisma.conversation.findMany({
+        where: {
+          businessId,
+          platform: "instagram",
+          customerName: "Instagram User",
+        },
+        take: 10,
+      });
+
+      for (const unnamed of unnamedConversations) {
+        if (unnamed.customerId && !unnamed.customerId.startsWith("test_")) {
+          const profile = await getInstagramUserProfile(unnamed.customerId, connection.accessToken);
+          if (profile.name && profile.name !== "Instagram User") {
+            await prisma.conversation.update({
+              where: { id: unnamed.id },
+              data: { customerName: profile.name },
+            });
+            console.log(`[Instagram Sync] Successfully updated customerName for conversation ${unnamed.id} from "Instagram User" to "${profile.name}"`);
+          }
+        }
+      }
+    } catch (healErr) {
+      // Quiet fail if self-heal encounters an issue
     }
   } catch (error) {
     const errMsg = error.response?.data?.error?.message || error.message;

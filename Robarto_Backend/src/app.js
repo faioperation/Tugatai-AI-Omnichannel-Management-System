@@ -1,3 +1,4 @@
+process.env.TZ = "Asia/Qatar";
 import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
@@ -50,11 +51,12 @@ app.use(cors({
 }));
 app.use(cookieParser());
 app.use(express.json({
+  limit: "50mb",
   verify: (req, res, buf) => {
     req.rawBody = buf.toString("utf8");
   }
 }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(passport.initialize());
 
 

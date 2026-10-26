@@ -154,22 +154,30 @@ const processIncomingMessages = async (value) => {
         }
       }
 
-      await prisma.whatsappMessage.create({
-        data: {
-          businessId,
-          whatsappAccountId: account.id,
-          conversationId: conversation.id,
-          contactId: dbContact.id,
-          metaMessageId: message.id,
-          direction: "INCOMING",
-          type,
-          text,
-          mediaUrl: localMediaUrl || mediaUrl,
-          location,
-          rawPayload: message,
-          status: "DELIVERED",
-        },
-      });
+      try {
+        await prisma.whatsappMessage.create({
+          data: {
+            businessId,
+            whatsappAccountId: account.id,
+            conversationId: conversation.id,
+            contactId: dbContact.id,
+            metaMessageId: message.id,
+            direction: "INCOMING",
+            type,
+            text,
+            mediaUrl: localMediaUrl || mediaUrl,
+            location,
+            rawPayload: message,
+            status: "DELIVERED",
+          },
+        });
+      } catch (err) {
+        if (err.code === "P2002" || err.message?.includes("Unique constraint")) {
+          console.log(`[WhatsApp Webhook] Duplicate metaMessageId ${message.id} detected during create. Skipping.`);
+          continue;
+        }
+        throw err;
+      }
 
       // Trigger notification for incoming WhatsApp message with throttling
       NotificationService.shouldSendMessageNotification(conversation.id, "whatsapp").then((shouldNotify) => {

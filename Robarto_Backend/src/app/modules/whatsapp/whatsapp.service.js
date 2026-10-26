@@ -98,15 +98,15 @@ export const WhatsappService = {
     const instanceName = `biz_${cleanBiz}_${cleanBranch}`;
     const webhookUrl = envVars.EVOLUTION_WEBHOOK_URL || "http://backend:8001/api/v1/whatsapp/webhook/evolution";
 
-    // Clean up all old/timestamped instances for this business in Evolution API and DB
+    // Clean up old/stale instances ONLY for this specific branch
     try {
       const allInstances = await EvolutionAPI.fetchInstances();
-      const prefix = `biz_${cleanBiz}_`;
+      const branchPrefix = `biz_${cleanBiz}_${cleanBranch}`;
       if (Array.isArray(allInstances)) {
         for (const inst of allInstances) {
           const name = inst.name || inst.instance?.instanceName || inst.instanceName;
-          if (name && name.startsWith(prefix) && name !== instanceName) {
-            console.log(`[EvolutionAPI] Cleaning up stale instance from Evolution API: ${name}`);
+          if (name && name.startsWith(branchPrefix) && name !== instanceName) {
+            console.log(`[EvolutionAPI] Cleaning up stale instance for branch: ${name}`);
             await EvolutionAPI.deleteInstance(name).catch(() => {});
           }
         }
@@ -115,12 +115,13 @@ export const WhatsappService = {
       await prisma.whatsappAccount.deleteMany({
         where: {
           businessId,
+          branchId: branchId || null,
           connectionType: "QR_CODE",
           instanceName: { not: instanceName },
         },
       });
     } catch (cleanErr) {
-      console.warn("[Evolution API] Error cleaning old instances:", cleanErr.message);
+      console.warn("[Evolution API] Error cleaning old branch instances:", cleanErr.message);
     }
 
     // 1. Create or get instance from Evolution API

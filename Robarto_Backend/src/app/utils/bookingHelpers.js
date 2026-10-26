@@ -367,13 +367,80 @@ export const attachDetails = async (txOrPrisma, bookings) => {
         additionalMap[ad.referenceId].push(ad);
     }
 
-    const formatted = list.map(booking => ({
-        ...booking,
-        paymentDetails: paymentMap[booking.id] || null,
-        additionalDetails: additionalMap[booking.id] || [],
-    }));
+    const formatted = list.map(booking => {
+        const item = {
+            ...booking,
+            paymentDetails: paymentMap[booking.id] || null,
+            additionalDetails: additionalMap[booking.id] || [],
+        };
+
+        if (booking.createdAt) {
+            item.createdAt = formatQatarDateTime(booking.createdAt);
+        }
+        if (booking.updatedAt) {
+            item.updatedAt = formatQatarDateTime(booking.updatedAt);
+        }
+        if (booking.deletedAt) {
+            item.deletedAt = formatQatarDateTime(booking.deletedAt);
+        }
+
+        if (item.parcelDetails) {
+            item.parcelDetails = {
+                ...item.parcelDetails,
+                createdAt: formatQatarDateTime(item.parcelDetails.createdAt),
+                updatedAt: formatQatarDateTime(item.parcelDetails.updatedAt),
+                deletedAt: formatQatarDateTime(item.parcelDetails.deletedAt),
+            };
+        }
+
+        if (item.orderDetails) {
+            item.orderDetails = {
+                ...item.orderDetails,
+                createdAt: formatQatarDateTime(item.orderDetails.createdAt),
+                updatedAt: formatQatarDateTime(item.orderDetails.updatedAt),
+                deletedAt: formatQatarDateTime(item.orderDetails.deletedAt),
+            };
+        }
+
+        if (item.appointmentDetails) {
+            item.appointmentDetails = {
+                ...item.appointmentDetails,
+                createdAt: formatQatarDateTime(item.appointmentDetails.createdAt),
+                updatedAt: formatQatarDateTime(item.appointmentDetails.updatedAt),
+                deletedAt: formatQatarDateTime(item.appointmentDetails.deletedAt),
+            };
+        }
+
+        return item;
+    });
 
     return isArray ? formatted : formatted[0];
+};
+
+export const formatQatarDateTime = (date) => {
+    if (!date) return null;
+    const d = date instanceof Date ? date : new Date(date);
+    if (isNaN(d.getTime())) return date;
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Qatar',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+    const parts = formatter.formatToParts(d);
+    const getPart = (type) => parts.find(p => p.type === type)?.value;
+    return `${getPart('year')}-${getPart('month')}-${getPart('day')} ${getPart('hour')}:${getPart('minute')}:${getPart('second')}`;
+};
+
+export const getQatarDate = (date = new Date()) => {
+    const d = date instanceof Date ? date : new Date(date);
+    if (isNaN(d.getTime())) return new Date();
+    const qatarStr = d.toLocaleString("en-US", { timeZone: "Asia/Qatar" });
+    return new Date(qatarStr);
 };
 
 export const normalizeDateString = (dateStr) => {
@@ -382,15 +449,24 @@ export const normalizeDateString = (dateStr) => {
     
     // Check if the value is "today" (case insensitive)
     if (trimmed.toLowerCase() === "today") {
-        const today = new Date();
+        const today = getQatarDate();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, "0");
         const day = String(today.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`;
     }
+
+    if (trimmed.toLowerCase() === "tomorrow") {
+        const tomorrow = getQatarDate();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const year = tomorrow.getFullYear();
+        const month = String(tomorrow.getMonth() + 1).padStart(2, "0");
+        const day = String(tomorrow.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    }
     
     if (trimmed.toLowerCase().includes("today")) {
-        const today = new Date();
+        const today = getQatarDate();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, "0");
         const day = String(today.getDate()).padStart(2, "0");
@@ -403,8 +479,8 @@ export const normalizeDateString = (dateStr) => {
         return trimmed;
     }
     
-    // Try to parse using JS Date
-    const parsed = new Date(trimmed);
+    // Try to parse using JS Date in Qatar Time
+    const parsed = getQatarDate(trimmed);
     if (!isNaN(parsed.getTime())) {
         const year = parsed.getFullYear();
         const month = String(parsed.getMonth() + 1).padStart(2, "0");

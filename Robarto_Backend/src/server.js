@@ -1,3 +1,4 @@
+process.env.TZ = "Asia/Qatar";
 import app from "./app.js";
 import { envVars } from "./app/config/env.js";
 import { connectRedis } from "./app/config/redis.config.js";

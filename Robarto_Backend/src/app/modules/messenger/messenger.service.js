@@ -153,18 +153,26 @@ export const handleIncomingMessage = async (pageId, webhookEvent) => {
   }
 
   // Save the message
-  await prisma.message.create({
-    data: {
-      conversationId: conversation.id,
-      senderType: "customer",
-      senderId: senderId,
-      messageText: messageText,
-      platformMessageId: platformMessageId,
-      rawPayload: webhookEvent,
-      type: attachments ? "media" : "text",
-      mediaUrl: localMediaUrl || (attachments ? attachments[0].payload?.url : null),
-    },
-  });
+  try {
+    await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        senderType: "customer",
+        senderId: senderId,
+        messageText: messageText,
+        platformMessageId: platformMessageId,
+        rawPayload: webhookEvent,
+        type: attachments ? "media" : "text",
+        mediaUrl: localMediaUrl || (attachments ? attachments[0].payload?.url : null),
+      },
+    });
+  } catch (err) {
+    if (err.code === "P2002" || err.message?.includes("Unique constraint")) {
+      console.log(`[Messenger Webhook] Duplicate platformMessageId ${platformMessageId} detected. Skipping AI.`);
+      return;
+    }
+    throw err;
+  }
 
   // Trigger notification for incoming Messenger message with throttling
   NotificationService.shouldSendMessageNotification(conversation.id, "messenger").then((shouldNotify) => {

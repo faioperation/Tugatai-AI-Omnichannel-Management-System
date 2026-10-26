@@ -79,6 +79,18 @@ class CustomViewdetails extends StatelessWidget {
           displayValue = displayValue.toUpperCase();
         }
 
+        // Convert any ISO timestamp (createdAt, updatedAt, deletedAt, etc.) to Qatar Time (UTC+3)
+        if (lowerKey == 'createdat' ||
+            lowerKey == 'updatedat' ||
+            lowerKey == 'deletedat' ||
+            lowerKey.endsWith('at') ||
+            (displayValue.contains('T') && (displayValue.endsWith('Z') || displayValue.contains('+')))) {
+          final qatarFormatted = OrderMod.formatToQatarString(displayValue);
+          if (qatarFormatted != null) {
+            displayValue = qatarFormatted;
+          }
+        }
+
         final isUrl = displayValue.startsWith('http://') ||
             displayValue.startsWith('https://') ||
             displayValue.startsWith('www.') ||
@@ -993,6 +1005,16 @@ class CustomViewdetails extends StatelessWidget {
                                 lowerKey.contains('mode') ||
                                 lowerKey.contains('status')) {
                               valueStr = valueStr.toUpperCase();
+                            }
+                            if (lowerKey == 'createdat' ||
+                                lowerKey == 'updatedat' ||
+                                lowerKey == 'deletedat' ||
+                                lowerKey.endsWith('at') ||
+                                (valueStr.contains('T') && (valueStr.endsWith('Z') || valueStr.contains('+')))) {
+                              final qatarFormatted = OrderMod.formatToQatarString(valueStr);
+                              if (qatarFormatted != null) {
+                                valueStr = qatarFormatted;
+                              }
                             }
                             return _buildPdfRow(formatKeyName(e.key), valueStr);
                           })
