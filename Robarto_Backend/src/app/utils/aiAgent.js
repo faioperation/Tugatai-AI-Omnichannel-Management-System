@@ -2,46 +2,35 @@ import axios from "axios";
 import prisma from "../prisma/client.js";
 import { envVars } from "../config/env.js";
 
-// In-flight request tracking & recent message deduplication to prevent duplicate AI calls
-const inFlightAiRequests = new Set();
-const recentAiMessages = new Map(); // key: `${lockKey}:${messageText}`, value: timestamp
+// Debounce configuration: wait 4.5s after the last message before calling AI
+const DEBOUNCE_DELAY_MS = 4500;
 
-export const notifyAiAgent = async ({
-  businessId,
-  recipientId,
-  conversationId,
-  channel,
-  message
-}) => {
-  const lockKey = conversationId || `${channel}:${recipientId}`;
-  const normalizedMessage = (message || "").trim();
-  const dedupKey = `${lockKey}:${normalizedMessage}`;
+// In-memory conversation state for debouncing & queueing
+// key: lockKey (conversationId or channel:recipientId)
+// value: { timer, messages: string[], businessId, recipientId, conversationId, channel, resolvers: Function[], inFlight: boolean }
+const conversationBuffers = new Map();
 
-  // 1. In-flight check: if an AI request is already in-progress for this conversation, skip duplicate
-  if (inFlightAiRequests.has(lockKey)) {
-    console.log(`[AI Agent] An AI request for conversation ${lockKey} is already in-flight. Skipping duplicate call.`);
+/**
+ * Executes the actual AI call with all buffered messages combined
+ */
+const executeAiCall = async (lockKey) => {
+  const buffer = conversationBuffers.get(lockKey);
+  if (!buffer || buffer.messages.length === 0) {
+    conversationBuffers.delete(lockKey);
     return;
   }
 
-  // 2. Rapid duplicate check: if the exact same message was sent to this conversation in the last 4 seconds, skip
-  if (normalizedMessage) {
-    const lastTime = recentAiMessages.get(dedupKey);
-    if (lastTime && Date.now() - lastTime < 4000) {
-      console.log(`[AI Agent] Duplicate message detected within 4s for conversation ${lockKey}. Skipping AI call.`);
-      return;
-    }
-    recentAiMessages.set(dedupKey, Date.now());
+  buffer.inFlight = true;
 
-    // Clean up old entries when map grows
-    if (recentAiMessages.size > 500) {
-      const now = Date.now();
-      for (const [k, v] of recentAiMessages.entries()) {
-        if (now - v > 10000) recentAiMessages.delete(k);
-      }
-    }
-  }
+  // Combine all buffered messages into a single message
+  const combinedMessage = buffer.messages.join("\n").trim();
+  buffer.messages = []; // Clear for any new messages arriving while in-flight
 
-  inFlightAiRequests.add(lockKey);
+  const { businessId, recipientId, conversationId, channel, resolvers } = buffer;
+
+  console.log(`[AI Agent Debounce] Processing combined message for ${lockKey} (${channel}):\n"${combinedMessage}"`);
+
+  let aiResult = null;
 
   try {
     const apiBaseUrl = envVars.AI_API_TAREQ;
@@ -52,8 +41,6 @@ export const notifyAiAgent = async ({
 
     // Fetch business to get type (subject)
     const business = await prisma.business.findUnique({
-
-
       where: { id: businessId }
     });
 
@@ -141,9 +128,8 @@ export const notifyAiAgent = async ({
       conversation_id: conversationId,
       channel,
       source_type: channel ? channel.toUpperCase() : null,
-      message: message || ""
+      message: combinedMessage
     };
-    console.log("from paylod message", payload)
 
     console.log(`[AI Agent] Triggering notifyAiAgent for channel ${channel}...`);
     console.log("[AI Agent] Payload:", JSON.stringify(payload, null, 2));
@@ -156,6 +142,7 @@ export const notifyAiAgent = async ({
     });
 
     console.log("[AI Agent] Response from AI API:", response.data);
+    aiResult = response.data;
 
     // If AI replied successfully, send it back to the customer
     const responseText = response.data?.response;
@@ -195,50 +182,123 @@ export const notifyAiAgent = async ({
 
       if (alreadySent) {
         console.log(`[AI Agent] Reply was already sent to user on ${channel} (deduplicated). Skipping.`);
-        return response.data;
-      }
+      } else {
+        console.log(`[AI Agent] Sending AI reply back to user on ${channel}: ${responseText}`);
 
-      console.log(`[AI Agent] Sending AI reply back to user on ${channel}: ${responseText}`);
-
-      if (channel === "messenger") {
-        const { sendMessageToUser } = await import("../modules/messenger/messenger.service.js");
-        await sendMessageToUser(businessId, recipientId, responseText, "agent");
-      } else if (channel === "instagram") {
-        const { sendMessageToUser } = await import("../modules/instagram/instagram.service.js");
-        await sendMessageToUser(businessId, recipientId, responseText, "agent");
-      } else if (channel === "whatsapp") {
-        const { WhatsappService } = await import("../modules/whatsapp/whatsapp.service.js");
-        await WhatsappService.sendTextMessage(businessId, conversationId, responseText);
-      } else if (channel === "webhook") {
-        await prisma.message.create({
-          data: {
-            conversationId,
-            senderType: "agent",
-            senderId: "ai_agent",
-            type: "text",
-            messageText: responseText,
-            aiReply: true,
-            continueAi: true,
-          },
-        });
-        await prisma.conversation.update({
-          where: { id: conversationId },
-          data: {
-            lastMessage: responseText,
-            lastMessageAt: new Date(),
-          },
-        });
+        if (channel === "messenger") {
+          const { sendMessageToUser } = await import("../modules/messenger/messenger.service.js");
+          await sendMessageToUser(businessId, recipientId, responseText, "agent");
+        } else if (channel === "instagram") {
+          const { sendMessageToUser } = await import("../modules/instagram/instagram.service.js");
+          await sendMessageToUser(businessId, recipientId, responseText, "agent");
+        } else if (channel === "whatsapp") {
+          const { WhatsappService } = await import("../modules/whatsapp/whatsapp.service.js");
+          await WhatsappService.sendTextMessage(businessId, conversationId, responseText);
+        } else if (channel === "webhook") {
+          await prisma.message.create({
+            data: {
+              conversationId,
+              senderType: "agent",
+              senderId: "ai_agent",
+              type: "text",
+              messageText: responseText,
+              aiReply: true,
+              continueAi: true,
+            },
+          });
+          await prisma.conversation.update({
+            where: { id: conversationId },
+            data: {
+              lastMessage: responseText,
+              lastMessageAt: new Date(),
+            },
+          });
+        }
       }
     }
-
-    return response.data;
   } catch (error) {
     console.error(
       "[AI Agent] Error in notifyAiAgent:",
       error.response?.data ? JSON.stringify(error.response.data, null, 2) : error.message
     );
   } finally {
-    inFlightAiRequests.delete(lockKey);
+    // Resolve all promises waiting for this batch
+    resolvers.forEach((resolve) => resolve(aiResult));
+    buffer.resolvers = [];
+    buffer.inFlight = false;
+
+    // Check if new customer messages arrived while this request was in-flight
+    if (buffer.messages.length > 0) {
+      console.log(`[AI Agent Debounce] New messages arrived while in-flight for ${lockKey}. Scheduling next run in ${DEBOUNCE_DELAY_MS}ms...`);
+      buffer.timer = setTimeout(() => executeAiCall(lockKey), DEBOUNCE_DELAY_MS);
+    } else {
+      conversationBuffers.delete(lockKey);
+    }
   }
+};
+
+/**
+ * Public notifyAiAgent entry point with smart debouncing.
+ * Batches rapid consecutive messages from a customer within DEBOUNCE_DELAY_MS (4.5s)
+ * into a single AI call, dramatically reducing LLM costs and improving response quality.
+ */
+export const notifyAiAgent = async ({
+  businessId,
+  recipientId,
+  conversationId,
+  channel,
+  message
+}) => {
+  const lockKey = conversationId || `${channel}:${recipientId}`;
+  const normalizedMessage = (message || "").trim();
+
+  // For synchronous testing webhooks, execute without debounce delay
+  const delay = channel === "webhook" ? 0 : DEBOUNCE_DELAY_MS;
+
+  return new Promise((resolve) => {
+    let buffer = conversationBuffers.get(lockKey);
+
+    if (!buffer) {
+      buffer = {
+        timer: null,
+        messages: [],
+        businessId,
+        recipientId,
+        conversationId,
+        channel,
+        resolvers: [],
+        inFlight: false,
+      };
+      conversationBuffers.set(lockKey, buffer);
+    }
+
+    // Always keep latest parameters
+    buffer.businessId = businessId;
+    buffer.recipientId = recipientId;
+    buffer.channel = channel;
+    buffer.resolvers.push(resolve);
+
+    // Prevent immediate exact duplicate message within the buffer
+    if (normalizedMessage) {
+      const isDuplicate = buffer.messages.length > 0 && buffer.messages[buffer.messages.length - 1] === normalizedMessage;
+      if (!isDuplicate) {
+        buffer.messages.push(normalizedMessage);
+      }
+    }
+
+    // If an AI call is already in-flight, keep message buffered. It will be scheduled once in-flight finishes.
+    if (buffer.inFlight) {
+      console.log(`[AI Agent Debounce] Request in-flight for ${lockKey}. Buffered message: "${normalizedMessage}"`);
+      return;
+    }
+
+    // Reset the debounce timer on each new message received
+    if (buffer.timer) {
+      clearTimeout(buffer.timer);
+    }
+
+    console.log(`[AI Agent Debounce] Message received for ${lockKey}. Waiting ${delay}ms before calling AI (messages count: ${buffer.messages.length})...`);
+    buffer.timer = setTimeout(() => executeAiCall(lockKey), delay);
+  });
 };
 
